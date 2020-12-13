@@ -1,0 +1,25 @@
+[package]
+name = "snow_rl"
+version = "0.1.0"
+authors = ["toyboot4e <toyboot4e@gmail.com>"]
+edition = "2018"
+
+# exclude = [""]
+# keywords = ["book", "ssg", "asciidoc"]
+# license = "MIT"
+# repository = "https://github.com/toyboot4e/snow_rl"
+# description = ""
+
+[[bin]]
+bench = false
+path = "src/bin/main.rs"
+name = "SnowRL"
+
+[dependencies]
+rokol = { path = "crates/rokol", features = ["glcore33"] }
+
+log = "0.4.11"
+env_logger = "0.8.2"
+anyhow = "1.0.33"
+thiserror = "1.0.21"
+
