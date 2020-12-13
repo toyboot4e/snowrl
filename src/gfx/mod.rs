@@ -1,6 +1,7 @@
 //! Graphics
 
 pub mod batch;
+pub mod mesh;
 pub mod shaders;
 
 use {

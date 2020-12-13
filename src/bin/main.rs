@@ -3,7 +3,7 @@ use {
         app as ra,
         gfx::{self as rg, BakedResource, Buffer, Pipeline},
     },
-    snow_rl::gfx::batch::Vertex,
+    snow_rl::gfx::batch::Batch,
     std::path::PathBuf,
 };
 
@@ -22,14 +22,16 @@ fn main() -> rokol::Result {
     rokol.run(&mut app)
 }
 
-#[derive(Debug, Default)]
-struct SnowRl {
+#[derive(Debug)]
+pub struct SnowRl {
     /// Clears the frame color buffer on starting screen rendering pass
     pa: rg::PassAction,
     /// Vertex layouts, shader and render states
     pip: rg::Pipeline,
-    /// Vertex/index buffer and image slots
-    bind: rg::Bindings,
+    /// Vertex/index buffer and images slots
+    batch: Batch,
+    //
+    image: rg::Image,
 }
 
 impl SnowRl {
@@ -38,7 +40,9 @@ impl SnowRl {
 
         Self {
             pa: rg::PassAction::clear(color),
-            ..Default::default()
+            pip: Default::default(),
+            batch: Default::default(),
+            image: rg::Image::default(),
         }
     }
 }
@@ -47,28 +51,13 @@ impl rokol::app::RApp for SnowRl {
     fn init(&mut self) {
         rg::setup(&mut rokol::glue::app_desc());
 
-        self.bind.fs_images[0] = {
+        self.image = {
             let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
             let path = root.join("assets/nekura/map2/m_snow02.png");
             snow_rl::gfx::load_img(&path)
         };
 
-        self.bind.vertex_buffers[0] = Buffer::create({
-            let verts: &[Vertex] = &[
-                ([-0.5, -0.5], [255, 255, 255, 255], [0.0, 0.0]).into(),
-                ([0.5, -0.5], [255, 255, 255, 255], [1.0, 0.0]).into(),
-                ([0.5, 0.5], [255, 255, 255, 255], [1.0, 1.0]).into(),
-                ([-0.5, 0.5], [255, 255, 255, 255], [0.0, 1.0]).into(),
-            ];
-
-            &rg::vbuf_desc(verts, rg::ResourceUsage::Immutable, "batch-vertices")
-        });
-
-        // index for with 2 triangles
-        self.bind.index_buffer = Buffer::create({
-            let indices: &[u16] = &[0, 1, 2, 0, 2, 3];
-            &rg::ibuf_desc(indices, rg::ResourceUsage::Immutable, "batch-indices")
-        });
+        self.batch.init();
 
         self.pip = Pipeline::create(&rg::PipelineDesc {
             shader: snow_rl::gfx::shaders::tex_1(),
@@ -88,8 +77,17 @@ impl rokol::app::RApp for SnowRl {
         rg::begin_default_pass(&self.pa, ra::width(), ra::height());
         {
             rg::apply_pipeline(self.pip);
-            rg::apply_bindings(&self.bind);
-            rg::draw(0, 6, 1); // base_elem, n_indices, n_instances
+
+            let white = [255, 255, 255, 255];
+            self.batch.mesh_mut().bind_image(self.image, 0);
+            self.batch.set_quad([
+                // pos, color, uv
+                ([-0.5, 0.5], white, [0.0, 0.0]).into(),
+                ([0.5, 0.5], white, [1.0, 0.0]).into(),
+                ([-0.5, -0.5], white, [0.0, 1.0]).into(),
+                ([0.5, -0.5], white, [1.0, 1.0]).into(),
+            ]);
+            self.batch.flush();
         }
         rg::end_pass();
         rg::commit();
