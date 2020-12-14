@@ -1,9 +1,10 @@
 use {
+    glam::{Mat3, Vec2},
     rokol::{
         app as ra,
         gfx::{self as rg, BakedResource, Buffer, Pipeline},
     },
-    snow_rl::gfx::batch::Batch,
+    snow_rl::gfx::{batch::Batch, texture::TextureData2d},
     std::path::PathBuf,
 };
 
@@ -31,7 +32,8 @@ pub struct SnowRl {
     /// Vertex/index buffer and images slots
     batch: Batch,
     //
-    image: rg::Image,
+    tex_1: TextureData2d,
+    tex_2: TextureData2d,
 }
 
 impl SnowRl {
@@ -42,7 +44,8 @@ impl SnowRl {
             pa: rg::PassAction::clear(color),
             pip: Default::default(),
             batch: Default::default(),
-            image: rg::Image::default(),
+            tex_1: Default::default(),
+            tex_2: Default::default(),
         }
     }
 }
@@ -51,10 +54,15 @@ impl rokol::app::RApp for SnowRl {
     fn init(&mut self) {
         rg::setup(&mut rokol::glue::app_desc());
 
-        self.image = {
+        self.tex_1 = {
             let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
             let path = root.join("assets/nekura/map2/m_snow02.png");
-            snow_rl::gfx::load_img(&path)
+            TextureData2d::from_path(&path).unwrap()
+        };
+        self.tex_2 = {
+            let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+            let path = root.join("assets/nekura/map2/m_skelcave.png");
+            TextureData2d::from_path(&path).unwrap()
         };
 
         self.batch.init();
@@ -79,15 +87,28 @@ impl rokol::app::RApp for SnowRl {
             rg::apply_pipeline(self.pip);
 
             let white = [255, 255, 255, 255];
-            self.batch.mesh_mut().bind_image(self.image, 0);
-            self.batch.set_quad([
-                // pos, color, uv
-                ([-0.5, 0.5], white, [0.0, 0.0]).into(),
-                ([0.5, 0.5], white, [1.0, 0.0]).into(),
-                ([-0.5, -0.5], white, [0.0, 1.0]).into(),
-                ([0.5, -0.5], white, [1.0, 1.0]).into(),
-            ]);
-            self.batch.flush();
+
+            // self.batch.begin().sprite(self.image_1,Mat3::
+
+            // self.batch.mesh_mut().bind_image(self.image_1, 0);
+            // self.batch.set_quad([
+            //     // pos, color, uv
+            //     ([-0.5, 0.5], white, [0.0, 0.0]).into(),
+            //     ([0.0, 0.5], white, [1.0, 0.0]).into(),
+            //     ([-0.5, -0.5], white, [0.0, 1.0]).into(),
+            //     ([0.0, -0.5], white, [1.0, 1.0]).into(),
+            // ]);
+            // self.batch.flush();
+
+            // self.batch.mesh_mut().bind_image(self.image_2, 0);
+            // self.batch.set_quad([
+            //     // pos, color, uv
+            //     ([0.0, 0.5], white, [0.0, 0.0]).into(),
+            //     ([0.5, 0.5], white, [1.0, 0.0]).into(),
+            //     ([0.0, -0.5], white, [0.0, 1.0]).into(),
+            //     ([0.5, -0.5], white, [1.0, 1.0]).into(),
+            // ]);
+            // self.batch.flush();
         }
         rg::end_pass();
         rg::commit();

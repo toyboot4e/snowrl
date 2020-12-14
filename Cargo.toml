@@ -23,4 +23,5 @@ env_logger = "0.8.2"
 anyhow = "1.0.33"
 thiserror = "1.0.21"
 image = "0.23.12"
+glam = "0.11.2"
 

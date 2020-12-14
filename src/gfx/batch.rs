@@ -1,7 +1,8 @@
 //! Batcher
 
-use crate::gfx::mesh::DynamicMesh;
 use rokol::gfx::{self as rg, BakedResource};
+
+use crate::gfx::{mesh::DynamicMesh, texture::TextureData2d};
 
 const N_QUADS: usize = 2048;
 
@@ -81,6 +82,7 @@ pub struct Batch {
     quad_ix: usize,
     // TODO:
     buffer_offset: usize,
+    img: Option<rg::Image>,
 }
 
 impl Batch {
@@ -89,6 +91,21 @@ impl Batch {
             vec![QuadData::default(); N_QUADS],
             &gen_quad_indices!(u16, N_QUADS)[0..],
         );
+    }
+
+    pub fn begin(&mut self) -> BatchApi<'_> {
+        BatchApi { batch: self }
+    }
+
+    pub fn flush(&mut self) {
+        // TODO: span of draw calls
+        self.mesh
+            .append_vert_slice(self.buffer_offset, self.quad_ix);
+
+        self.mesh.draw(0, 6 * self.quad_ix as u32);
+
+        self.quad_ix = 0;
+        // self.mesh.
     }
 
     pub fn mesh_mut(&mut self) -> &mut DynamicMesh<QuadData> {
@@ -106,19 +123,31 @@ impl Batch {
         self.quad_ix += 1;
         &mut self.mesh.verts[ix]
     }
-
-    pub fn flush(&mut self) {
-        // TODO: span of draw calls
-        self.mesh
-            .append_vert_slice(self.buffer_offset, self.quad_ix);
-
-        self.mesh.draw(0, 6 * self.quad_ix as u32);
-
-        self.quad_ix = 0;
-        // self.mesh.
-    }
 }
 
 // pub struct DrawCall<'a> {
 //     quads: &'a [QuadData],
 // }
+
+pub struct BatchApi<'a> {
+    batch: &'a mut Batch,
+}
+
+impl<'a> Drop for BatchApi<'a> {
+    fn drop(&mut self) {
+        self.batch.flush();
+    }
+}
+
+impl<'a> BatchApi<'a> {
+    pub fn sprite(&mut self, tex: &TextureData2d, mat: glam::Mat3) -> &mut Self {
+        if let Some(img) = self.batch.img {
+            if img.id == tex.img.id {
+                self.batch.flush();
+                self.batch.img = Some(tex.img);
+            }
+        }
+
+        self
+    }
+}
