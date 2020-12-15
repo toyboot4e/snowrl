@@ -1,7 +1,7 @@
 //! Builder for [`QuadParams`]
 
 use crate::gfx::{
-    batcher::params::{QuadParams, Texture2d},
+    batcher::draw::{QuadParams, Texture2d},
     geom2d::*,
     texture::TextureData2d,
     Color,

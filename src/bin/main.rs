@@ -53,6 +53,7 @@ impl SnowRl {
 impl rokol::app::RApp for SnowRl {
     fn init(&mut self) {
         rg::setup(&mut rokol::glue::app_desc());
+        snow_rl::gfx::init();
 
         self.tex_1 = {
             let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());

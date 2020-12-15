@@ -3,7 +3,7 @@
 use rokol::gfx::{self as rg, BakedResource};
 
 use crate::gfx::{
-    batcher::{mesh::DynamicMesh, QuadData, N_QUADS},
+    batcher::{draw::QuadParamsBuilder, mesh::DynamicMesh, QuadData, N_QUADS},
     texture::TextureData2d,
 };
 
@@ -74,22 +74,17 @@ impl Batch {
         &mut self.mesh
     }
 
-    #[inline]
     pub fn push_quad(&mut self, quad: impl Into<QuadData>) {
         self.mesh.verts[self.quad_ix] = quad.into();
         self.quad_ix += 1;
     }
 
-    pub fn quad_mut(&mut self) -> &mut QuadData {
+    pub fn next_quad_mut(&mut self) -> &mut QuadData {
         let ix = self.quad_ix;
         self.quad_ix += 1;
         &mut self.mesh.verts[ix]
     }
 }
-
-// pub struct DrawCall<'a> {
-//     quads: &'a [QuadData],
-// }
 
 pub struct BatchApi<'a> {
     batch: &'a mut Batch,

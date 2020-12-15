@@ -1,15 +1,17 @@
 use {
-    image::{io::Reader as ImageReader, GenericImageView},
+    image::GenericImageView,
     rokol::gfx::{self as rg, BakedResource},
-    std::{io, path::Path},
+    std::path::Path,
 };
 
-fn gen_img(pixels: &[u8], size: [u32; 2]) -> rg::Image {
+use crate::gfx::batcher::draw::{OnSpritePush, QuadParamsBuilder, Texture2d};
+
+fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
     rg::Image::create(&{
         let mut desc = rg::ImageDesc {
             type_: rg::ImageType::Dim2 as u32,
-            width: size[0] as i32,
-            height: size[1] as i32,
+            width: w as i32,
+            height: h as i32,
             usage: rg::ResourceUsage::Immutable as u32,
             min_filter: rg::Filter::Linear as u32,
             mag_filter: rg::Filter::Linear as u32,
@@ -44,24 +46,38 @@ impl Default for TextureData2d {
 }
 
 impl TextureData2d {
-    pub fn from_path(path: impl AsRef<Path>) -> io::Result<Self> {
-        let img = ImageReader::open(path)?
-            .decode()
-            // `io::Result` can upcast any other error type (just like `Box`)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    pub fn from_path(path: impl AsRef<Path>) -> image::ImageResult<Self> {
+        let img = image::open(path)?;
 
-        // change u, v axes match to x, y axes
-        #[cfg(rokol_gfx = "glcore33")]
-        let img = img.flipv();
+        // TODO: flip?
+        // #[cfg(rokol_gfx = "glcore33")]
+        // let img = img.flipv();
 
-        let (w, h) = img.dimensions();
-        let id = self::gen_img(img.as_bytes(), [w, h]);
+        Ok(Self::from_pixels(img.as_bytes(), img.width(), img.height()))
+    }
 
-        Ok(Self { img: id, w, h })
+    pub fn from_encoded_bytes(bytes: &[u8]) -> image::ImageResult<Self> {
+        let img = image::load_from_memory(bytes)?;
+
+        // TODO: flip?
+        // #[cfg(rokol_gfx = "glcore33")]
+        // let img = img.flipv();
+
+        Ok(Self::from_pixels(img.as_bytes(), img.width(), img.height()))
+    }
+
+    fn from_dyn_image(img: image::DynamicImage) -> Self {
+        Self::from_pixels(img.as_bytes(), img.width(), img.height())
+    }
+
+    // TODO: flip?
+    pub fn from_pixels(pixels: &[u8], w: u32, h: u32) -> Self {
+        let id = self::gen_img(pixels, w, h);
+        Self { img: id, w, h }
     }
 }
 
-impl crate::gfx::batcher::traits::Texture2d for TextureData2d {
+impl Texture2d for TextureData2d {
     fn raw_texture(&self) -> rg::Image {
         self.img
     }
@@ -72,5 +88,15 @@ impl crate::gfx::batcher::traits::Texture2d for TextureData2d {
 
     fn h(&self) -> f32 {
         self.h as f32
+    }
+}
+
+impl OnSpritePush for TextureData2d {
+    fn to_texture(&self) -> TextureData2d {
+        self.clone()
+    }
+
+    fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
+        builder.src_rect_px([0.0, 0.0, self.w(), self.h()]);
     }
 }

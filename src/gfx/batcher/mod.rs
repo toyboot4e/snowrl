@@ -1,14 +1,9 @@
+pub mod draw;
+
 mod batch;
 mod mesh;
-mod param_builder;
-mod params;
 
 pub use self::batch::Batch;
-
-pub mod traits {
-    pub use crate::gfx::batcher::param_builder::*;
-    pub use crate::gfx::batcher::params::Texture2d;
-}
 
 const N_QUADS: usize = 2048;
 

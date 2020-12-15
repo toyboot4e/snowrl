@@ -14,6 +14,10 @@ pub mod geom2d;
 pub mod shaders;
 pub mod texture;
 
+pub fn init() {
+    crate::gfx::batcher::draw::init();
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
     pub r: u8,
