@@ -2,48 +2,10 @@
 
 use rokol::gfx::{self as rg, BakedResource};
 
-use crate::gfx::{mesh::DynamicMesh, texture::TextureData2d};
-
-const N_QUADS: usize = 2048;
-
-#[derive(Debug, Clone, Default)]
-#[repr(C)]
-pub struct VertexData {
-    pos: [f32; 2],
-    color: [u8; 4],
-    uv: [f32; 2],
-}
-
-impl<Pos, Color, Uv> From<(Pos, Color, Uv)> for VertexData
-where
-    Pos: Into<[f32; 2]>,
-    Color: Into<[u8; 4]>,
-    Uv: Into<[f32; 2]>,
-{
-    fn from(data: (Pos, Color, Uv)) -> Self {
-        Self {
-            pos: data.0.into(),
-            color: data.1.into(),
-            uv: data.2.into(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-#[repr(C)]
-pub struct QuadData(pub [VertexData; 4]);
-
-impl From<[VertexData; 4]> for QuadData {
-    fn from(data: [VertexData; 4]) -> Self {
-        Self(data)
-    }
-}
-
-impl From<&[VertexData; 4]> for QuadData {
-    fn from(data: &[VertexData; 4]) -> Self {
-        Self(data.clone())
-    }
-}
+use crate::gfx::{
+    batcher::{mesh::DynamicMesh, QuadData, N_QUADS},
+    texture::TextureData2d,
+};
 
 /// Creates index buffer for quadliterals
 ///
@@ -113,7 +75,7 @@ impl Batch {
     }
 
     #[inline]
-    pub fn set_quad(&mut self, quad: impl Into<QuadData>) {
+    pub fn push_quad(&mut self, quad: impl Into<QuadData>) {
         self.mesh.verts[self.quad_ix] = quad.into();
         self.quad_ix += 1;
     }

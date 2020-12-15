@@ -4,7 +4,7 @@ use {
         app as ra,
         gfx::{self as rg, BakedResource, Buffer, Pipeline},
     },
-    snow_rl::gfx::{batch::Batch, texture::TextureData2d},
+    snow_rl::gfx::{batcher::Batch, texture::TextureData2d},
     std::path::PathBuf,
 };
 

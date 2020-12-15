@@ -25,6 +25,7 @@ fn gen_img(pixels: &[u8], size: [u32; 2]) -> rg::Image {
     })
 }
 
+// TODO: drop type and shared type
 #[derive(Debug, Clone)]
 pub struct TextureData2d {
     pub img: rg::Image,
@@ -57,5 +58,19 @@ impl TextureData2d {
         let id = self::gen_img(img.as_bytes(), [w, h]);
 
         Ok(Self { img: id, w, h })
+    }
+}
+
+impl crate::gfx::batcher::traits::Texture2d for TextureData2d {
+    fn raw_texture(&self) -> rg::Image {
+        self.img
+    }
+
+    fn w(&self) -> f32 {
+        self.w as f32
+    }
+
+    fn h(&self) -> f32 {
+        self.h as f32
     }
 }
