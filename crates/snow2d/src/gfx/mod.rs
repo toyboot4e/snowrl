@@ -9,7 +9,6 @@ Same as OpenGL or school math (left-handed and column-major).
 */
 
 pub mod batcher;
-pub mod camera;
 pub mod geom2d;
 pub mod shaders;
 pub mod texture;
@@ -49,6 +48,12 @@ impl Color {
     pub fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
+
+    pub fn with_alpha(self, a: u8) -> Self {
+        let mut x = self;
+        x.a = a;
+        x
+    }
 }
 
 #[macro_export]
@@ -73,6 +78,7 @@ def_colors!(
     (BLACK, 0, 0, 0, 0),
     (GRAY, 32, 32, 32, 32),
     (CORNFLOWER_BLUE, 100, 149, 237, 255),
+    // TODO: define more colors
 );
 
 impl From<[u8; 4]> for Color {

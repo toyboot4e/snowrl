@@ -49,28 +49,15 @@ impl TextureData2d {
     pub fn from_path(path: impl AsRef<Path>) -> image::ImageResult<Self> {
         let img = image::open(path)?;
 
-        // TODO: flip?
-        // #[cfg(rokol_gfx = "glcore33")]
-        // let img = img.flipv();
-
         Ok(Self::from_pixels(img.as_bytes(), img.width(), img.height()))
     }
 
     pub fn from_encoded_bytes(bytes: &[u8]) -> image::ImageResult<Self> {
         let img = image::load_from_memory(bytes)?;
 
-        // TODO: flip?
-        // #[cfg(rokol_gfx = "glcore33")]
-        // let img = img.flipv();
-
         Ok(Self::from_pixels(img.as_bytes(), img.width(), img.height()))
     }
 
-    fn from_dyn_image(img: image::DynamicImage) -> Self {
-        Self::from_pixels(img.as_bytes(), img.width(), img.height())
-    }
-
-    // TODO: flip?
     pub fn from_pixels(pixels: &[u8], w: u32, h: u32) -> Self {
         let id = self::gen_img(pixels, w, h);
         Self { img: id, w, h }
@@ -97,6 +84,8 @@ impl OnSpritePush for TextureData2d {
     }
 
     fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
-        builder.src_rect_px([0.0, 0.0, self.w(), self.h()]);
+        builder
+            .src_rect_px([0.0, 0.0, self.w(), self.h()])
+            .dst_size_px([self.w(), self.h()]);
     }
 }

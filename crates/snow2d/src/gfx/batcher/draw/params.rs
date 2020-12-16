@@ -14,11 +14,11 @@ pub trait Texture2d {
 }
 
 /// Full-featured geometry parameters to push a quadliteral onto [`SpriteBatch`]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QuadParams {
     // TODO: consider using two vectors per src/dest
     pub src_rect: Scaled<Rect2f>,
-    pub dest_rect: Scaled<Rect2f>,
+    pub dst_rect: Scaled<Rect2f>,
     /// Normalized origin
     pub origin: Vec2f,
     pub color: Color,
@@ -32,7 +32,7 @@ impl Default for QuadParams {
     fn default() -> Self {
         Self {
             src_rect: Scaled::Normalized(Rect2f::unit()),
-            dest_rect: Scaled::Normalized(Rect2f::default()),
+            dst_rect: Scaled::Normalized(Rect2f::default()),
             origin: Vec2f::default(),
             color: Color::WHITE,
             rot: 0.0,
@@ -47,7 +47,7 @@ impl QuadParams {
     pub fn reset_to_defaults(&mut self) {
         // TODO: idionmatically?
         self.src_rect = Scaled::Normalized(Rect2f::unit());
-        self.dest_rect = Scaled::Normalized(Rect2f::default());
+        self.dst_rect = Scaled::Normalized(Rect2f::default());
         self.origin = Vec2f::default();
         self.color = Color::WHITE;
         self.rot = 0.0;
@@ -58,7 +58,7 @@ impl QuadParams {
 
     /// Be sure to flush [`SpriteBatch`] before running if it's saturated.
     pub fn write_to_quad(&self, quad: &mut QuadData, texture: &impl Texture2d, flips: Flips) {
-        let (src_rect, dest_rect) = self.geometry_normalized(texture);
+        let (src_rect, dst_rect) = self.geometry_normalized(texture);
 
         // TODO: round
         // if policy.do_round {
@@ -70,7 +70,7 @@ impl QuadParams {
             quad,
             self.origin,
             src_rect,
-            dest_rect,
+            dst_rect,
             self.skew,
             self.color,
             self.rot,
@@ -79,7 +79,7 @@ impl QuadParams {
         );
     }
 
-    /// -> (src_rect, origin, dest_rect)
+    /// -> (src_rect, origin, dst_rect)
     #[inline]
     fn geometry_normalized(&self, texture: &impl Texture2d) -> (Rect2f, Rect2f) {
         let inv_tex_w = 1.0 / texture.w();
@@ -97,7 +97,7 @@ impl QuadParams {
         };
 
         // in pixel
-        let dest_rect = match &self.dest_rect {
+        let dst_rect = match &self.dst_rect {
             Scaled::Normalized(rect) => Rect2f {
                 x: rect.x * texture.w(),
                 y: rect.y * texture.h(),
@@ -112,7 +112,7 @@ impl QuadParams {
             },
         };
 
-        (src_rect, dest_rect)
+        (src_rect, dst_rect)
     }
 }
 
@@ -125,7 +125,7 @@ fn push_texture2d(
     quad: &mut QuadData,
     origin: Vec2f,
     src_rect: Rect2f,
-    dest_rect: Rect2f,
+    dst_rect: Rect2f,
     skew: Skew2f,
     color: Color,
     rot: f32,
@@ -133,7 +133,7 @@ fn push_texture2d(
     flips: Flips,
 ) {
     self::set_quad(
-        quad, skew, origin, src_rect, dest_rect, color, rot, depth, flips,
+        quad, skew, origin, src_rect, dst_rect, color, rot, depth, flips,
     );
 }
 
@@ -150,7 +150,7 @@ fn set_quad(
     mut skew: Skew2f,
     origin: Vec2f,
     src_rect: Rect2f,
-    dest_rect: Rect2f,
+    dst_rect: Rect2f,
     color: Color,
     rot: f32,
     depth: f32,
@@ -174,11 +174,11 @@ fn set_quad(
 
     // push four vertices: top-left, top-right, bottom-left, and bottom-right, respectively
     for i in 0..4 {
-        let corner_x = (CORNER_OFFSET_X[i] - origin.x) * dest_rect.w + skew_xs[i];
-        let corner_y = (CORNER_OFFSET_Y[i] - origin.y) * dest_rect.h - skew_ys[i];
+        let corner_x = (CORNER_OFFSET_X[i] - origin.x) * dst_rect.w + skew_xs[i];
+        let corner_y = (CORNER_OFFSET_Y[i] - origin.y) * dst_rect.h - skew_ys[i];
 
-        quad[i].pos[0] = (rot.x2 * corner_y) + (rot.x1 * corner_x) + dest_rect.x;
-        quad[i].pos[1] = (rot.y2 * corner_y) + (rot.y1 * corner_x) + dest_rect.y;
+        quad[i].pos[0] = (rot.x2 * corner_y) + (rot.x1 * corner_x) + dst_rect.x;
+        quad[i].pos[1] = (rot.y2 * corner_y) + (rot.y1 * corner_x) + dst_rect.y;
         // quad[i].pos.z = depth;
 
         // Here, `^` is xor (exclusive or) operator. So if `effects` (actually flips?) equals to

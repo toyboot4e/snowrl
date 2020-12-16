@@ -15,7 +15,7 @@ bitflags::bitflags! {
 }
 
 // TODO: refactor saceld/unscaled API
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Scaled<T> {
     Px(T),
     Normalized(T),

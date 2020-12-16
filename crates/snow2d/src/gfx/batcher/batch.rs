@@ -1,9 +1,9 @@
 //! Batcher
 
-use rokol::gfx::{self as rg, BakedResource};
+use rokol::gfx as rg;
 
 use crate::gfx::{
-    batcher::{draw::QuadParamsBuilder, mesh::DynamicMesh, QuadData, N_QUADS},
+    batcher::{draw::*, mesh::DynamicMesh, QuadData, N_QUADS},
     texture::TextureData2d,
 };
 
@@ -45,6 +45,7 @@ pub struct Batch {
     // TODO:
     buffer_offset: usize,
     img: Option<rg::Image>,
+    params: QuadParams,
 }
 
 impl Batch {
@@ -55,69 +56,68 @@ impl Batch {
         );
     }
 
-    pub fn begin(&mut self) -> BatchApi<'_> {
-        BatchApi { batch: self }
+    pub fn flush(&mut self) {
+        if self.quad_ix == 0 {
+            return;
+        }
+
+        if self.img.is_none() {
+            log::error!("no image on flushing batch");
+            return;
+        }
+
+        self.draw();
+
+        self.quad_ix = 0;
+        self.img = None;
+        self.buffer_offset = 0;
     }
 
-    pub fn flush(&mut self) {
-        // FIXME:
+    fn draw(&mut self) {
+        println!("{:?}", &self.mesh.verts[0..6]);
+
+        // FIXME: flush twice a frame?
         unsafe {
             self.mesh
                 .upload_vert_slice(self.buffer_offset, self.quad_ix);
         }
 
+        self.mesh.bind_image(self.img.unwrap(), 0);
         self.mesh.draw(0, 6 * self.quad_ix as u32);
-
-        self.quad_ix = 0;
-        // self.mesh.
     }
 
-    pub fn push_sprite(img: rg::Image, quad: impl Into<QuadData>) {
-        // self.batch.mesh_mut().bind_image(self.tex_1.img, 0);
-        // self.batch.push_quad([
-        //     // pos, color, uv
-        //     ([200.0, 200.0], white, [0.0, 0.0]).into(),
-        //     ([400.0, 200.0], white, [1.0, 0.0]).into(),
-        //     ([200.0, 400.0], white, [0.0, 1.0]).into(),
-        //     ([400.0, 400.0], white, [1.0, 1.0]).into(),
-        // ]);
-    }
-
-    pub fn mesh_mut(&mut self) -> &mut DynamicMesh<QuadData> {
-        &mut self.mesh
-    }
-
-    pub fn push_quad(&mut self, quad: impl Into<QuadData>) {
-        self.mesh.verts[self.quad_ix] = quad.into();
-        self.quad_ix += 1;
-    }
-
-    pub fn next_quad_mut(&mut self) -> &mut QuadData {
-        let ix = self.quad_ix;
-        self.quad_ix += 1;
-        &mut self.mesh.verts[ix]
-    }
-}
-
-pub struct BatchApi<'a> {
-    batch: &'a mut Batch,
-}
-
-impl<'a> Drop for BatchApi<'a> {
-    fn drop(&mut self) {
-        self.batch.flush();
-    }
-}
-
-impl<'a> BatchApi<'a> {
-    pub fn sprite(&mut self, tex: &TextureData2d, mat: glam::Mat3) -> &mut Self {
-        if let Some(img) = self.batch.img {
-            if img.id == tex.img.id {
-                self.batch.flush();
-                self.batch.img = Some(tex.img);
+    fn next_quad_ix(&mut self, img: rg::Image) -> usize {
+        // flush if needed
+        if let Some(prev) = self.img {
+            if prev.id != img.id {
+                self.flush();
             }
         }
 
-        self
+        self.img = Some(img);
+
+        let ix = self.quad_ix;
+        self.quad_ix += 1;
+        ix
+    }
+}
+
+// TODO: add DrawCall that flushes batcher when dropping
+impl DrawApi for Batch {
+    fn _next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData {
+        let ix = self.next_quad_ix(img);
+        &mut self.mesh.verts[ix]
+    }
+
+    fn _next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_> {
+        let target = {
+            let ix = self.next_quad_ix(tex.raw_texture());
+            &mut self.mesh.verts[ix]
+        };
+
+        QuadPush {
+            params: &mut self.params,
+            target,
+        }
     }
 }

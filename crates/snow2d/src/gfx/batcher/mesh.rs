@@ -66,7 +66,9 @@ impl<V> DynamicMesh<V> {
     //     self.bind.vertex_buffer_offsets[0] = rg::append_buffer(self.bind.vertex_buffers[0], slice);
     // }
 
-    /// DrawCall
+    /// Draw call
+    ///
+    /// Be sure to bind image before calling this.
     ///
     /// `base_elem`: relative to `self.bind.vertex_buffer_offsets[0]`. It's zero after calling
     /// `append_vert_slice`.

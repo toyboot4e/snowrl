@@ -18,6 +18,7 @@ macro_rules! def_shd {
     };
 }
 
+/// Creates vertex & fragment shader from files and modifies them with given procedure
 fn gen(vs_fs: &[&str; 2], f: impl Fn(&mut rg::ShaderDesc)) -> rg::Shader {
     let mut desc = unsafe { rokol::gfx::shader_desc(vs_fs[0], vs_fs[1]) };
     f(&mut desc);

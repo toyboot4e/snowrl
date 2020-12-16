@@ -18,21 +18,25 @@ pub fn init() {
     WHITE_DOT.set(tex).unwrap();
 }
 
+/// Quad-based rendering API
 pub trait DrawApi {
     /// Modify the quad manually!
-    fn next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData;
+    fn _next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData;
 
     /// Modify the quad manually!
-    fn next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_>;
-
-    /// Push texture or sprite, modifying the quad with builder
-    fn push<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush {
-        SpritePush::new(self.next_push_mut(sprite), sprite)
-    }
+    fn _next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_>;
 
     /// (Mainly) internal utilitiy to implement `linep and `rect`
-    fn white_dot(&mut self) -> SpritePush {
-        self.push(WHITE_DOT.get().unwrap())
+    fn _white_dot(&mut self) -> SpritePush {
+        self.sprite(WHITE_DOT.get().unwrap())
+    }
+
+    /// Starts a [`QuadParamBuilder`] setting source/destination size and uv values
+    ///
+    /// [`QuadParamBuilder`]: crate::gfx::batcher::draw::QuadParamBuilder
+    fn sprite<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush {
+        // NOTE: the quad is initialized in this method
+        SpritePush::new(self._next_push_mut(sprite), sprite)
     }
 
     fn line(&mut self, p1: impl Into<Vec2f>, p2: impl Into<Vec2f>, color: Color) {
@@ -43,9 +47,9 @@ pub trait DrawApi {
         let rad = delta.rad();
         let len = delta.len();
 
-        self.white_dot()
+        self._white_dot()
             .color(color)
-            .dest_rect_px([p1, (len, 1.0).into()])
+            .dst_rect_px([p1, (len, 1.0).into()])
             .rot(rad);
     }
 

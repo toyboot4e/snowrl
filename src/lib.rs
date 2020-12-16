@@ -1,74 +1,70 @@
-pub mod gfx;
+//! SnowRL
 
 use {
-    glam::{Mat3, Vec2},
-    rokol::{
-        app as ra,
-        gfx::{self as rg, BakedResource, Buffer, Pipeline},
+    rokol::gfx as rg,
+    snow2d::{
+        gfx::{batcher::draw::*, texture::TextureData2d},
+        Snow2d,
     },
     std::path::PathBuf,
 };
 
-use crate::gfx::{batcher::Batch, texture::TextureData2d};
-
-/// The 2D renderer on top of [`rokol`]
-#[derive(Debug, Default)]
-pub struct Snow2d {
-    /// Clears the frame color buffer on starting screen rendering pass
-    pub pa: rg::PassAction,
-    /// Vertex layouts, shader and render states
-    pub pip: rg::Pipeline,
-    /// Vertex/index buffer and images slots
-    pub batch: Batch,
+#[derive(Debug)]
+pub struct SnowRl {
+    renderer: Snow2d,
+    //
+    tex_1: TextureData2d,
+    tex_2: TextureData2d,
 }
 
-impl Snow2d {
+impl SnowRl {
     pub fn new() -> Self {
         Self {
-            pa: rg::PassAction::clear(gfx::Color::CORNFLOWER_BLUE.to_normalized_array()),
-            ..Default::default()
+            renderer: Snow2d::new(),
+            tex_1: Default::default(),
+            tex_2: Default::default(),
         }
     }
+}
 
-    /// Only be called from [`rokol::app::RApp::init`].
-    pub unsafe fn init(&mut self) {
-        // create whitee dot image
-        crate::gfx::batcher::draw::init();
+impl rokol::app::RApp for SnowRl {
+    fn init(&mut self) {
+        rg::setup(&mut rokol::glue::app_desc());
 
-        self.batch.init();
-
-        self.pip = Pipeline::create(&rg::PipelineDesc {
-            shader: gfx::shaders::tex_1(),
-            index_type: rg::IndexType::UInt16 as u32,
-            layout: {
-                let mut desc = rg::LayoutDesc::default();
-                desc.attrs[0].format = rg::VertexFormat::Float2 as u32;
-                desc.attrs[1].format = rg::VertexFormat::UByte4N as u32;
-                desc.attrs[2].format = rg::VertexFormat::Float2 as u32;
-                desc
-            },
-            ..Default::default()
-        });
-    }
-
-    pub fn begin_default_pass(&mut self) {
-        rg::begin_default_pass(&self.pa, ra::width(), ra::height());
-        // TODO: use batcher.begin
-        rg::apply_pipeline(self.pip);
-
-        // left, right, top, bottom, near, far
-        let proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
         unsafe {
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
+            self.renderer.init();
         }
+
+        let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+
+        self.tex_1 = {
+            let path = root.join("assets/nekura/map2/m_snow02.png");
+            TextureData2d::from_path(&path).unwrap()
+        };
+
+        self.tex_2 = {
+            let path = root.join("assets/nekura/map2/m_skelcave.png");
+            TextureData2d::from_path(&path).unwrap()
+        };
     }
 
-    // TODO: begin_pass (PassConfig) then push shader
+    fn frame(&mut self) {
+        self.update();
+        self.render();
+        rg::commit();
+    }
+}
 
-    // TODO: pop automatically
-    pub fn end_pass(&mut self) {
-        self.batch.flush();
-        // pop shader
-        rg::end_pass();
+impl SnowRl {
+    pub fn update(&mut self) {
+        //
+    }
+
+    pub fn render(&mut self) {
+        let batch = self.renderer.begin_default_pass();
+
+        batch.sprite(&self.tex_1).dst_pos_px([400.0, 300.0]);
+
+        self.renderer.end_pass();
     }
 }

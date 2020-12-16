@@ -55,37 +55,37 @@ pub trait QuadParamsBuilder {
     }
 
     /// Sets the origin position to the destination
-    fn dest_pos_px(&mut self, xs: impl Into<[f32; 2]>) -> &mut Self {
+    fn dst_pos_px(&mut self, xs: impl Into<[f32; 2]>) -> &mut Self {
         let xs = xs.into();
 
         let data = self.params();
-        let mut rect = data.dest_rect.inner().clone();
+        let mut rect = data.dst_rect.inner().clone();
         rect.x = xs[0];
         rect.y = xs[1];
-        data.dest_rect = Scaled::Px(rect);
+        data.dst_rect = Scaled::Px(rect);
 
         self
     }
 
     /// Sets the size to the destination
-    fn dest_size_px(&mut self, ws: impl Into<[f32; 2]>) -> &mut Self {
+    fn dst_size_px(&mut self, ws: impl Into<[f32; 2]>) -> &mut Self {
         let ws = ws.into();
 
         let data = self.params();
-        let mut rect = data.dest_rect.inner().clone();
+        let mut rect = data.dst_rect.inner().clone();
         rect.w = ws[0];
         rect.h = ws[1];
-        data.dest_rect = Scaled::Px(rect);
+        data.dst_rect = Scaled::Px(rect);
 
         self
     }
 
     /// Sets origin position and size to the destination
-    fn dest_rect_px(&mut self, xs: impl Into<Rect2f>) -> &mut Self {
+    fn dst_rect_px(&mut self, xs: impl Into<Rect2f>) -> &mut Self {
         let rect = xs.into();
 
         let data = self.params();
-        data.dest_rect = Scaled::Px(rect.into());
+        data.dst_rect = Scaled::Px(rect.into());
 
         self
     }
@@ -119,7 +119,7 @@ pub trait QuadParamsBuilder {
 }
 
 // --------------------------------------------------------------------------------
-// structs
+// [`QuadParamsBuilder`] impls
 
 use crate::gfx::batcher::QuadData;
 
@@ -153,7 +153,6 @@ impl<'a> Drop for SpritePush<'a> {
 }
 
 impl<'a> SpritePush<'a> {
-    /// Make sure the [`QuadPush`] is not satuerd
     pub fn new(mut quad: QuadPush<'a>, sprite: &impl OnSpritePush) -> Self {
         quad.params.reset_to_defaults();
         sprite.on_sprite_push(&mut quad);
