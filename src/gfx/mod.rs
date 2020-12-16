@@ -14,10 +14,6 @@ pub mod geom2d;
 pub mod shaders;
 pub mod texture;
 
-pub fn init() {
-    crate::gfx::batcher::draw::init();
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
     pub r: u8,
@@ -35,6 +31,15 @@ impl Default for Color {
 impl Color {
     pub fn to_array(&self) -> [u8; 4] {
         [self.r, self.g, self.b, self.a]
+    }
+
+    pub fn to_normalized_array(&self) -> [f32; 4] {
+        [
+            self.r as f32 / 255.0,
+            self.g as f32 / 255.0,
+            self.b as f32 / 255.0,
+            self.a as f32 / 255.0,
+        ]
     }
 
     pub fn rgb(r: u8, g: u8, b: u8) -> Self {

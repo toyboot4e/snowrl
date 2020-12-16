@@ -31,6 +31,17 @@ pub fn tex_1() -> rokol::gfx::Shader {
             name: c_str!("tex1").as_ptr() as *const _,
             ..Default::default()
         };
+
+        desc.vs.uniform_blocks[0] = {
+            let mut block = rg::ShaderUniformBlockDesc::default();
+            block.size = std::mem::size_of::<glam::Mat4>() as i32;
+            block.uniforms[0] = rg::ShaderUniformDesc {
+                type_: rg::UniformType::Mat4 as u32,
+                name: c_str!("transform").as_ptr() as *const _,
+                ..Default::default()
+            };
+            block
+        };
     })
 }
 
@@ -48,4 +59,3 @@ pub fn tex_2() -> rokol::gfx::Shader {
         };
     })
 }
-

@@ -46,24 +46,25 @@ impl<V> DynamicMesh<V> {
         self.bind.fs_images[slot] = img;
     }
 
-    /// Can be called only once a frame
+    /// Can only be called once a frame
     pub unsafe fn upload_all_verts(&mut self) {
         rg::update_buffer(self.bind.vertex_buffers[0], &self.verts);
         // updateBuffer gives us a fresh buffer so make sure we reset our append offset
         self.bind.vertex_buffer_offsets[0] = 0;
     }
 
-    /// Can be called only once a frame
-    pub unsafe fn upload_vert_slice(&mut self, n_verts: usize) {
+    /// Can only be called once a frame
+    pub unsafe fn upload_vert_slice(&mut self, start_index: usize, n_verts: usize) {
         assert!(n_verts <= self.verts.len());
-        rg::update_buffer(self.bind.vertex_buffers[0], &self.verts[0..n_verts]);
+        let slice = &self.verts[start_index..start_index + n_verts];
+        rg::update_buffer(self.bind.vertex_buffers[0], slice);
     }
 
-    pub fn append_vert_slice(&mut self, start_index: usize, n_verts: usize) {
-        assert!(start_index + n_verts <= self.verts.len());
-        let slice = &self.verts[start_index..start_index + n_verts];
-        self.bind.vertex_buffer_offsets[0] = rg::append_buffer(self.bind.vertex_buffers[0], slice);
-    }
+    // pub fn append_vert_slice(&mut self, start_index: usize, n_verts: usize) {
+    //     assert!(start_index + n_verts <= self.verts.len());
+    //     let slice = &self.verts[start_index..start_index + n_verts];
+    //     self.bind.vertex_buffer_offsets[0] = rg::append_buffer(self.bind.vertex_buffers[0], slice);
+    // }
 
     /// DrawCall
     ///

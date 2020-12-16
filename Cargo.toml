@@ -13,7 +13,7 @@ edition = "2018"
 [[bin]]
 bench = false
 path = "src/bin/main.rs"
-name = "SnowRL"
+name = "snow"
 
 [dependencies]
 rokol = { path = "crates/rokol", features = ["glcore33"] }

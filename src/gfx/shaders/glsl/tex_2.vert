@@ -1,8 +1,6 @@
 #version 330
 
-uniform vs_params {
-    mat4 mvp;
-};
+uniform mat4 mvp;
 
 layout(location=0) in vec3 in_pos;
 layout(location=1) in vec4 in_color;

@@ -60,14 +60,27 @@ impl Batch {
     }
 
     pub fn flush(&mut self) {
-        // TODO: span of draw calls
-        self.mesh
-            .append_vert_slice(self.buffer_offset, self.quad_ix);
+        // FIXME:
+        unsafe {
+            self.mesh
+                .upload_vert_slice(self.buffer_offset, self.quad_ix);
+        }
 
         self.mesh.draw(0, 6 * self.quad_ix as u32);
 
         self.quad_ix = 0;
         // self.mesh.
+    }
+
+    pub fn push_sprite(img: rg::Image, quad: impl Into<QuadData>) {
+        // self.batch.mesh_mut().bind_image(self.tex_1.img, 0);
+        // self.batch.push_quad([
+        //     // pos, color, uv
+        //     ([200.0, 200.0], white, [0.0, 0.0]).into(),
+        //     ([400.0, 200.0], white, [1.0, 0.0]).into(),
+        //     ([200.0, 400.0], white, [0.0, 1.0]).into(),
+        //     ([400.0, 400.0], white, [1.0, 1.0]).into(),
+        // ]);
     }
 
     pub fn mesh_mut(&mut self) -> &mut DynamicMesh<QuadData> {
