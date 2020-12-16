@@ -39,13 +39,13 @@ macro_rules! gen_quad_indices {
 #[derive(Debug, Clone, Default)]
 pub struct Batch {
     /// Each item of `mesh.verts` is actually [`QuadData`]
-    mesh: DynamicMesh<QuadData>,
+    pub mesh: DynamicMesh<QuadData>,
     /// Index of next quad
     quad_ix: usize,
     // TODO:
     buffer_offset: usize,
     img: Option<rg::Image>,
-    params: QuadParams,
+    pub params: QuadParams,
 }
 
 impl Batch {
@@ -74,8 +74,6 @@ impl Batch {
     }
 
     fn draw(&mut self) {
-        println!("{:?}", &self.mesh.verts[0..6]);
-
         // FIXME: flush twice a frame?
         unsafe {
             self.mesh
@@ -86,7 +84,7 @@ impl Batch {
         self.mesh.draw(0, 6 * self.quad_ix as u32);
     }
 
-    fn next_quad_ix(&mut self, img: rg::Image) -> usize {
+    pub fn next_quad_ix(&mut self, img: rg::Image) -> usize {
         // flush if needed
         if let Some(prev) = self.img {
             if prev.id != img.id {
@@ -99,25 +97,5 @@ impl Batch {
         let ix = self.quad_ix;
         self.quad_ix += 1;
         ix
-    }
-}
-
-// TODO: add DrawCall that flushes batcher when dropping
-impl DrawApi for Batch {
-    fn _next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData {
-        let ix = self.next_quad_ix(img);
-        &mut self.mesh.verts[ix]
-    }
-
-    fn _next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_> {
-        let target = {
-            let ix = self.next_quad_ix(tex.raw_texture());
-            &mut self.mesh.verts[ix]
-        };
-
-        QuadPush {
-            params: &mut self.params,
-            target,
-        }
     }
 }

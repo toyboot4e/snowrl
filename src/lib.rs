@@ -61,10 +61,7 @@ impl SnowRl {
     }
 
     pub fn render(&mut self) {
-        let batch = self.renderer.begin_default_pass();
-
+        let mut batch = self.renderer.begin_default_pass();
         batch.sprite(&self.tex_1).dst_pos_px([400.0, 300.0]);
-
-        self.renderer.end_pass();
     }
 }

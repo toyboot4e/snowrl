@@ -13,7 +13,7 @@ use rokol::{
     gfx::{self as rg, BakedResource, Pipeline},
 };
 
-use crate::gfx::batcher::Batch;
+use crate::gfx::batcher::{draw::*, Batch, QuadData};
 
 /// The 2D renderer
 #[derive(Debug, Default)]
@@ -55,7 +55,7 @@ impl Snow2d {
         });
     }
 
-    pub fn begin_default_pass(&mut self) -> &mut Batch {
+    pub fn begin_default_pass(&mut self) -> Pass<'_> {
         rg::begin_default_pass(&self.pa, ra::width(), ra::height());
 
         {
@@ -68,15 +68,46 @@ impl Snow2d {
             }
         }
 
-        &mut self.batch
+        Pass { snow: self }
     }
 
     // TODO: begin_pass (PassConfig) then push shader
 
     // TODO: pop automatically
-    pub fn end_pass(&mut self) {
+    fn end_pass(&mut self) {
         self.batch.flush();
         // TODO: pop shader if pushed
         rg::end_pass();
+    }
+}
+
+/// [`DrawApi`] corresponds to a rendering pass's lieftime
+pub struct Pass<'a> {
+    snow: &'a mut Snow2d,
+}
+
+impl<'a> Drop for Pass<'a> {
+    fn drop(&mut self) {
+        self.snow.end_pass();
+    }
+}
+
+// TODO: add DrawCall that flushes batcher when dropping
+impl<'a> DrawApi for Pass<'a> {
+    fn _next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData {
+        let ix = self.snow.batch.next_quad_ix(img);
+        &mut self.snow.batch.mesh.verts[ix]
+    }
+
+    fn _next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_> {
+        let target = {
+            let ix = self.snow.batch.next_quad_ix(tex.raw_texture());
+            &mut self.snow.batch.mesh.verts[ix]
+        };
+
+        QuadPush {
+            params: &mut self.snow.batch.params,
+            target,
+        }
     }
 }
