@@ -1,5 +1,7 @@
 //! SnowRL
 
+pub use {rlbox, rokol, snow2d};
+
 use {
     rokol::gfx as rg,
     snow2d::{
@@ -10,9 +12,6 @@ use {
 };
 
 use rlbox::{render::tiled as tiled_render, rl::rlmap::TiledRlMap};
-
-pub use rlbox;
-pub use snow2d;
 
 pub fn run(app: rokol::Rokol) -> rokol::Result {
     app.run(&mut SnowRl::new())
@@ -53,26 +52,14 @@ impl rokol::app::RApp for SnowRl {
 
 #[derive(Debug)]
 pub struct RlGame {
-    tex_1: Texture2dDrop,
-    tex_2: Texture2dDrop,
-    map: TiledRlMap,
+    rlmap: TiledRlMap,
 }
 
 impl RlGame {
     pub fn new() -> Self {
         let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("assets");
         Self {
-            tex_1: {
-                let path = root.join("nekura/map2/m_snow02.png");
-                Texture2dDrop::from_path(&path).unwrap()
-            },
-
-            tex_2: {
-                let path = root.join("nekura/map2/m_skelcave.png");
-                Texture2dDrop::from_path(&path).unwrap()
-            },
-
-            map: TiledRlMap::from_tiled_path(&root.join("map/tmx/rl_start.tmx")).unwrap(),
+            rlmap: TiledRlMap::from_tiled_path(&root.join("map/tmx/rl_start.tmx")).unwrap(),
         }
     }
 
@@ -82,7 +69,12 @@ impl RlGame {
 
     pub fn render(&mut self, rdr: &mut Snow2d) {
         let mut batch = rdr.begin_default_pass();
-        batch.sprite(&self.tex_1).dst_pos_px([400.0, 300.0]);
-        batch.sprite(&self.tex_2).dst_pos_px([600.0, 300.0]);
+
+        tiled_render::render_tiled(
+            &mut batch,
+            &self.rlmap.tiled,
+            &self.rlmap.idmap,
+            [(0.0, 0.0), (1280.0, 720.0)],
+        );
     }
 }

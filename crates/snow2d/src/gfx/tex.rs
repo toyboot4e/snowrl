@@ -1,3 +1,5 @@
+//! 2D texture types
+
 use {
     image::GenericImageView,
     rokol::gfx::{self as rg, BakedResource},
