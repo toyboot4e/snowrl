@@ -4,7 +4,9 @@ pub mod builder;
 pub mod params;
 
 pub use self::{
-    builder::*,
+    builder::{
+        CheatTexture2d, OnSpritePush, QuadParamsBuilder, QuadPush, Sprite, SpritePush, SubTexture2d,
+    },
     params::{QuadParams, Texture2d},
 };
 

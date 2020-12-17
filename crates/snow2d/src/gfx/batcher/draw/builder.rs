@@ -36,6 +36,8 @@ impl Texture2d for CheatTexture2d {
 // --------------------------------------------------------------------------------
 // traits
 
+// Texture2d
+
 /// Modifies quad when start to build it
 pub trait OnSpritePush {
     /// Internal utility for sprite batching
@@ -68,7 +70,7 @@ pub trait QuadParamsBuilder {
     /// Set source rectangle in normalized coordinates
     ///
     /// Specify [x, y] and [w, h].
-    fn src_rect_uv(&mut self, rect: impl Into<Rect2f>) -> &mut Self {
+    fn uv_rect(&mut self, rect: impl Into<Rect2f>) -> &mut Self {
         self.params().src_rect = Scaled::Normalized(rect.into());
         self
     }
