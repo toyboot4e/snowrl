@@ -1,4 +1,4 @@
-// 2D geometry types
+//! 2D geometry types. TODO: remove this
 
 use auto_ops::*;
 

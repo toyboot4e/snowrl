@@ -10,13 +10,13 @@ pub use self::{
 
 use {once_cell::sync::OnceCell, rokol::gfx as rg};
 
-use crate::gfx::{batcher::vertex::QuadData, geom2d::*, texture::TextureData2dDrop, Color};
+use crate::gfx::{batcher::vertex::QuadData, geom2d::*, texture::Texture2dDrop, Color};
 
-static WHITE_DOT: OnceCell<TextureData2dDrop> = OnceCell::new();
+static WHITE_DOT: OnceCell<Texture2dDrop> = OnceCell::new();
 
 pub(crate) fn init() {
     let dot = include_bytes!("white_dot.png");
-    let tex = TextureData2dDrop::from_encoded_bytes(dot).unwrap();
+    let tex = Texture2dDrop::from_encoded_bytes(dot).unwrap();
     WHITE_DOT.set(tex).unwrap();
 }
 

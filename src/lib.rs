@@ -3,7 +3,7 @@
 use {
     rokol::gfx as rg,
     snow2d::{
-        gfx::{batcher::draw::*, texture::TextureData2dDrop},
+        gfx::{batcher::draw::*, texture::Texture2dDrop},
         Snow2d,
     },
     std::path::PathBuf,
@@ -20,8 +20,8 @@ pub fn run(app: rokol::Rokol) -> rokol::Result {
 pub struct SnowRl {
     renderer: Snow2d,
     //
-    tex_1: TextureData2dDrop,
-    tex_2: TextureData2dDrop,
+    tex_1: Texture2dDrop,
+    tex_2: Texture2dDrop,
 }
 
 impl SnowRl {
@@ -46,12 +46,12 @@ impl rokol::app::RApp for SnowRl {
 
         self.tex_1 = {
             let path = root.join("assets/nekura/map2/m_snow02.png");
-            TextureData2dDrop::from_path(&path).unwrap()
+            Texture2dDrop::from_path(&path).unwrap()
         };
 
         self.tex_2 = {
             let path = root.join("assets/nekura/map2/m_skelcave.png");
-            TextureData2dDrop::from_path(&path).unwrap()
+            Texture2dDrop::from_path(&path).unwrap()
         };
     }
 
