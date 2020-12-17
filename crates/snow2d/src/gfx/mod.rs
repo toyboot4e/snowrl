@@ -11,7 +11,7 @@ Same as OpenGL or school math (left-handed and column-major).
 pub mod batcher;
 pub mod geom2d;
 pub mod shaders;
-pub mod texture;
+pub mod tex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {

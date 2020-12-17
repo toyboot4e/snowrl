@@ -3,7 +3,7 @@
 use {
     rokol::gfx as rg,
     snow2d::{
-        gfx::{batcher::draw::*, texture::Texture2dDrop},
+        gfx::{batcher::draw::*, tex::Texture2dDrop},
         Snow2d,
     },
     std::path::PathBuf,

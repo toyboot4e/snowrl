@@ -1,6 +1,6 @@
 //! Tiled map rendering
 
-use {anf::prim::*, std::cmp, tiled::LayerData};
+use {std::cmp, tiled::LayerData};
 
 use crate::rl::{
     fov::*,
