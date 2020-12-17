@@ -1,6 +1,6 @@
 //! Vertex data type for `snow2d`
 
-pub const N_QUADS: usize = 2048;
+pub const N_QUADS: usize = 2048 * 2;
 
 /// `snow2d` vertex data type
 #[derive(Debug, Clone, Default)]

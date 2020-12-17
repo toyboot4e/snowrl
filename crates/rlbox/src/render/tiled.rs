@@ -107,7 +107,7 @@ pub fn render_fov_shadows(
             };
 
             let alpha_u8 = (255 as f32 * alpha) as u8;
-            let color = Color::rgba(0, 0, 0, 255 * alpha_u8);
+            let color = Color::rgba(0, 0, 0, alpha_u8);
 
             draw.white_dot()
                 .color(color)

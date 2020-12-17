@@ -16,9 +16,9 @@ impl<V> DynamicMesh<V> {
     fn new<T>(verts: Vec<V>, indices: &[T]) -> Self {
         let mut b = rg::Bindings::default();
 
-        let size = std::mem::size_of::<V>() * verts.len();
+        let size_in_bytes = std::mem::size_of::<V>() * verts.len();
         b.vertex_buffers[0] = rg::Buffer::create(&rg::vbuf_desc_dyn(
-            size as i32,
+            size_in_bytes as i32,
             rg::ResourceUsage::Stream,
             "",
         ));
@@ -69,8 +69,10 @@ impl<V> DynamicMesh<V> {
     pub fn append_vert_slice(&mut self, start_index: i32, n_verts: usize) -> i32 {
         let start_index = start_index as usize;
         assert!(start_index + n_verts <= self.verts.len());
+
         let slice = &self.verts[start_index..start_index + n_verts];
         let offset = rg::append_buffer(self.bind.vertex_buffers[0], slice);
+
         // after this: `draw` can be called with `base_elem` being zero
         self.bind.vertex_buffer_offsets[0] = offset;
         offset
@@ -86,6 +88,7 @@ impl<V> DynamicMesh<V> {
     pub fn draw(&self, base_elem: u32, n_quads: u32) {
         rg::apply_bindings(&self.bind);
         rg::draw(base_elem, n_quads, 1);
+        // set `self.mesh.bind.vertex_buffer_offsets[0] = 0;
     }
 
     pub fn draw_all(&self) {

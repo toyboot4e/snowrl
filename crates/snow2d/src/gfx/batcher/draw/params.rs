@@ -23,7 +23,6 @@ pub struct QuadParams {
     pub origin: Vec2f,
     pub color: Color,
     pub rot: f32,
-    pub depth: f32,
     pub flips: Flips,
     pub skew: Skew2f,
 }
@@ -36,7 +35,6 @@ impl Default for QuadParams {
             origin: Vec2f::default(),
             color: Color::WHITE,
             rot: 0.0,
-            depth: 0.0,
             flips: Flips::NONE,
             skew: Skew2f::default(),
         }
@@ -51,7 +49,6 @@ impl QuadParams {
         self.origin = Vec2f::default();
         self.color = Color::WHITE;
         self.rot = 0.0;
-        self.depth = 0.0;
         self.flips = Flips::NONE;
         self.skew = Skew2f::default();
     }
@@ -62,19 +59,18 @@ impl QuadParams {
 
         // TODO: round
         // if policy.do_round {
-        //     rect.x = rect.x.round();
-        //     rect.y = rect.y.round();
+        // dst_rect.x = dst_rect.x.round();
+        // dst_rect.y = dst_rect.y.round();
         // }
 
-        self::push_texture2d(
+        self::set_quad(
             quad,
+            self.skew,
             self.origin,
             src_rect,
             dst_rect,
-            self.skew,
             self.color,
             self.rot,
-            self.depth,
             flips,
         );
     }
@@ -112,30 +108,16 @@ impl QuadParams {
             },
         };
 
+        // TODO: round
+        // dst_rect.x = dst_rect.x.round();
+        // dst_rect.y = dst_rect.y.round();
+
         (src_rect, dst_rect)
     }
 }
 
 // --------------------------------------------------------------------------------
 // Core
-
-/// Pass normalized geometry values
-#[inline]
-fn push_texture2d(
-    quad: &mut QuadData,
-    origin: Vec2f,
-    src_rect: Rect2f,
-    dst_rect: Rect2f,
-    skew: Skew2f,
-    color: Color,
-    rot: f32,
-    depth: f32,
-    flips: Flips,
-) {
-    self::set_quad(
-        quad, skew, origin, src_rect, dst_rect, color, rot, depth, flips,
-    );
-}
 
 /// Normalized x offsets at top-left, top-right, bottom-left, bottom-right
 const CORNER_OFFSET_X: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
@@ -153,7 +135,6 @@ fn set_quad(
     dst_rect: Rect2f,
     color: Color,
     rot: f32,
-    depth: f32,
     flips: Flips,
 ) {
     let rot = Rot2f::from_rad(rot);

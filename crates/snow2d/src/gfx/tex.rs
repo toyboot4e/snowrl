@@ -16,8 +16,8 @@ fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
             width: w as i32,
             height: h as i32,
             usage: rg::ResourceUsage::Immutable as u32,
-            min_filter: rg::Filter::Linear as u32,
-            mag_filter: rg::Filter::Linear as u32,
+            min_filter: rg::Filter::Nearest as u32,
+            mag_filter: rg::Filter::Nearest as u32,
             ..Default::default()
         };
 

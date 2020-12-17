@@ -12,8 +12,8 @@ macro_rules! c_str {
 macro_rules! def_shd {
     ($file:expr) => {
         [
-            concat!(include_str!(concat!("glsl/", $file, ".vert")), "\0"),
-            concat!(include_str!(concat!("glsl/", $file, ".frag")), "\0"),
+            concat!(include_str!(concat!("glsl/", $file, ".vs")), "\0"),
+            concat!(include_str!(concat!("glsl/", $file, ".fs")), "\0"),
         ];
     };
 }
@@ -42,21 +42,6 @@ pub fn tex_1() -> rokol::gfx::Shader {
                 ..Default::default()
             };
             block
-        };
-    })
-}
-
-pub fn tex_2() -> rokol::gfx::Shader {
-    gen(&def_shd!("tex_2"), |desc| {
-        desc.fs.images[0] = rg::ShaderImageDesc {
-            type_: rg::ImageType::Dim2 as u32,
-            name: c_str!("tex1").as_ptr() as *const _,
-            ..Default::default()
-        };
-        desc.fs.images[1] = rg::ShaderImageDesc {
-            type_: rg::ImageType::Dim2 as u32,
-            name: c_str!("tex2").as_ptr() as *const _,
-            ..Default::default()
         };
     })
 }

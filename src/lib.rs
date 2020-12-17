@@ -56,6 +56,6 @@ impl rokol::app::RApp for SnowRl {
     }
 
     fn event(&mut self, ev: &ra::RAppEvent) {
-        println!("{:?}", ev);
+        // println!("{:?}", ev);
     }
 }
