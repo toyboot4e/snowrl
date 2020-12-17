@@ -1,18 +1,45 @@
 //! Builder for [`QuadParams`]
 
+use rokol::gfx as rg;
+
 use crate::gfx::{
-    batcher::draw::{QuadParams, Texture2d},
+    batcher::{
+        draw::{QuadParams, Texture2d},
+        vertex::QuadData,
+    },
     geom2d::*,
-    texture::TextureData2d,
     Color,
 };
+
+/// Internal utility for sprite batching
+#[derive(Debug, Clone)]
+pub struct CheatTexture2d {
+    pub img: rg::Image,
+    pub w: u32,
+    pub h: u32,
+}
+
+impl Texture2d for CheatTexture2d {
+    fn img(&self) -> rg::Image {
+        self.img
+    }
+
+    fn w(&self) -> f32 {
+        self.w as f32
+    }
+
+    fn h(&self) -> f32 {
+        self.h as f32
+    }
+}
 
 // --------------------------------------------------------------------------------
 // traits
 
 /// Modifies quad when start to build it
 pub trait OnSpritePush {
-    fn to_texture(&self) -> TextureData2d;
+    /// Internal utility for sprite batching
+    fn to_cheat_texture(&self) -> CheatTexture2d;
     /// Sets quad parameters. The quad is initialized before calling this method
     fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder);
 }
@@ -121,8 +148,6 @@ pub trait QuadParamsBuilder {
 // --------------------------------------------------------------------------------
 // [`QuadParamsBuilder`] impls
 
-use crate::gfx::batcher::QuadData;
-
 #[derive(Debug)]
 pub struct QuadPush<'a> {
     pub params: &'a mut QuadParams,
@@ -139,7 +164,7 @@ impl<'a> QuadParamsBuilder for QuadPush<'a> {
 #[derive(Debug)]
 pub struct SpritePush<'a> {
     quad: QuadPush<'a>,
-    texture: TextureData2d,
+    texture: CheatTexture2d,
     flips: Flips,
 }
 
@@ -159,7 +184,7 @@ impl<'a> SpritePush<'a> {
 
         Self {
             quad,
-            texture: sprite.to_texture(),
+            texture: sprite.to_cheat_texture(),
             flips: Flips::NONE,
         }
     }

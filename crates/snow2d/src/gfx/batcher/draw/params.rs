@@ -2,11 +2,11 @@
 
 use rokol::gfx as rg;
 
-use crate::gfx::{batcher::QuadData, geom2d::*, Color};
+use crate::gfx::{batcher::vertex::QuadData, geom2d::*, Color};
 
 /// Texture with size data. Used by [`QuadParams`]
 pub trait Texture2d {
-    fn raw_texture(&self) -> rg::Image;
+    fn img(&self) -> rg::Image;
     /// Pixels
     fn w(&self) -> f32;
     /// Pixels
@@ -179,7 +179,6 @@ fn set_quad(
 
         quad[i].pos[0] = (rot.x2 * corner_y) + (rot.x1 * corner_x) + dst_rect.x;
         quad[i].pos[1] = (rot.y2 * corner_y) + (rot.y1 * corner_x) + dst_rect.y;
-        // quad[i].pos.z = depth;
 
         // Here, `^` is xor (exclusive or) operator. So if `effects` (actually flips?) equals to
         // zero, it does nothing and `i ^ effects` == `i`

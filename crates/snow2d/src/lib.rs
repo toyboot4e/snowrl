@@ -13,7 +13,7 @@ use rokol::{
     gfx::{self as rg, BakedResource, Pipeline},
 };
 
-use crate::gfx::batcher::{draw::*, Batch, QuadData};
+use crate::gfx::batcher::{draw::*, vertex::QuadData, Batch};
 
 /// The 2D renderer
 #[derive(Debug, Default)]
@@ -101,7 +101,7 @@ impl<'a> DrawApi for Pass<'a> {
 
     fn _next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_> {
         let target = {
-            let ix = self.snow.batch.next_quad_ix(tex.raw_texture());
+            let ix = self.snow.batch.next_quad_ix(tex.img());
             &mut self.snow.batch.mesh.verts[ix]
         };
 

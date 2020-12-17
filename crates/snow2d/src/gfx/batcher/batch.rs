@@ -2,9 +2,10 @@
 
 use rokol::gfx as rg;
 
-use crate::gfx::{
-    batcher::{draw::*, mesh::DynamicMesh, QuadData, N_QUADS},
-    texture::TextureData2d,
+use crate::gfx::batcher::{
+    draw::*,
+    mesh::DynamicMesh,
+    vertex::{QuadData, N_QUADS},
 };
 
 /// Creates index buffer for quadliterals
@@ -36,6 +37,7 @@ macro_rules! gen_quad_indices {
     }};
 }
 
+/// Internal batch utility
 #[derive(Debug, Clone, Default)]
 pub struct Batch {
     /// Each item of `mesh.verts` is actually [`QuadData`]
@@ -43,7 +45,7 @@ pub struct Batch {
     /// Index of next quad
     quad_ix: usize,
     // TODO:
-    buffer_offset: usize,
+    buffer_offset: i32,
     img: Option<rg::Image>,
     pub params: QuadParams,
 }
@@ -75,9 +77,12 @@ impl Batch {
 
     fn draw(&mut self) {
         // FIXME: flush twice a frame?
-        unsafe {
-            self.mesh
-                .upload_vert_slice(self.buffer_offset, self.quad_ix);
+
+        {
+            let offset = self
+                .mesh
+                .append_vert_slice(self.buffer_offset, self.quad_ix);
+            self.buffer_offset = offset;
         }
 
         self.mesh.bind_image(self.img.unwrap(), 0);

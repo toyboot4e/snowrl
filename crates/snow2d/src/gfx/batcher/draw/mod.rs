@@ -1,7 +1,7 @@
+//! Fluent drawing API
+
 pub mod builder;
 pub mod params;
-
-use crate::gfx::{batcher::QuadData, geom2d::*, texture::TextureData2d, Color};
 
 pub use self::{
     builder::*,
@@ -10,23 +10,25 @@ pub use self::{
 
 use {once_cell::sync::OnceCell, rokol::gfx as rg};
 
-static WHITE_DOT: OnceCell<TextureData2d> = OnceCell::new();
+use crate::gfx::{batcher::vertex::QuadData, geom2d::*, texture::TextureData2dDrop, Color};
 
-pub fn init() {
+static WHITE_DOT: OnceCell<TextureData2dDrop> = OnceCell::new();
+
+pub(crate) fn init() {
     let dot = include_bytes!("white_dot.png");
-    let tex = TextureData2d::from_encoded_bytes(dot).unwrap();
+    let tex = TextureData2dDrop::from_encoded_bytes(dot).unwrap();
     WHITE_DOT.set(tex).unwrap();
 }
 
 /// Quad-based rendering API
 pub trait DrawApi {
-    /// Modify the quad manually!
+    /// Used for implementing the provided methods
     fn _next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData;
 
-    /// Modify the quad manually!
+    /// Used for implementing the provided methods
     fn _next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_>;
 
-    /// (Mainly) internal utilitiy to implement `linep and `rect`
+    /// Used for implementing the provided methods
     fn _white_dot(&mut self) -> SpritePush {
         self.sprite(WHITE_DOT.get().unwrap())
     }

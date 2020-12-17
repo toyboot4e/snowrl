@@ -4,7 +4,7 @@ use {
     std::path::Path,
 };
 
-use crate::gfx::batcher::draw::{OnSpritePush, QuadParamsBuilder, Texture2d};
+use crate::gfx::batcher::draw::{CheatTexture2d, OnSpritePush, QuadParamsBuilder, Texture2d};
 
 fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
     rg::Image::create(&{
@@ -27,25 +27,21 @@ fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
     })
 }
 
-// TODO: drop type and shared type
-#[derive(Debug, Clone)]
-pub struct TextureData2d {
+/// Frees GPU image on drop
+#[derive(Debug, Default)]
+pub struct TextureData2dDrop {
     pub img: rg::Image,
     pub w: u32,
     pub h: u32,
 }
 
-impl Default for TextureData2d {
-    fn default() -> Self {
-        Self {
-            img: rg::Image { id: u32::MAX },
-            w: 0,
-            h: 0,
-        }
+impl Drop for TextureData2dDrop {
+    fn drop(&mut self) {
+        rg::Image::destroy(self.img);
     }
 }
 
-impl TextureData2d {
+impl TextureData2dDrop {
     pub fn from_path(path: impl AsRef<Path>) -> image::ImageResult<Self> {
         let img = image::open(path)?;
 
@@ -64,8 +60,8 @@ impl TextureData2d {
     }
 }
 
-impl Texture2d for TextureData2d {
-    fn raw_texture(&self) -> rg::Image {
+impl Texture2d for TextureData2dDrop {
+    fn img(&self) -> rg::Image {
         self.img
     }
 
@@ -78,9 +74,13 @@ impl Texture2d for TextureData2d {
     }
 }
 
-impl OnSpritePush for TextureData2d {
-    fn to_texture(&self) -> TextureData2d {
-        self.clone()
+impl OnSpritePush for TextureData2dDrop {
+    fn to_cheat_texture(&self) -> CheatTexture2d {
+        CheatTexture2d {
+            img: self.img,
+            w: self.w,
+            h: self.h,
+        }
     }
 
     fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {

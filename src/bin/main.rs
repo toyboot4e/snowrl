@@ -1,5 +1,3 @@
-use snow_rl::SnowRl;
-
 fn main() -> rokol::Result {
     env_logger::init();
 
@@ -10,7 +8,5 @@ fn main() -> rokol::Result {
         ..Default::default()
     };
 
-    let mut app = SnowRl::new();
-
-    rokol.run(&mut app)
+    snow_rl::run(rokol)
 }

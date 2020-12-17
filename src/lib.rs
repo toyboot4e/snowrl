@@ -3,18 +3,25 @@
 use {
     rokol::gfx as rg,
     snow2d::{
-        gfx::{batcher::draw::*, texture::TextureData2d},
+        gfx::{batcher::draw::*, texture::TextureData2dDrop},
         Snow2d,
     },
     std::path::PathBuf,
 };
 
+pub use rlbox;
+pub use snow2d;
+
+pub fn run(app: rokol::Rokol) -> rokol::Result {
+    app.run(&mut SnowRl::new())
+}
+
 #[derive(Debug)]
 pub struct SnowRl {
     renderer: Snow2d,
     //
-    tex_1: TextureData2d,
-    tex_2: TextureData2d,
+    tex_1: TextureData2dDrop,
+    tex_2: TextureData2dDrop,
 }
 
 impl SnowRl {
@@ -39,12 +46,12 @@ impl rokol::app::RApp for SnowRl {
 
         self.tex_1 = {
             let path = root.join("assets/nekura/map2/m_snow02.png");
-            TextureData2d::from_path(&path).unwrap()
+            TextureData2dDrop::from_path(&path).unwrap()
         };
 
         self.tex_2 = {
             let path = root.join("assets/nekura/map2/m_skelcave.png");
-            TextureData2d::from_path(&path).unwrap()
+            TextureData2dDrop::from_path(&path).unwrap()
         };
     }
 
@@ -63,5 +70,6 @@ impl SnowRl {
     pub fn render(&mut self) {
         let mut batch = self.renderer.begin_default_pass();
         batch.sprite(&self.tex_1).dst_pos_px([400.0, 300.0]);
+        batch.sprite(&self.tex_2).dst_pos_px([600.0, 300.0]);
     }
 }

@@ -46,32 +46,43 @@ impl<V> DynamicMesh<V> {
         self.bind.fs_images[slot] = img;
     }
 
-    /// Can only be called once a frame
+    /// WARNING: can be called only once a frame
     pub unsafe fn upload_all_verts(&mut self) {
         rg::update_buffer(self.bind.vertex_buffers[0], &self.verts);
         // updateBuffer gives us a fresh buffer so make sure we reset our append offset
         self.bind.vertex_buffer_offsets[0] = 0;
     }
 
-    /// Can only be called once a frame
-    pub unsafe fn upload_vert_slice(&mut self, start_index: usize, n_verts: usize) {
+    /// WARNING: can be called only once a frame
+    ///
+    /// * `start_index`: offset for GPU vertex buffer
+    pub unsafe fn upload_vert_slice(&mut self, start_index: i32, n_verts: usize) {
         assert!(n_verts <= self.verts.len());
+        let start_index = start_index as usize;
         let slice = &self.verts[start_index..start_index + n_verts];
         rg::update_buffer(self.bind.vertex_buffers[0], slice);
     }
 
-    // pub fn append_vert_slice(&mut self, start_index: usize, n_verts: usize) {
-    //     assert!(start_index + n_verts <= self.verts.len());
-    //     let slice = &self.verts[start_index..start_index + n_verts];
-    //     self.bind.vertex_buffer_offsets[0] = rg::append_buffer(self.bind.vertex_buffers[0], slice);
-    // }
+    /// Appends vertices to GPU vertex buffer
+    ///
+    /// * `start_index`: offset for GPU vertex buffer
+    pub fn append_vert_slice(&mut self, start_index: i32, n_verts: usize) -> i32 {
+        let start_index = start_index as usize;
+        assert!(start_index + n_verts <= self.verts.len());
+        let slice = &self.verts[start_index..start_index + n_verts];
+        let offset = rg::append_buffer(self.bind.vertex_buffers[0], slice);
+        // after this: `draw` can be called with `base_elem` being zero
+        self.bind.vertex_buffer_offsets[0] = offset;
+        offset
+    }
 
     /// Draw call
     ///
     /// Be sure to bind image before calling this.
     ///
-    /// `base_elem`: relative to `self.bind.vertex_buffer_offsets[0]`. It's zero after calling
-    /// `append_vert_slice`.
+    /// `base_elem`: relative to `self.bind.vertex_buffer_offsets[0]`.
+    ///
+    /// `base_elem` should be zero after calling `append_vert_slice`.
     pub fn draw(&self, base_elem: u32, n_quads: u32) {
         rg::apply_bindings(&self.bind);
         rg::draw(base_elem, n_quads, 1);

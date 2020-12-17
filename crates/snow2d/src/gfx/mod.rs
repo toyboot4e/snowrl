@@ -56,7 +56,6 @@ impl Color {
     }
 }
 
-#[macro_export]
 macro_rules! def_colors {
     ($(($name:ident, $r:expr, $g:expr, $b:expr, $a:expr)), * $(,)?) => {
         impl Color {
