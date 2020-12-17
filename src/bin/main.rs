@@ -8,5 +8,5 @@ fn main() -> rokol::Result {
         ..Default::default()
     };
 
-    snow_rl::run(rokol)
+    snowrl::run(rokol)
 }
