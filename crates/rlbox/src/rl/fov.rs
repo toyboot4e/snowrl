@@ -19,6 +19,7 @@ pub trait FovWrite {
 }
 
 /// Parameters to refresh FoV
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RefreshParams<'a, T: OpacityMap> {
     pub r: u32,
     pub origin: Vec2i,
@@ -32,7 +33,7 @@ pub trait OpacityMap {
 }
 
 /// Stub implementation of [`FovWrite`]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FovData {
     data: Vec<bool>,
     radius: u32,

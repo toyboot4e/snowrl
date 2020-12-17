@@ -52,7 +52,7 @@ pub fn render_tiled(
 }
 
 fn render_tiled_layer(
-    pass: &mut impl DrawApi,
+    draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     layer: &tiled::Layer,
     idmap: &GidTextureMap,
@@ -75,7 +75,7 @@ fn render_tiled_layer(
                 None => continue,
             };
 
-            pass.sprite(&texture).dst_rect_px([
+            draw.sprite(&texture).dst_rect_px([
                 (
                     (x as i32 * tile_size.x as i32 - offset.x as i32) as f32,
                     (y as i32 * tile_size.y as i32 - offset.y as i32) as f32,
@@ -88,7 +88,7 @@ fn render_tiled_layer(
 
 /// Renders field of view as shadows
 pub fn render_fov_shadows(
-    pass: &mut impl DrawApi,
+    draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     fov: &FovData,
     px_bounds: &Rect2f,
@@ -109,7 +109,7 @@ pub fn render_fov_shadows(
             let alpha_u8 = (255 as f32 * alpha) as u8;
             let color = Color::rgba(0, 0, 0, 255 * alpha_u8);
 
-            pass.white_dot()
+            draw.white_dot()
                 .color(color)
                 .uv_rect([0.0, 0.0, 1.0, 1.0])
                 .dst_rect_px([
@@ -162,7 +162,7 @@ pub fn render_tiled_consider_fow(
 
 // TODO: refactor
 fn render_tiled_layer_consider_fow(
-    pass: &mut impl DrawApi,
+    draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     layer: &tiled::Layer,
     idmap: &GidTextureMap,
@@ -190,7 +190,7 @@ fn render_tiled_layer_consider_fow(
                 None => continue,
             };
 
-            pass.sprite(&texture).dst_rect_px([
+            draw.sprite(&texture).dst_rect_px([
                 (
                     (x as i32 * tile_size.x as i32 - offset.x as i32) as f32,
                     (y as i32 * tile_size.y as i32 - offset.y as i32) as f32,
@@ -206,7 +206,7 @@ fn render_tiled_layer_consider_fow(
 
 /// Renders rectangles to non-blocking cells
 pub fn render_grids_on_non_blocking_cells(
-    pass: &mut impl DrawApi,
+    draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     blocks: &[bool],
     px_bounds: &Rect2f,
@@ -227,7 +227,7 @@ pub fn render_grids_on_non_blocking_cells(
                 (y as i32 * tile_size.y as i32 - px_bounds.left_up().y as i32) as f32,
             );
 
-            pass.rect(
+            draw.rect(
                 [pos + Vec2f::new(2.0, 2.0), (28.0, 28.0).into()],
                 Color::WHITE.with_alpha(127),
             );

@@ -2,8 +2,11 @@
 
 pub use {rlbox, rokol, snow2d};
 
+pub mod world;
+
 use {
-    rokol::gfx as rg,
+    rlbox::{render::tiled as tiled_render, rl::rlmap::TiledRlMap},
+    rokol::{app as ra, gfx as rg},
     snow2d::{
         gfx::{batcher::draw::*, tex::Texture2dDrop},
         Snow2d,
@@ -11,7 +14,7 @@ use {
     std::path::PathBuf,
 };
 
-use rlbox::{render::tiled as tiled_render, rl::rlmap::TiledRlMap};
+use self::world::{World, WorldContext};
 
 pub fn run(app: rokol::Rokol) -> rokol::Result {
     app.run(&mut SnowRl::new())
@@ -19,15 +22,15 @@ pub fn run(app: rokol::Rokol) -> rokol::Result {
 
 #[derive(Debug)]
 pub struct SnowRl {
-    renderer: Snow2d,
-    rl: Option<RlGame>,
+    wcx: Option<WorldContext>,
+    world: Option<World>,
 }
 
 impl SnowRl {
     pub fn new() -> Self {
         Self {
-            renderer: Snow2d::new(),
-            rl: None,
+            wcx: None,
+            world: None,
         }
     }
 }
@@ -36,45 +39,23 @@ impl rokol::app::RApp for SnowRl {
     fn init(&mut self) {
         rg::setup(&mut rokol::glue::app_desc());
 
-        unsafe {
-            self.renderer.init();
-        }
+        let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("assets");
+        let file = root.join("map/tmx/rl_start.tmx");
 
-        self.rl = Some(RlGame::new());
+        self.wcx = Some(WorldContext::new());
+        self.world = Some(World::from_tiled_file(&file).unwrap());
     }
 
     fn frame(&mut self) {
-        self.rl.as_mut().unwrap().update();
-        self.rl.as_mut().unwrap().render(&mut self.renderer);
+        let wcx = self.wcx.as_mut().unwrap();
+        wcx.update();
+        let world = self.world.as_mut().unwrap();
+        world.update(wcx);
+        world.render(wcx);
         rg::commit();
     }
-}
 
-#[derive(Debug)]
-pub struct RlGame {
-    rlmap: TiledRlMap,
-}
-
-impl RlGame {
-    pub fn new() -> Self {
-        let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("assets");
-        Self {
-            rlmap: TiledRlMap::from_tiled_path(&root.join("map/tmx/rl_start.tmx")).unwrap(),
-        }
-    }
-
-    pub fn update(&mut self) {
-        //
-    }
-
-    pub fn render(&mut self, rdr: &mut Snow2d) {
-        let mut batch = rdr.begin_default_pass();
-
-        tiled_render::render_tiled(
-            &mut batch,
-            &self.rlmap.tiled,
-            &self.rlmap.idmap,
-            [(0.0, 0.0), (1280.0, 720.0)],
-        );
+    fn event(&mut self, ev: &ra::RAppEvent) {
+        println!("{:?}", ev);
     }
 }

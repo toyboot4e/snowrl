@@ -6,6 +6,7 @@ use crate::rl::{
 };
 
 /// Fog of war, shadow on the map
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FowData {
     /// [w, h]
     map_size: [usize; 2],

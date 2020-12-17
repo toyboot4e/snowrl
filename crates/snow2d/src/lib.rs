@@ -53,6 +53,12 @@ impl Snow2d {
                 desc.attrs[2].format = rg::VertexFormat::Float2 as u32;
                 desc
             },
+            blend: rg::BlendState {
+                enabled: true,
+                src_factor_rgb: rg::BlendFactor::SrcAlpha as u32,
+                dst_factor_rgb: rg::BlendFactor::OneMinusSrcAlpha as u32,
+                ..Default::default()
+            },
             ..Default::default()
         });
     }
