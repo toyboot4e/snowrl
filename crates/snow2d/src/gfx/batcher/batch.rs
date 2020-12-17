@@ -44,7 +44,6 @@ pub struct Batch {
     pub mesh: DynamicMesh<QuadData>,
     /// Index of next quad
     quad_ix: usize,
-    // TODO:
     buffer_offset: i32,
     img: Option<rg::Image>,
     pub params: QuadParams,
@@ -73,10 +72,17 @@ impl Batch {
         self.quad_ix = 0;
         self.img = None;
         self.buffer_offset = 0;
+
+        // NOTE:
+        self.mesh.bind.vertex_buffer_offsets[0] = 0;
     }
 
     fn draw(&mut self) {
-        // FIXME: flush twice a frame?
+        // TODO: can we not upload more than N_QUADS a frame?
+        // println!(
+        //     "draw: ix = {}, offset = {}, GPU offset = {}",
+        //     self.quad_ix, self.buffer_offset, self.mesh.bind.vertex_buffer_offsets[0]
+        // );
 
         {
             let offset = self
@@ -92,7 +98,8 @@ impl Batch {
     pub fn next_quad_ix(&mut self, img: rg::Image) -> usize {
         // flush if needed
         if let Some(prev) = self.img {
-            if prev.id != img.id {
+            // FIXME: this guard is not working somehow (N_QUADS = 2048)
+            if prev.id != img.id || (self.quad_ix + 1) >= N_QUADS {
                 self.flush();
             }
         }

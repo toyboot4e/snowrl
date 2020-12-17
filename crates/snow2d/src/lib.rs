@@ -15,15 +15,68 @@ use rokol::{
     gfx::{self as rg, BakedResource, Pipeline},
 };
 
-use crate::gfx::batcher::{draw::*, vertex::QuadData, Batch};
+use crate::gfx::{
+    batcher::{draw::*, vertex::QuadData, Batch},
+    tex::Texture2dDrop,
+};
+
+#[derive(Debug)]
+pub struct PassConfig<'a, 'b> {
+    pub pa: &'a rg::PassAction,
+    // tfm: Option<glam::Mat3>,
+    // pip: Option<rg::Pipeline>,
+    pub ofs: Option<&'b OffscreenPass>,
+}
+
+#[derive(Debug, Default)]
+pub struct OffscreenPass {
+    /// Render target texture binded to the internal [`rg::Pass`]
+    tex: Texture2dDrop,
+    pass: rg::Pass,
+}
+
+impl OffscreenPass {
+    pub fn new(w: u32, h: u32) -> Self {
+        let tex = Texture2dDrop::offscreen(w, h);
+
+        let pass = rg::Pass::create(&{
+            let mut desc = rg::PassDesc::default();
+
+            desc.color_attachments[0] = rg::AttachmentDesc {
+                image: tex.img(),
+                mip_level: 0,
+                ..Default::default()
+            };
+
+            desc.depth_stencil_attachment = rg::AttachmentDesc {
+                // FIXME: share creation with texture
+                image: rg::Image::create(&{
+                    let mut desc = crate::gfx::tex::target_desc(w, h);
+                    desc.pixel_format = rg::PixelFormat::Depth as u32;
+                    desc
+                }),
+                ..Default::default()
+            };
+            desc
+        });
+
+        Self { tex, pass }
+    }
+
+    pub fn tex(&self) -> &Texture2dDrop {
+        &self.tex
+    }
+
+    pub fn img(&self) -> rg::Image {
+        self.tex.img()
+    }
+}
 
 /// The 2D renderer
 #[derive(Debug, Default)]
 pub struct Snow2d {
-    /// Clears the frame color buffer on starting screen rendering pass
-    pub pa: rg::PassAction,
-    /// Vertex layouts, shader and render states
-    pub pip: rg::Pipeline,
+    pub frame_pip: rg::Pipeline,
+    pub ofs_pip: rg::Pipeline,
     /// Vertex/index buffer and images slots
     pub batch: Batch,
 }
@@ -31,7 +84,6 @@ pub struct Snow2d {
 impl Snow2d {
     pub fn new() -> Self {
         Self {
-            pa: rg::PassAction::clear(gfx::Color::CORNFLOWER_BLUE.to_normalized_array()),
             ..Default::default()
         }
     }
@@ -43,7 +95,7 @@ impl Snow2d {
 
         self.batch.init();
 
-        self.pip = Pipeline::create(&rg::PipelineDesc {
+        let mut desc = rg::PipelineDesc {
             shader: gfx::shaders::tex_1(),
             index_type: rg::IndexType::UInt16 as u32,
             layout: {
@@ -60,26 +112,35 @@ impl Snow2d {
                 ..Default::default()
             },
             ..Default::default()
-        });
+        };
+
+        self.frame_pip = Pipeline::create(&desc);
+
+        desc.blend.depth_format = rg::PixelFormat::Depth as u32;
+        self.ofs_pip = Pipeline::create(&desc);
     }
 
-    pub fn begin_default_pass(&mut self) -> Pass<'_> {
-        rg::begin_default_pass(&self.pa, ra::width(), ra::height());
+    pub fn begin_pass(&mut self, cfg: PassConfig) -> Pass<'_> {
+        if let Some(ofs) = cfg.ofs {
+            // TODO: invert for OpenGL?
+            rg::begin_pass(ofs.pass, cfg.pa);
+            // TODO: apply given pipeline
+            rg::apply_pipeline(self.ofs_pip);
+        } else {
+            rg::begin_default_pass(cfg.pa, ra::width(), ra::height());
+            // TODO: apply given pipeline
+            rg::apply_pipeline(self.frame_pip);
+        }
 
-        {
-            rg::apply_pipeline(self.pip);
-
-            // left, right, top, bottom, near, far
-            let proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
-            unsafe {
-                rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
-            }
+        // left, right, top, bottom, near, far
+        let proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
+        // TODO: apply given matrix
+        unsafe {
+            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
         }
 
         Pass { snow: self }
     }
-
-    // TODO: begin_pass (PassConfig) then push shader
 
     // TODO: pop automatically
     fn end_pass(&mut self) {
@@ -89,7 +150,7 @@ impl Snow2d {
     }
 }
 
-/// [`DrawApi`] corresponds to a rendering pass's lieftime
+/// [`DrawApi`] and lifetime to a rendering pass
 pub struct Pass<'a> {
     snow: &'a mut Snow2d,
 }
@@ -100,7 +161,6 @@ impl<'a> Drop for Pass<'a> {
     }
 }
 
-// TODO: add DrawCall that flushes batcher when dropping
 impl<'a> DrawApi for Pass<'a> {
     fn _next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData {
         let ix = self.snow.batch.next_quad_ix(img);

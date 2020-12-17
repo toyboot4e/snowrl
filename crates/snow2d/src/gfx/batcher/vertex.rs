@@ -1,6 +1,7 @@
 //! Vertex data type for `snow2d`
 
-pub const N_QUADS: usize = 2048 * 2;
+// TODO: enable 2048 to not overflow (can't we reset buffer?)
+pub const N_QUADS: usize = 2048 * 4;
 
 /// `snow2d` vertex data type
 #[derive(Debug, Clone, Default)]

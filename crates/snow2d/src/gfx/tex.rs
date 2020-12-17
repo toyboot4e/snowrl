@@ -7,12 +7,13 @@ use {
 };
 
 use crate::gfx::batcher::draw::{CheatTexture2d, QuadParamsBuilder};
-use crate::gfx::batcher::draw::{OnSpritePush, Sprite, SubTexture2d, Texture2d};
+use crate::gfx::batcher::draw::{OnSpritePush, Texture2d};
 
 fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
     rg::Image::create(&{
         let mut desc = rg::ImageDesc {
             type_: rg::ImageType::Dim2 as u32,
+            render_target: false,
             width: w as i32,
             height: h as i32,
             usage: rg::ResourceUsage::Immutable as u32,
@@ -28,6 +29,20 @@ fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
 
         desc
     })
+}
+
+pub fn target_desc(w: u32, h: u32) -> rg::ImageDesc {
+    rg::ImageDesc {
+        type_: rg::ImageType::Dim2 as u32,
+        render_target: true,
+        width: w as i32,
+        height: h as i32,
+        usage: rg::ResourceUsage::Immutable as u32,
+        min_filter: rg::Filter::Nearest as u32,
+        mag_filter: rg::Filter::Nearest as u32,
+        // sample_count: 1,
+        ..Default::default()
+    }
 }
 
 /// Frees GPU image on drop
@@ -64,6 +79,14 @@ impl Texture2dDrop {
 
     pub fn into_shared(self) -> SharedTexture2d {
         SharedTexture2d { tex: Rc::new(self) }
+    }
+
+    pub fn offscreen(w: u32, h: u32) -> Self {
+        Self {
+            img: rg::Image::create(&self::target_desc(w, h)),
+            w,
+            h,
+        }
     }
 }
 
