@@ -1,6 +1,10 @@
 //! Tiled map rendering
 
-use {std::cmp, tiled::LayerData};
+use {
+    snow2d::gfx::{batcher::draw::*, geom2d::*, Color},
+    std::cmp,
+    tiled::LayerData,
+};
 
 use crate::rl::{
     fov::*,
@@ -33,7 +37,7 @@ pub fn w2t_round_up(w: impl Into<Vec2f>, tiled: &tiled::Map) -> Vec2i {
 
 /// Renders a tiled map in a bounds in world coordinates
 pub fn render_tiled(
-    dcx: &mut DrawContext,
+    draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     idmap: &GidTextureMap,
     px_bounds: impl Into<Rect2f>,
@@ -42,14 +46,13 @@ pub fn render_tiled(
     let grid_bounds = self::grid_bounds_from_pixel_bounds(tiled, &px_bounds);
     let (ys, xs) = self::visible_cells_from_grid_bounds(&grid_bounds);
 
-    let mut pass = dcx.batch();
     for layer in tiled.layers.iter().filter(|l| l.visible) {
-        render_tiled_layer(&mut pass, tiled, layer, idmap, px_bounds.left_up(), ys, xs);
+        render_tiled_layer(draw, tiled, layer, idmap, px_bounds.left_up(), ys, xs);
     }
 }
 
 fn render_tiled_layer(
-    pass: &mut BatchPass<'_>,
+    pass: &mut impl DrawApi,
     tiled: &tiled::Map,
     layer: &tiled::Layer,
     idmap: &GidTextureMap,
@@ -72,7 +75,7 @@ fn render_tiled_layer(
                 None => continue,
             };
 
-            pass.push(&texture).dest_rect_px([
+            pass.sprite(&texture).dst_rect_px([
                 (
                     (x as i32 * tile_size.x as i32 - offset.x as i32) as f32,
                     (y as i32 * tile_size.y as i32 - offset.y as i32) as f32,
@@ -85,7 +88,7 @@ fn render_tiled_layer(
 
 /// Renders field of view as shadows
 pub fn render_fov_shadows(
-    pass: &mut BatchPass<'_>,
+    pass: &mut impl DrawApi,
     tiled: &tiled::Map,
     fov: &FovData,
     px_bounds: &Rect2f,
@@ -103,12 +106,13 @@ pub fn render_fov_shadows(
                 0.7
             };
 
-            let color = Color::rgba(0, 0, 0, 255).multiply(alpha);
+            let alpha_u8 = (255 as f32 * alpha) as u8;
+            let color = Color::rgba(0, 0, 0, 255 * alpha_u8);
 
             pass.white_dot()
                 .color(color)
-                .src_rect_uv([0.0, 0.0, 1.0, 1.0])
-                .dest_rect_px([
+                .uv_rect([0.0, 0.0, 1.0, 1.0])
+                .dst_rect_px([
                     (
                         (x as i32 * tile_size.x as i32 - px_bounds.left_up().x as i32) as f32,
                         (y as i32 * tile_size.y as i32 - px_bounds.left_up().y as i32) as f32,
@@ -133,7 +137,7 @@ pub fn render_fov_shadows(
 
 /// Renders a tiled map in a bounds in world coordinates, considering fog of war
 pub fn render_tiled_consider_fow(
-    dcx: &mut DrawContext,
+    draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     idmap: &GidTextureMap,
     px_bounds: &Rect2f,
@@ -142,10 +146,9 @@ pub fn render_tiled_consider_fow(
     let grid_bounds = self::grid_bounds_from_pixel_bounds(tiled, &px_bounds);
     let (ys, xs) = self::visible_cells_from_grid_bounds(&grid_bounds);
 
-    let mut pass = dcx.batch();
     for layer in tiled.layers.iter().filter(|l| l.visible) {
         render_tiled_layer_consider_fow(
-            &mut pass,
+            draw,
             tiled,
             layer,
             idmap,
@@ -159,7 +162,7 @@ pub fn render_tiled_consider_fow(
 
 // TODO: refactor
 fn render_tiled_layer_consider_fow(
-    pass: &mut BatchPass<'_>,
+    pass: &mut impl DrawApi,
     tiled: &tiled::Map,
     layer: &tiled::Layer,
     idmap: &GidTextureMap,
@@ -187,7 +190,7 @@ fn render_tiled_layer_consider_fow(
                 None => continue,
             };
 
-            pass.push(&texture).dest_rect_px([
+            pass.sprite(&texture).dst_rect_px([
                 (
                     (x as i32 * tile_size.x as i32 - offset.x as i32) as f32,
                     (y as i32 * tile_size.y as i32 - offset.y as i32) as f32,
@@ -203,7 +206,7 @@ fn render_tiled_layer_consider_fow(
 
 /// Renders rectangles to non-blocking cells
 pub fn render_grids_on_non_blocking_cells(
-    pass: &mut BatchPass<'_>,
+    pass: &mut impl DrawApi,
     tiled: &tiled::Map,
     blocks: &[bool],
     px_bounds: &Rect2f,
@@ -226,7 +229,7 @@ pub fn render_grids_on_non_blocking_cells(
 
             pass.rect(
                 [pos + Vec2f::new(2.0, 2.0), (28.0, 28.0).into()],
-                Color::white().multiply(0.5),
+                Color::WHITE.with_alpha(127),
             );
         }
     }

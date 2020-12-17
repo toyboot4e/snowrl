@@ -68,13 +68,14 @@ impl Texture2dDrop {
 /// Reference counted version of [`Texture2dDrop`]
 #[derive(Debug, Clone)]
 pub struct SharedTexture2d {
-    tex: Rc<Texture2dDrop>,
+    pub tex: Rc<Texture2dDrop>,
 }
 
 #[derive(Debug, Clone)]
 pub struct SharedSubTexture2d {
-    shared: SharedTexture2d,
-    uv_rect: [f32; 4],
+    pub shared: SharedTexture2d,
+    /// x, y, w, h
+    pub uv_rect: [f32; 4],
 }
 
 // --------------------------------------------------------------------------------

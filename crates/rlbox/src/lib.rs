@@ -6,5 +6,6 @@ Roguelike box
 
 */
 
-// pub mod render;
-// pub mod rl;
+pub mod render;
+pub mod rl;
+pub mod utils;

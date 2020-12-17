@@ -29,7 +29,7 @@ rlbox = { path = "crates/rlbox" }
 
 log = "0.4.11"
 env_logger = "0.8.2"
-anyhow = "1.0.33"
+anyhow = "1.0.35"
 thiserror = "1.0.21"
 
 image = "0.23.12"

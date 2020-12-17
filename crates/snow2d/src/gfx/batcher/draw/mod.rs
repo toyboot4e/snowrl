@@ -31,7 +31,7 @@ pub trait DrawApi {
     fn _next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_>;
 
     /// Used for implementing the provided methods
-    fn _white_dot(&mut self) -> SpritePush {
+    fn white_dot(&mut self) -> SpritePush {
         self.sprite(WHITE_DOT.get().unwrap())
     }
 
@@ -51,7 +51,7 @@ pub trait DrawApi {
         let rad = delta.rad();
         let len = delta.len();
 
-        self._white_dot()
+        self.white_dot()
             .color(color)
             .dst_rect_px([p1, (len, 1.0).into()])
             .rot(rad);
