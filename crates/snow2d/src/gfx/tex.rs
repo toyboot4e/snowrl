@@ -31,16 +31,18 @@ fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
     })
 }
 
-pub fn target_desc(w: u32, h: u32) -> rg::ImageDesc {
+fn target_desc(w: u32, h: u32) -> rg::ImageDesc {
     rg::ImageDesc {
         type_: rg::ImageType::Dim2 as u32,
         render_target: true,
         width: w as i32,
         height: h as i32,
-        usage: rg::ResourceUsage::Immutable as u32,
+        // usage: rg::ResourceUsage::Immutable as u32,
         min_filter: rg::Filter::Nearest as u32,
         mag_filter: rg::Filter::Nearest as u32,
-        // sample_count: 1,
+        // TODO:
+        sample_count: 1,
+        // (see also: rasterizer in pipeline)
         ..Default::default()
     }
 }
@@ -59,6 +61,8 @@ impl Drop for Texture2dDrop {
     }
 }
 
+/// The width and height have to be in scaled size (e.g. if on 2x DPI monitor with 1280x720 scaled
+/// screen size, pass 1280x720)
 impl Texture2dDrop {
     pub fn from_path(path: impl AsRef<Path>) -> image::ImageResult<Self> {
         let img = image::open(path)?;
@@ -81,12 +85,14 @@ impl Texture2dDrop {
         SharedTexture2d { tex: Rc::new(self) }
     }
 
-    pub fn offscreen(w: u32, h: u32) -> Self {
-        Self {
-            img: rg::Image::create(&self::target_desc(w, h)),
+    pub fn offscreen(w: u32, h: u32) -> (Self, rg::ImageDesc) {
+        let desc = self::target_desc(w, h);
+        let me = Self {
+            img: rg::Image::create(&desc),
             w,
             h,
-        }
+        };
+        (me, desc)
     }
 }
 

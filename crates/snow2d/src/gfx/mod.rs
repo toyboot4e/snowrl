@@ -74,7 +74,11 @@ macro_rules! def_colors {
 def_colors!(
     // name, r, g, b, a
     (WHITE, 255, 255, 255, 255),
+    (WHITE_TRANSPARENT, 255, 255, 255, 0),
+    (WHITE_SEMI_TRANSPARENT, 255, 255, 255, 128),
     (BLACK, 0, 0, 0, 0),
+    (BLACK_TRANSPARENT, 0, 0, 0, 0),
+    (BLACK_SEMI_TRANSPARENT, 0, 0, 0, 128),
     (GRAY, 32, 32, 32, 32),
     (CORNFLOWER_BLUE, 100, 149, 237, 255),
     // TODO: define more colors

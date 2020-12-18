@@ -20,43 +20,54 @@ use crate::gfx::{
     tex::Texture2dDrop,
 };
 
-#[derive(Debug)]
-pub struct PassConfig<'a, 'b> {
-    pub pa: &'a rg::PassAction,
-    // tfm: Option<glam::Mat3>,
-    // pip: Option<rg::Pipeline>,
-    pub ofs: Option<&'b OffscreenPass>,
-}
+const M_INV_Y: glam::Mat4 = glam::const_mat4!(
+    [1.0, 0.0, 0.0, 0.0],
+    [0.0, -1.0, 0.0, 0.0],
+    [0.0, 0.0, 1.0, 0.0],
+    [0.0, 0.0, 0.0, 1.0]
+);
 
+const ALPHA_BLEND: rg::BlendState = rg::BlendState {
+    enabled: true,
+    src_factor_rgb: rg::BlendFactor::SrcAlpha as u32,
+    dst_factor_rgb: rg::BlendFactor::OneMinusSrcAlpha as u32,
+    op_rgb: 0,
+    src_factor_alpha: 0,
+    dst_factor_alpha: 0,
+    op_alpha: 0,
+    color_write_mask: 0,
+    color_attachment_count: 0,
+    color_format: 0,
+    depth_format: 0,
+    blend_color: [0.0; 4],
+};
+
+/// Off-screen rendering target
 #[derive(Debug, Default)]
-pub struct OffscreenPass {
+pub struct RenderTexture {
     /// Render target texture binded to the internal [`rg::Pass`]
     tex: Texture2dDrop,
     pass: rg::Pass,
 }
 
-impl OffscreenPass {
+impl RenderTexture {
+    /// The width and height have to be in scaled size (e.g. if on 2x DPI monitor with 1280x720
+    /// scaled screen size, pass 1280x720)
     pub fn new(w: u32, h: u32) -> Self {
-        let tex = Texture2dDrop::offscreen(w, h);
+        let (tex, mut image_desc) = Texture2dDrop::offscreen(w, h);
 
         let pass = rg::Pass::create(&{
             let mut desc = rg::PassDesc::default();
 
-            desc.color_attachments[0] = rg::AttachmentDesc {
-                image: tex.img(),
-                mip_level: 0,
-                ..Default::default()
-            };
+            //// color image
+            desc.color_attachments[0].image = tex.img();
 
-            desc.depth_stencil_attachment = rg::AttachmentDesc {
-                // FIXME: share creation with texture
-                image: rg::Image::create(&{
-                    let mut desc = crate::gfx::tex::target_desc(w, h);
-                    desc.pixel_format = rg::PixelFormat::Depth as u32;
-                    desc
-                }),
-                ..Default::default()
-            };
+            // depth image
+            desc.depth_stencil_attachment.image = rg::Image::create(&{
+                image_desc.pixel_format = rg::PixelFormat::Depth as u32;
+                image_desc
+            });
+
             desc
         });
 
@@ -70,6 +81,22 @@ impl OffscreenPass {
     pub fn img(&self) -> rg::Image {
         self.tex.img()
     }
+}
+
+/// Parameter to [`Snow2d`] methods
+///
+/// Shared between on-screen and off-screen rendering pass.
+#[derive(Debug)]
+pub struct PassConfig<'a> {
+    pub pa: &'a rg::PassAction,
+    pub tfm: Option<glam::Mat4>,
+    pub state: Option<RenderState>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct RenderState {
+    blend: rg::BlendState,
+    rasterize: rg::RasterizerState,
 }
 
 /// The 2D renderer
@@ -105,10 +132,10 @@ impl Snow2d {
                 desc.attrs[2].format = rg::VertexFormat::Float2 as u32;
                 desc
             },
-            blend: rg::BlendState {
-                enabled: true,
-                src_factor_rgb: rg::BlendFactor::SrcAlpha as u32,
-                dst_factor_rgb: rg::BlendFactor::OneMinusSrcAlpha as u32,
+            blend: ALPHA_BLEND,
+            rasterizer: rg::RasterizerState {
+                // NOTE: our 2 renderer may output backward triangle
+                cull_mode: rg::CullMode::None as u32,
                 ..Default::default()
             },
             ..Default::default()
@@ -116,25 +143,20 @@ impl Snow2d {
 
         self.frame_pip = Pipeline::create(&desc);
 
+        desc.blend = ALPHA_BLEND;
         desc.blend.depth_format = rg::PixelFormat::Depth as u32;
+        desc.rasterizer.sample_count = 1;
         self.ofs_pip = Pipeline::create(&desc);
     }
 
-    pub fn begin_pass(&mut self, cfg: PassConfig) -> Pass<'_> {
-        if let Some(ofs) = cfg.ofs {
-            // TODO: invert for OpenGL?
-            rg::begin_pass(ofs.pass, cfg.pa);
-            // TODO: apply given pipeline
-            rg::apply_pipeline(self.ofs_pip);
-        } else {
-            rg::begin_default_pass(cfg.pa, ra::width(), ra::height());
-            // TODO: apply given pipeline
-            rg::apply_pipeline(self.frame_pip);
-        }
+    /// Begins on-screen rendering pass
+    pub fn screen(&mut self, cfg: PassConfig<'_>) -> Pass<'_> {
+        rg::begin_default_pass(cfg.pa, ra::width(), ra::height());
+        rg::apply_pipeline(self.frame_pip);
 
         // left, right, top, bottom, near, far
         let proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
-        // TODO: apply given matrix
+
         unsafe {
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
         }
@@ -142,10 +164,26 @@ impl Snow2d {
         Pass { snow: self }
     }
 
-    // TODO: pop automatically
+    /// Begins off-screen rendering pass
+    pub fn offscreen(&mut self, ofs: &RenderTexture, cfg: PassConfig<'_>) -> Pass<'_> {
+        rg::begin_pass(ofs.pass, cfg.pa);
+        rg::apply_pipeline(self.ofs_pip);
+
+        // left, right, top, bottom, near, far
+        let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
+
+        // [OpenGL] invert y
+        proj = M_INV_Y * proj;
+
+        unsafe {
+            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
+        }
+
+        Pass { snow: self }
+    }
+
     fn end_pass(&mut self) {
         self.batch.flush();
-        // TODO: pop shader if pushed
         rg::end_pass();
     }
 }

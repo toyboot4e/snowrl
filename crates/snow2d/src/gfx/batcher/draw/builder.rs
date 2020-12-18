@@ -136,6 +136,7 @@ pub trait QuadParamsBuilder {
         self
     }
 
+    /// FIXME: flips not working
     fn flips(&mut self, flips: Flips) -> &mut Self {
         self.params().flips = flips;
         self
