@@ -101,17 +101,15 @@ pub fn render_fov_shadows(
             let alpha = if fov.is_in_view([x as i32, y as i32].into()) {
                 let len = (Vec2i::new(x as i32, y as i32) - fov.origin()).len_f32();
                 let x = len / fov.radius() as f32;
-                ease(x) * 0.5
+                0.5 * ease(x)
             } else {
                 0.7
             };
 
             let alpha_u8 = (255 as f32 * alpha) as u8;
-            let color = Color::rgba(0, 0, 0, alpha_u8);
 
             draw.white_dot()
-                .color(color)
-                .uv_rect([0.0, 0.0, 1.0, 1.0])
+                .color(Color::rgba(0, 0, 0, alpha_u8))
                 .dst_rect_px([
                     (
                         (x as i32 * tile_size.x as i32 - px_bounds.left_up().x as i32) as f32,

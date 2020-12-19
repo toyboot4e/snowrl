@@ -69,18 +69,15 @@ impl World {
     }
 
     pub fn render(&mut self, wcx: &mut WorldContext) {
-        wcx.fov_render.render(&mut wcx.rdr, self);
-
         let mut screen = wcx.rdr.screen(PassConfig {
             pa: &wcx.pa_blue,
             tfm: None,
             pip: None,
         });
-
         crate::render::render_tiled(&mut screen, self);
-
         drop(screen);
 
+        wcx.fov_render.render_ofs(&mut wcx.rdr, self);
         wcx.fov_render.blend_to_screen(&mut wcx.rdr);
     }
 }

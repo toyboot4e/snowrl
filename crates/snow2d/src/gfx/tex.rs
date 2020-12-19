@@ -37,10 +37,11 @@ fn target_desc(w: u32, h: u32) -> rg::ImageDesc {
         width: w as i32,
         height: h as i32,
         // usage: rg::ResourceUsage::Immutable as u32,
-        min_filter: rg::Filter::Nearest as u32,
-        mag_filter: rg::Filter::Nearest as u32,
-        // min_filter: rg::Filter::Linear as u32,
-        // mag_filter: rg::Filter::Linear as u32,
+        // FIXME: set filter manually
+        // min_filter: rg::Filter::Nearest as u32,
+        // mag_filter: rg::Filter::Nearest as u32,
+        min_filter: rg::Filter::Linear as u32,
+        mag_filter: rg::Filter::Linear as u32,
         // TODO:
         sample_count: 1,
         // (see also: rasterizer in pipeline)
@@ -164,10 +165,12 @@ impl OnSpritePush for Texture2dDrop {
     fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
         builder
             .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
-            .dst_size_px([self.as_ref().w(), self.as_ref().h()]);
+            .dst_size_px([self.as_ref().w(), self.as_ref().h()])
+            .uv_rect([0.0, 0.0, 1.0, 1.0]);
     }
 }
 
+// delegate to `Texture2dDrop`
 impl OnSpritePush for SharedTexture2d {
     fn to_cheat_texture(&self) -> CheatTexture2d {
         self.as_ref().to_cheat_texture()

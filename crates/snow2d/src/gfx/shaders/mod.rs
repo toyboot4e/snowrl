@@ -69,8 +69,11 @@ pub fn tex_1() -> rokol::gfx::Shader {
     })
 }
 
-pub fn aver() -> rokol::gfx::Shader {
-    gen(&def_shd!("aver"), |desc| {
+/// Tow-pass gaussian blur for ping pong frame buffers
+///
+/// <https://learnopengl.com/Advanced-Lighting/Bloom>
+pub fn gauss() -> rokol::gfx::Shader {
+    gen(&def_shd!("gauss"), |desc| {
         desc.fs.images[0] = rg::ShaderImageDesc {
             type_: rg::ImageType::Dim2 as u32,
             name: c_str!("tex1").as_ptr() as *const _,
@@ -80,11 +83,26 @@ pub fn aver() -> rokol::gfx::Shader {
         desc.vs.uniform_blocks[0] = {
             let mut block = rg::ShaderUniformBlockDesc::default();
             block.size = std::mem::size_of::<glam::Mat4>() as i32;
+
             block.uniforms[0] = rg::ShaderUniformDesc {
                 type_: rg::UniformType::Mat4 as u32,
                 name: c_str!("transform").as_ptr() as *const _,
                 ..Default::default()
             };
+
+            block
+        };
+
+        desc.vs.uniform_blocks[1] = {
+            let mut block = rg::ShaderUniformBlockDesc::default();
+            block.size = std::mem::size_of::<f32>() as i32;
+
+            block.uniforms[0] = rg::ShaderUniformDesc {
+                type_: rg::UniformType::Float as u32,
+                name: c_str!("is_horizontal").as_ptr() as *const _,
+                ..Default::default()
+            };
+
             block
         };
     })

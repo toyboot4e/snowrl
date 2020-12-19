@@ -36,11 +36,11 @@ const ALPHA_BLEND: rg::BlendState = rg::BlendState {
     src_factor_rgb: rg::BlendFactor::SrcAlpha as u32,
     dst_factor_rgb: rg::BlendFactor::OneMinusSrcAlpha as u32,
     op_rgb: 0,
-    src_factor_alpha: 0,
-    dst_factor_alpha: 0,
+    src_factor_alpha: rg::BlendFactor::One as u32,
+    dst_factor_alpha: rg::BlendFactor::Zero as u32,
     op_alpha: 0,
     color_write_mask: 0,
-    color_attachment_count: 0,
+    color_attachment_count: 1,
     color_format: 0,
     depth_format: 0,
     blend_color: [0.0; 4],
@@ -109,6 +109,8 @@ impl Snow2d {
     /// Begins on-screen rendering pass
     pub fn screen(&mut self, cfg: PassConfig<'_>) -> Pass<'_> {
         rg::begin_default_pass(cfg.pa, ra::width(), ra::height());
+
+        // FIXME: pipeline should set uniform by themselves
         rg::apply_pipeline(cfg.pip.unwrap_or(self.screen_pip));
 
         // left, right, top, bottom, near, far
@@ -128,6 +130,8 @@ impl Snow2d {
     /// Begins off-screen rendering pass
     pub fn offscreen(&mut self, ofs: &RenderTexture, cfg: PassConfig<'_>) -> Pass<'_> {
         rg::begin_pass(ofs.pass(), cfg.pa);
+
+        // FIXME: pipeline should set uniform by themselves
         rg::apply_pipeline(cfg.pip.unwrap_or(self.ofs_pip));
 
         // left, right, top, bottom, near, far
