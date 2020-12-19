@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use {
     rand::{
         distributions::{Distribution, Uniform},

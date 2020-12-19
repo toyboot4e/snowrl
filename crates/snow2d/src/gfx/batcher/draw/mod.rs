@@ -1,7 +1,7 @@
 //! Fluent drawing API
 
-pub mod builder;
-pub mod params;
+mod builder;
+mod params;
 
 pub use self::{
     builder::{CheatTexture2d, OnSpritePush, QuadParamsBuilder, QuadPush, SpritePush},
@@ -33,9 +33,7 @@ pub trait DrawApi {
         self.sprite(WHITE_DOT.get().unwrap())
     }
 
-    /// Starts a [`QuadParamBuilder`] setting source/destination size and uv values
-    ///
-    /// [`QuadParamBuilder`]: crate::gfx::batcher::draw::QuadParamBuilder
+    /// Starts a [`QuadParamsBuilder`] setting source/destination size and uv values
     fn sprite<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush {
         // NOTE: the quad is initialized in this method
         SpritePush::new(self._next_push_mut(sprite), sprite)

@@ -13,7 +13,9 @@ pub trait Texture2d {
     fn h(&self) -> f32;
 }
 
-/// Full-featured geometry parameters to push a quadliteral onto [`SpriteBatch`]
+/// Full-featured geometry parameters to push a quadliteral onto [`Batch`]
+///
+/// [`Batch`]: crate::gfx::batcher::Batch
 #[derive(Debug, Clone)]
 pub struct QuadParams {
     // TODO: consider using two vectors per src/dest
@@ -53,7 +55,9 @@ impl QuadParams {
         self.skew = Skew2f::default();
     }
 
-    /// Be sure to flush [`SpriteBatch`] before running if it's saturated.
+    /// Be sure to flush [`Batch`] before running if it's saturated.
+    ///
+    /// [`Batch`]: crate::gfx::batcher::Batch
     pub fn write_to_quad(&self, quad: &mut QuadData, texture: &impl Texture2d, flips: Flips) {
         let (src_rect, dst_rect) = self.geometry_normalized(texture);
 

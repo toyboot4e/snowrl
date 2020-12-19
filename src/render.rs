@@ -1,10 +1,7 @@
 //! Rendering specialized for the [`World`]
 
 use {
-    rlbox::{
-        render::tiled as tiled_render,
-        rl::{self, fov::FovData, fow::FowData, grid2d::*, rlmap::TiledRlMap},
-    },
+    rlbox::render::tiled as tiled_render,
     rokol::{
         app as ra,
         gfx::{self as rg, BakedResource},
@@ -13,15 +10,14 @@ use {
         gfx::{
             batcher::{draw::*, vertex::VertexData},
             geom2d::*,
-            tex::Texture2dDrop,
+            tex::{RenderTexture, Texture2dDrop},
             Color,
         },
-        PassConfig, RenderTexture, Snow2d,
+        PassConfig, Snow2d,
     },
-    std::path::{Path, PathBuf},
 };
 
-use crate::world::{World, WorldContext};
+use crate::world::World;
 
 const ALPHA_BLEND: rg::BlendState = rg::BlendState {
     enabled: true,

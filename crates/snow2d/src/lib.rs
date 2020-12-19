@@ -21,7 +21,7 @@ use crate::gfx::{
         vertex::{QuadData, VertexData},
         Batch,
     },
-    tex::Texture2dDrop,
+    tex::RenderTexture,
 };
 
 const M_INV_Y: glam::Mat4 = glam::const_mat4!(
@@ -46,48 +46,7 @@ const ALPHA_BLEND: rg::BlendState = rg::BlendState {
     blend_color: [0.0; 4],
 };
 
-/// Off-screen rendering target
-#[derive(Debug, Default)]
-pub struct RenderTexture {
-    /// Render target texture binded to the internal [`rg::Pass`]
-    tex: Texture2dDrop,
-    pass: rg::Pass,
-}
-
-impl RenderTexture {
-    /// The width and height have to be in scaled size (e.g. if on 2x DPI monitor with 1280x720
-    /// scaled screen size, pass 1280x720)
-    pub fn new(w: u32, h: u32) -> Self {
-        let (tex, mut image_desc) = Texture2dDrop::offscreen(w, h);
-
-        let pass = rg::Pass::create(&{
-            let mut desc = rg::PassDesc::default();
-
-            // color image
-            desc.color_attachments[0].image = tex.img();
-
-            // depth image
-            desc.depth_stencil_attachment.image = rg::Image::create(&{
-                image_desc.pixel_format = rg::PixelFormat::Depth as u32;
-                image_desc
-            });
-
-            desc
-        });
-
-        Self { tex, pass }
-    }
-
-    pub fn tex(&self) -> &Texture2dDrop {
-        &self.tex
-    }
-
-    pub fn img(&self) -> rg::Image {
-        self.tex.img()
-    }
-}
-
-/// Parameter to [`Snow2d`] methods
+/// Parameter to [`Snow2d::screen`] or [`Snow2d::offscreen`]
 ///
 /// Shared between on-screen and off-screen rendering pass.
 #[derive(Debug)]
@@ -168,7 +127,7 @@ impl Snow2d {
 
     /// Begins off-screen rendering pass
     pub fn offscreen(&mut self, ofs: &RenderTexture, cfg: PassConfig<'_>) -> Pass<'_> {
-        rg::begin_pass(ofs.pass, cfg.pa);
+        rg::begin_pass(ofs.pass(), cfg.pa);
         rg::apply_pipeline(cfg.pip.unwrap_or(self.ofs_pip));
 
         // left, right, top, bottom, near, far
@@ -194,7 +153,7 @@ impl Snow2d {
     }
 }
 
-/// Rendering pass (on-screen or off-screen)
+/// [`DrawApi`] for a rendering pass (on-screen or off-screen)
 pub struct Pass<'a> {
     snow: &'a mut Snow2d,
 }

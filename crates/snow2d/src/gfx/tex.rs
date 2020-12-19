@@ -6,8 +6,7 @@ use {
     std::{path::Path, rc::Rc},
 };
 
-use crate::gfx::batcher::draw::{CheatTexture2d, QuadParamsBuilder};
-use crate::gfx::batcher::draw::{OnSpritePush, Texture2d};
+use crate::gfx::batcher::draw::{CheatTexture2d, OnSpritePush, QuadParamsBuilder, Texture2d};
 
 fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
     rg::Image::create(&{
@@ -104,6 +103,7 @@ pub struct SharedTexture2d {
     pub tex: Rc<Texture2dDrop>,
 }
 
+/// [`SharedTexture2d`] with uv rectangle
 #[derive(Debug, Clone)]
 pub struct SharedSubTexture2d {
     pub shared: SharedTexture2d,
@@ -188,5 +188,53 @@ impl OnSpritePush for SharedSubTexture2d {
             .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
             .dst_size_px([self.as_ref().w(), self.as_ref().h()])
             .uv_rect(self.uv_rect);
+    }
+}
+
+// --------------------------------------------------------------------------------
+
+/// Off-screen rendering target
+#[derive(Debug, Default)]
+pub struct RenderTexture {
+    /// Render target texture binded to the internal [`rg::Pass`]
+    tex: Texture2dDrop,
+    /// Off-screen rendering pass
+    pass: rg::Pass,
+}
+
+impl RenderTexture {
+    /// The width and height have to be in scaled size (e.g. if on 2x DPI monitor with 1280x720
+    /// scaled screen size, pass 1280x720)
+    pub fn new(w: u32, h: u32) -> Self {
+        let (tex, mut image_desc) = Texture2dDrop::offscreen(w, h);
+
+        let pass = rg::Pass::create(&{
+            let mut desc = rg::PassDesc::default();
+
+            // color image
+            desc.color_attachments[0].image = tex.img();
+
+            // depth image
+            desc.depth_stencil_attachment.image = rg::Image::create(&{
+                image_desc.pixel_format = rg::PixelFormat::Depth as u32;
+                image_desc
+            });
+
+            desc
+        });
+
+        Self { tex, pass }
+    }
+
+    pub fn tex(&self) -> &Texture2dDrop {
+        &self.tex
+    }
+
+    pub fn pass(&self) -> rg::Pass {
+        self.pass
+    }
+
+    pub fn img(&self) -> rg::Image {
+        self.tex.img()
     }
 }

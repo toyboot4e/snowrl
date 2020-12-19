@@ -6,12 +6,7 @@ pub mod render;
 pub mod world;
 
 use {
-    rlbox::{render::tiled as tiled_render, rl::rlmap::TiledRlMap},
     rokol::{app as ra, gfx as rg},
-    snow2d::{
-        gfx::{batcher::draw::*, tex::Texture2dDrop},
-        Snow2d,
-    },
     std::path::PathBuf,
 };
 
@@ -56,7 +51,7 @@ impl rokol::app::RApp for SnowRl {
         rg::commit();
     }
 
-    fn event(&mut self, ev: &ra::RAppEvent) {
+    fn event(&mut self, _ev: &ra::RAppEvent) {
         // println!("{:?}", ev);
     }
 }

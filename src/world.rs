@@ -1,14 +1,8 @@
 use {
-    rlbox::{
-        render::tiled as tiled_render,
-        rl::{self, fov::FovData, fow::FowData, grid2d::*, rlmap::TiledRlMap},
-    },
-    rokol::{app as ra, gfx as rg},
-    snow2d::{
-        gfx::{batcher::draw::*, geom2d::*, Color},
-        PassConfig, RenderTexture, Snow2d,
-    },
-    std::path::{Path, PathBuf},
+    rlbox::rl::{self, fov::FovData, fow::FowData, grid2d::*, rlmap::TiledRlMap},
+    rokol::gfx as rg,
+    snow2d::{gfx::Color, PassConfig, Snow2d},
+    std::path::Path,
 };
 
 use crate::render::FovRenderer;
