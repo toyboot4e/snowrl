@@ -2,6 +2,7 @@
 
 pub use {rlbox, rokol, snow2d};
 
+pub mod render;
 pub mod world;
 
 use {

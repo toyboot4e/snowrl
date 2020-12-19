@@ -11,16 +11,16 @@ use {
     std::path::{Path, PathBuf},
 };
 
+use crate::render::FovRenderer;
+
 /// Powers the game [`World`]
 #[derive(Debug)]
 pub struct WorldContext {
     /// 2D renderer
-    rdr: Snow2d,
+    pub rdr: Snow2d,
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
-    /// Clears target (shadow) with
-    pa_trans: rg::PassAction,
-    shadow: RenderTexture,
+    pub fov_render: FovRenderer,
 }
 
 impl WorldContext {
@@ -30,20 +30,10 @@ impl WorldContext {
             rdr.init();
         }
 
-        let shadow = {
-            let inv_scale = 4.0;
-            let mut screen_size = ra::size_scaled();
-            screen_size[0] /= inv_scale;
-            screen_size[1] /= inv_scale;
-            RenderTexture::new(screen_size[0] as u32, screen_size[1] as u32)
-        };
-
         Self {
             rdr,
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
-            // pa_trans: rg::PassAction::clear(Color::WHITE_TRANSPARENT.to_normalized_array()),
-            pa_trans: rg::PassAction::clear(Color::BLACK.to_normalized_array()),
-            shadow,
+            fov_render: FovRenderer::new(),
         }
     }
 
@@ -53,9 +43,9 @@ impl WorldContext {
 /// The game world
 #[derive(Debug)]
 pub struct World {
-    map: TiledRlMap,
-    fow: FowData,
-    player: Player,
+    pub map: TiledRlMap,
+    pub fow: FowData,
+    pub player: Player,
 }
 
 impl World {
@@ -85,49 +75,24 @@ impl World {
     }
 
     pub fn render(&mut self, wcx: &mut WorldContext) {
-        // TODO: 1/4 size for blur
-        let mut offscreen = wcx.rdr.offscreen(
-            &wcx.shadow,
-            PassConfig {
-                pa: &wcx.pa_trans,
-                tfm: None,
-                state: None,
-            },
-        );
-
-        let bounds = Rect2f::from(([0.0, 0.0], ra::size_scaled()));
-        tiled_render::render_fov_shadows(
-            &mut offscreen,
-            &self.map.tiled,
-            &self.player.fov,
-            &bounds,
-        );
-
-        drop(offscreen);
+        wcx.fov_render.render(&mut wcx.rdr, self);
 
         let mut screen = wcx.rdr.screen(PassConfig {
             pa: &wcx.pa_blue,
             tfm: None,
-            state: None,
+            pip: None,
         });
 
-        tiled_render::render_tiled(
-            &mut screen,
-            &self.map.tiled,
-            &self.map.idmap,
-            bounds.clone(),
-        );
-
-        screen
-            .sprite(wcx.shadow.tex())
-            .dst_size_px(ra::size_scaled());
+        crate::render::render_tiled(&mut screen, self);
 
         drop(screen);
+
+        wcx.fov_render.blend_to_screen(&mut wcx.rdr);
     }
 }
 
 #[derive(Debug)]
 pub struct Player {
-    pos: Vec2i,
-    fov: FovData,
+    pub pos: Vec2i,
+    pub fov: FovData,
 }

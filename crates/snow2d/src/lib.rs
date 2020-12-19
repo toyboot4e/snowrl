@@ -59,7 +59,7 @@ impl RenderTexture {
         let pass = rg::Pass::create(&{
             let mut desc = rg::PassDesc::default();
 
-            //// color image
+            // color image
             desc.color_attachments[0].image = tex.img();
 
             // depth image
@@ -89,14 +89,9 @@ impl RenderTexture {
 #[derive(Debug)]
 pub struct PassConfig<'a> {
     pub pa: &'a rg::PassAction,
+    /// uniform matrix = orthographic * transform
     pub tfm: Option<glam::Mat4>,
-    pub state: Option<RenderState>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct RenderState {
-    blend: rg::BlendState,
-    rasterize: rg::RasterizerState,
+    pub pip: Option<rg::Pipeline>,
 }
 
 /// The 2D renderer
@@ -134,7 +129,7 @@ impl Snow2d {
             },
             blend: ALPHA_BLEND,
             rasterizer: rg::RasterizerState {
-                // NOTE: our 2 renderer may output backward triangle
+                // NOTE: our renderer may output backward triangle
                 cull_mode: rg::CullMode::None as u32,
                 ..Default::default()
             },
@@ -143,19 +138,26 @@ impl Snow2d {
 
         self.frame_pip = Pipeline::create(&desc);
 
-        desc.blend = ALPHA_BLEND;
-        desc.blend.depth_format = rg::PixelFormat::Depth as u32;
-        desc.rasterizer.sample_count = 1;
-        self.ofs_pip = Pipeline::create(&desc);
+        self.ofs_pip = Pipeline::create({
+            desc.blend = ALPHA_BLEND;
+            desc.blend.depth_format = rg::PixelFormat::Depth as u32;
+            // TODO: sample_count? (also on internal image of render texture)
+            desc.rasterizer.sample_count = 1;
+            &desc
+        });
     }
 
     /// Begins on-screen rendering pass
     pub fn screen(&mut self, cfg: PassConfig<'_>) -> Pass<'_> {
         rg::begin_default_pass(cfg.pa, ra::width(), ra::height());
-        rg::apply_pipeline(self.frame_pip);
+        rg::apply_pipeline(cfg.pip.unwrap_or(self.frame_pip));
 
         // left, right, top, bottom, near, far
-        let proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
+        let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
+
+        if let Some(tfm) = cfg.tfm {
+            proj = proj * tfm;
+        }
 
         unsafe {
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
@@ -167,10 +169,14 @@ impl Snow2d {
     /// Begins off-screen rendering pass
     pub fn offscreen(&mut self, ofs: &RenderTexture, cfg: PassConfig<'_>) -> Pass<'_> {
         rg::begin_pass(ofs.pass, cfg.pa);
-        rg::apply_pipeline(self.ofs_pip);
+        rg::apply_pipeline(cfg.pip.unwrap_or(self.ofs_pip));
 
         // left, right, top, bottom, near, far
         let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
+
+        if let Some(tfm) = cfg.tfm {
+            proj = proj * tfm;
+        }
 
         // [OpenGL] invert y
         proj = M_INV_Y * proj;
@@ -188,7 +194,7 @@ impl Snow2d {
     }
 }
 
-/// [`DrawApi`] and lifetime to a rendering pass
+/// Rendering pass (on-screen or off-screen)
 pub struct Pass<'a> {
     snow: &'a mut Snow2d,
 }
