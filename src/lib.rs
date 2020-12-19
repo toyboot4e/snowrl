@@ -39,7 +39,7 @@ impl rokol::app::RApp for SnowRl {
         let file = root.join("map/tmx/rl_start.tmx");
 
         self.wcx = Some(WorldContext::new());
-        self.world = Some(World::from_tiled_file(&file).unwrap());
+        self.world = Some(World::from_tiled_file(self.wcx.as_mut().unwrap(), &file).unwrap());
     }
 
     fn frame(&mut self) {

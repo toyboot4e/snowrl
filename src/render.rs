@@ -1,7 +1,7 @@
 //! Rendering specialized for the [`World`]
 
 use {
-    rlbox::render::tiled as tiled_render,
+    rlbox::{render::tiled as tiled_render, rl::fov::FovData},
     rokol::{
         app as ra,
         gfx::{self as rg, BakedResource},
@@ -10,7 +10,7 @@ use {
         gfx::{
             batcher::{draw::*, vertex::VertexData},
             geom2d::*,
-            tex::{RenderTexture, Texture2dDrop},
+            tex::RenderTexture,
             Color,
         },
         PassConfig, Snow2d,
@@ -18,21 +18,6 @@ use {
 };
 
 use crate::world::World;
-
-const ALPHA_BLEND: rg::BlendState = rg::BlendState {
-    enabled: true,
-    src_factor_rgb: rg::BlendFactor::SrcAlpha as u32,
-    dst_factor_rgb: rg::BlendFactor::OneMinusSrcAlpha as u32,
-    op_rgb: 0,
-    src_factor_alpha: rg::BlendFactor::One as u32,
-    dst_factor_alpha: rg::BlendFactor::Zero as u32,
-    op_alpha: 0,
-    color_write_mask: 0,
-    color_attachment_count: 1,
-    color_format: 0,
-    depth_format: 0,
-    blend_color: [0.0; 4],
-};
 
 pub fn render_tiled(draw: &mut impl DrawApi, world: &World) {
     let bounds = Rect2f::from(([0.0, 0.0], ra::size_scaled()));
@@ -45,6 +30,9 @@ pub struct FovRenderer {
     shadows: [RenderTexture; 2],
     /// Pipeline object for off-screen rendering with gausssian blur
     pip_gauss_ofs: rg::Pipeline,
+    // FoV rendering states
+    fov_prev: FovData,
+    fov_blend: f32,
 }
 
 impl FovRenderer {
@@ -77,7 +65,14 @@ impl FovRenderer {
                 },
                 ..Default::default()
             }),
+            fov_prev: Default::default(),
+            fov_blend: 0.0,
         }
+    }
+
+    pub fn set_prev_fov(&mut self, fov: &FovData) {
+        self.fov_prev = fov.clone();
+        self.fov_blend = 0.0;
     }
 
     // TODO: separate gaussian blur shader
@@ -94,12 +89,20 @@ impl FovRenderer {
         );
 
         let bounds = Rect2f::from(([0.0, 0.0], ra::size_scaled()));
-        tiled_render::render_fov_shadows(
+        tiled_render::render_fov_shadows_blend(
             &mut offscreen,
             &world.map.tiled,
-            &world.player.fov,
             &bounds,
+            &world.player.fov,
+            &self.fov_prev,
+            self.fov_blend,
         );
+
+        // advance FoV blend factor
+        self.fov_blend += 0.01;
+        if self.fov_blend >= 1.0 {
+            self.fov_blend = 1.0;
+        }
 
         drop(offscreen);
 
@@ -107,45 +110,45 @@ impl FovRenderer {
         self.pingpong(rdr);
     }
 
+    /// Apply gaussian blur
     fn pingpong(&mut self, rdr: &mut Snow2d) {
-        // just to clear
-        rdr.offscreen(
-            &mut self.shadows[1],
+        // 5 times
+        for _ in 0..5 {
+            // pingpong blur
+            for ix in 0..2 {
+                // source shadow index
+                let i = ix % 2;
+                // target shadow index
+                let j = (ix + 1) % 2;
+
+                self.blur(rdr, ix == 0, i, j);
+            }
+        }
+    }
+
+    #[inline]
+    fn blur(&mut self, rdr: &mut Snow2d, is_h: bool, from: usize, to: usize) {
+        let mut draw = rdr.offscreen(
+            &mut self.shadows[to],
             PassConfig {
-                pa: &self.pa_trans,
+                pa: &rg::PassAction::NONE,
                 tfm: None,
                 pip: Some(self.pip_gauss_ofs),
             },
         );
 
-        for ix in 0..2 {
-            // source shadow index
-            let i = ix % 2;
-            // target shadow index
-            let j = (ix + 1) % 2;
-
-            let mut draw = rdr.offscreen(
-                &mut self.shadows[j],
-                PassConfig {
-                    pa: &rg::PassAction::NONE,
-                    tfm: None,
-                    pip: Some(self.pip_gauss_ofs),
-                },
-            );
-
-            // horizontally or vertically
-            unsafe {
-                let ub_index = 1;
-                let is_h: f32 = if ix % 2 == 0 { 1.0 } else { 0.0 };
-                rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, ub_index, &is_h);
-            }
-
-            // write from one to the other
-            draw.sprite(self.shadows[i].tex())
-                // NOTE: we're using a orthogarphic projection matrix for the screen, so
-                // use the screen size as the destination size
-                .dst_size_px(ra::size_scaled());
+        // horizontally or vertically
+        unsafe {
+            let ub_index = 1;
+            let uniform: f32 = if is_h { 1.0 } else { 0.0 };
+            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, ub_index, &uniform);
         }
+
+        // write from one to the other
+        draw.sprite(self.shadows[from].tex())
+            // NOTE: we're using a orthogarphic projection matrix for the screen, so
+            // use the screen size as the destination size
+            .dst_size_px(ra::size_scaled());
     }
 
     /// Writes shadow to the screen frame buffer

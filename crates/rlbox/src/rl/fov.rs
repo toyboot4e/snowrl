@@ -2,7 +2,7 @@
 
 use crate::rl::grid2d::Vec2i;
 
-/// Refreshes FoV data or maybe bundle of FoV and FoW
+/// Refreshes [`FovWrite`] (FoV data or maybe bundle of FoV and FoW)
 pub fn refresh<T: OpacityMap>(fov: &mut impl FovWrite, params: RefreshParams<T>) {
     fov.on_refresh(&params);
     self::update_fov(fov, params.r, params.origin, params.opa);
@@ -33,12 +33,14 @@ pub trait OpacityMap {
 }
 
 /// Stub implementation of [`FovWrite`]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FovData {
     data: Vec<bool>,
     radius: u32,
     /// Where the character is
     origin: Vec2i,
+    /// Whether updated or not
+    is_dirty: bool,
 }
 
 impl FovData {
@@ -50,6 +52,7 @@ impl FovData {
             data,
             origin: Vec2i::default(),
             radius,
+            is_dirty: false,
         }
     }
 
@@ -58,6 +61,8 @@ impl FovData {
         for i in 0..area {
             self.data[i] = false;
         }
+
+        self.is_dirty = false;
     }
 
     pub fn radius(&self) -> u32 {
@@ -91,10 +96,8 @@ impl FovWrite for FovData {
         self.origin = params.origin;
         // TODO: resize if needed
 
-        // clear FoV
-        for i in 0..self.data.len() {
-            self.data[i] = false;
-        }
+        self.clear();
+        self.is_dirty = true;
     }
 
     fn light(&mut self, pos: Vec2i) {

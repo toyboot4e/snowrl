@@ -51,6 +51,7 @@ pub fn render_tiled(
     }
 }
 
+#[inline]
 fn render_tiled_layer(
     draw: &mut impl DrawApi,
     tiled: &tiled::Map,
@@ -90,35 +91,53 @@ fn render_tiled_layer(
 pub fn render_fov_shadows(
     draw: &mut impl DrawApi,
     tiled: &tiled::Map,
+    bounds: &Rect2f,
     fov: &FovData,
-    px_bounds: &Rect2f,
 ) {
     let tile_size = Vec2u::new(tiled.tile_width, tiled.tile_height);
 
-    let (ys, xs) = self::visible_cells_from_px_bounds(px_bounds, tiled);
+    let (ys, xs) = self::visible_cells_from_px_bounds(bounds, tiled);
     for y in ys[0]..ys[1] {
         for x in xs[0]..xs[1] {
-            let alpha = if fov.is_in_view([x as i32, y as i32].into()) {
-                let len = (Vec2i::new(x as i32, y as i32) - fov.origin()).len_f32();
-                let x = len / fov.radius() as f32;
-                0.5 * ease(x)
-            } else {
-                0.7
-            };
-
-            let alpha_u8 = (255 as f32 * alpha) as u8;
-
-            draw.white_dot()
-                .color(Color::rgba(0, 0, 0, alpha_u8))
-                .dst_rect_px([
-                    (
-                        (x as i32 * tile_size.x as i32 - px_bounds.left_up().x as i32) as f32,
-                        (y as i32 * tile_size.y as i32 - px_bounds.left_up().y as i32) as f32,
-                    ),
-                    (tile_size.x as f32, tile_size.y as f32),
-                ]);
+            let alpha = self::fov_alpha([x, y], fov);
+            self::render_shadow_cell(draw, alpha, [x, y], bounds, tile_size);
         }
     }
+}
+
+pub fn render_fov_shadows_blend(
+    draw: &mut impl DrawApi,
+    tiled: &tiled::Map,
+    bounds: &Rect2f,
+    fov1: &FovData,
+    fov2: &FovData,
+    blend: f32,
+) {
+    let tile_size = Vec2u::new(tiled.tile_width, tiled.tile_height);
+
+    let (ys, xs) = self::visible_cells_from_px_bounds(bounds, tiled);
+    for y in ys[0]..ys[1] {
+        for x in xs[0]..xs[1] {
+            let alpha = {
+                let alpha1 = self::fov_alpha([x, y], fov1);
+                let alpha2 = self::fov_alpha([x, y], fov2);
+                alpha1 * blend + alpha2 * (1.0 - blend)
+            };
+
+            self::render_shadow_cell(draw, alpha, [x, y], bounds, tile_size);
+        }
+    }
+}
+
+#[inline]
+fn fov_alpha(pos: [u32; 2], fov: &FovData) -> f32 {
+    return if fov.is_in_view([pos[0] as i32, pos[1] as i32].into()) {
+        let len = (Vec2i::new(pos[0] as i32, pos[1] as i32) - fov.origin()).len_f32();
+        let x = len / fov.radius() as f32;
+        0.5 * ease(x)
+    } else {
+        0.7
+    };
 
     /// x: [0.0, 1.0]
     fn ease(x: f32) -> f32 {
@@ -128,6 +147,27 @@ pub fn render_fov_shadows(
             1.0 - (-2.0 * x as f32 + 2.0).powf(3.0) / 2.0
         }
     }
+}
+
+#[inline]
+fn render_shadow_cell(
+    draw: &mut impl DrawApi,
+    alpha: f32,
+    pos: [u32; 2],
+    bounds: &Rect2f,
+    tile_size: Vec2u,
+) {
+    let alpha_u8 = (255 as f32 * alpha) as u8;
+
+    draw.white_dot()
+        .color(Color::rgba(0, 0, 0, alpha_u8))
+        .dst_rect_px([
+            (
+                (pos[0] as i32 * tile_size.x as i32 - bounds.left_up().x as i32) as f32,
+                (pos[1] as i32 * tile_size.y as i32 - bounds.left_up().y as i32) as f32,
+            ),
+            (tile_size.x as f32, tile_size.y as f32),
+        ]);
 }
 
 // --------------------------------------------------------------------------------

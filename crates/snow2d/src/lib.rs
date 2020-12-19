@@ -9,6 +9,7 @@ A 2D framework on top of [`rokol`].
 pub use rokol;
 
 pub mod gfx;
+pub mod input;
 
 use rokol::{
     app as ra,
