@@ -10,7 +10,12 @@ use {
         gfx::{self as rg, BakedResource},
     },
     snow2d::{
-        gfx::{batcher::draw::*, geom2d::*, tex::Texture2dDrop, Color},
+        gfx::{
+            batcher::{draw::*, vertex::VertexData},
+            geom2d::*,
+            tex::Texture2dDrop,
+            Color,
+        },
         PassConfig, RenderTexture, Snow2d,
     },
     std::path::{Path, PathBuf},
@@ -42,7 +47,7 @@ pub fn render_tiled(draw: &mut impl DrawApi, world: &World) {
 pub struct FovRenderer {
     pa_trans: rg::PassAction,
     pub shadow: RenderTexture,
-    // pip: rg::Pipeline,
+    pip: rg::Pipeline,
 }
 
 impl FovRenderer {
@@ -56,29 +61,23 @@ impl FovRenderer {
             RenderTexture::new(screen_size[0] as u32, screen_size[1] as u32)
         };
 
-        // let pip = rg::Pipeline::create(&rg::PipelineDesc {
-        //     shader: snow2d::gfx::shaders::aver(),
-        //     index_type: rg::IndexType::UInt16 as u32,
-        //     layout: {
-        //         let mut desc = rg::LayoutDesc::default();
-        //         desc.attrs[0].format = rg::VertexFormat::Float2 as u32;
-        //         desc.attrs[1].format = rg::VertexFormat::UByte4N as u32;
-        //         desc.attrs[2].format = rg::VertexFormat::Float2 as u32;
-        //         desc
-        //     },
-        //     blend: ALPHA_BLEND,
-        //     rasterizer: rg::RasterizerState {
-        //         // NOTE: our 2 renderer may output backward triangle
-        //         cull_mode: rg::CullMode::None as u32,
-        //         ..Default::default()
-        //     },
-        //     ..Default::default()
-        // });
+        let pip = rg::Pipeline::create(&rg::PipelineDesc {
+            shader: snow2d::gfx::shaders::aver(),
+            index_type: rg::IndexType::UInt16 as u32,
+            layout: VertexData::layout_desc(),
+            blend: ALPHA_BLEND,
+            rasterizer: rg::RasterizerState {
+                // NOTE: our 2 renderer may output backward triangle
+                cull_mode: rg::CullMode::None as u32,
+                ..Default::default()
+            },
+            ..Default::default()
+        });
 
         Self {
             pa_trans: rg::PassAction::clear(Color::BLACK.to_normalized_array()),
             shadow,
-            // pip,
+            pip,
         }
     }
 
@@ -113,8 +112,7 @@ impl FovRenderer {
         let mut screen = rdr.screen(PassConfig {
             pa: &rg::PassAction::NONE,
             tfm: None,
-            pip: None,
-            // pip: Some(self.pip),
+            pip: Some(self.pip),
         });
 
         screen.sprite(self.tex()).dst_size_px(ra::size_scaled());

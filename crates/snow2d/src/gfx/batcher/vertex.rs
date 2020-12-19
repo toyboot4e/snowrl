@@ -1,5 +1,7 @@
 //! Vertex data type for `snow2d`
 
+use rokol::gfx as rg;
+
 // TODO: enable 2048 to not overflow (can't we reset buffer?)
 pub const N_QUADS: usize = 2048 * 4;
 
@@ -24,6 +26,16 @@ where
             color: data.1.into(),
             uv: data.2.into(),
         }
+    }
+}
+
+impl VertexData {
+    pub fn layout_desc() -> rg::LayoutDesc {
+        let mut desc = rg::LayoutDesc::default();
+        desc.attrs[0].format = rg::VertexFormat::Float2 as u32;
+        desc.attrs[1].format = rg::VertexFormat::UByte4N as u32;
+        desc.attrs[2].format = rg::VertexFormat::Float2 as u32;
+        desc
     }
 }
 

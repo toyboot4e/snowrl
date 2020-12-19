@@ -16,7 +16,11 @@ use rokol::{
 };
 
 use crate::gfx::{
-    batcher::{draw::*, vertex::QuadData, Batch},
+    batcher::{
+        draw::*,
+        vertex::{QuadData, VertexData},
+        Batch,
+    },
     tex::Texture2dDrop,
 };
 
@@ -97,10 +101,12 @@ pub struct PassConfig<'a> {
 /// The 2D renderer
 #[derive(Debug, Default)]
 pub struct Snow2d {
-    pub frame_pip: rg::Pipeline,
-    pub ofs_pip: rg::Pipeline,
     /// Vertex/index buffer and images slots
     pub batch: Batch,
+    /// Default pipeline object for on-screen rendering
+    pub screen_pip: rg::Pipeline,
+    /// Default pipeline object for off-screen rendering
+    pub ofs_pip: rg::Pipeline,
 }
 
 impl Snow2d {
@@ -120,13 +126,7 @@ impl Snow2d {
         let mut desc = rg::PipelineDesc {
             shader: gfx::shaders::tex_1(),
             index_type: rg::IndexType::UInt16 as u32,
-            layout: {
-                let mut desc = rg::LayoutDesc::default();
-                desc.attrs[0].format = rg::VertexFormat::Float2 as u32;
-                desc.attrs[1].format = rg::VertexFormat::UByte4N as u32;
-                desc.attrs[2].format = rg::VertexFormat::Float2 as u32;
-                desc
-            },
+            layout: VertexData::layout_desc(),
             blend: ALPHA_BLEND,
             rasterizer: rg::RasterizerState {
                 // NOTE: our renderer may output backward triangle
@@ -136,7 +136,7 @@ impl Snow2d {
             ..Default::default()
         };
 
-        self.frame_pip = Pipeline::create(&desc);
+        self.screen_pip = Pipeline::create(&desc);
 
         self.ofs_pip = Pipeline::create({
             desc.blend = ALPHA_BLEND;
@@ -150,7 +150,7 @@ impl Snow2d {
     /// Begins on-screen rendering pass
     pub fn screen(&mut self, cfg: PassConfig<'_>) -> Pass<'_> {
         rg::begin_default_pass(cfg.pa, ra::width(), ra::height());
-        rg::apply_pipeline(cfg.pip.unwrap_or(self.frame_pip));
+        rg::apply_pipeline(cfg.pip.unwrap_or(self.screen_pip));
 
         // left, right, top, bottom, near, far
         let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);

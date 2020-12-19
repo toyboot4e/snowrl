@@ -40,6 +40,8 @@ fn target_desc(w: u32, h: u32) -> rg::ImageDesc {
         // usage: rg::ResourceUsage::Immutable as u32,
         min_filter: rg::Filter::Nearest as u32,
         mag_filter: rg::Filter::Nearest as u32,
+        // min_filter: rg::Filter::Linear as u32,
+        // mag_filter: rg::Filter::Linear as u32,
         // TODO:
         sample_count: 1,
         // (see also: rasterizer in pipeline)
