@@ -8,6 +8,7 @@ Roguelike box
 
 pub use {rokol, snow2d};
 
+pub mod anim;
 pub mod render;
 pub mod rl;
 pub mod utils;

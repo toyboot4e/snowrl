@@ -112,6 +112,12 @@ pub struct SharedSubTexture2d {
     pub uv_rect: [f32; 4],
 }
 
+/// Full-featured reference counted sub texture
+pub struct SpriteData {
+    pub sub_tex: SharedSubTexture2d,
+    pub rot: f32,
+}
+
 // --------------------------------------------------------------------------------
 // Trait implementations
 
@@ -132,6 +138,12 @@ impl AsRef<Texture2dDrop> for SharedTexture2d {
 impl AsRef<Texture2dDrop> for SharedSubTexture2d {
     fn as_ref(&self) -> &Texture2dDrop {
         &self.shared.tex
+    }
+}
+
+impl AsRef<Texture2dDrop> for SpriteData {
+    fn as_ref(&self) -> &Texture2dDrop {
+        &self.sub_tex.shared.tex
     }
 }
 
@@ -191,6 +203,20 @@ impl OnSpritePush for SharedSubTexture2d {
             .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
             .dst_size_px([self.as_ref().w(), self.as_ref().h()])
             .uv_rect(self.uv_rect);
+    }
+}
+
+impl OnSpritePush for SpriteData {
+    fn to_cheat_texture(&self) -> CheatTexture2d {
+        self.as_ref().to_cheat_texture()
+    }
+
+    fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
+        builder
+            .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
+            .dst_size_px([self.as_ref().w(), self.as_ref().h()])
+            .uv_rect(self.sub_tex.uv_rect)
+            .rot(self.rot);
     }
 }
 

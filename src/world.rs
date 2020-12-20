@@ -1,14 +1,22 @@
-use {
-    rlbox::rl::{
+use {rokol::gfx as rg, std::path::Path};
+
+use snow2d::{
+    gfx::{
+        tex::{SharedSubTexture2d, SharedTexture2d, Texture2dDrop},
+        Color,
+    },
+    PassConfig, Snow2d,
+};
+
+use rlbox::{
+    anim::{FrameAnimPattern, LoopMode},
+    rl::{
         self,
         fov::{FovData, FovWrite, OpacityMap},
         fow::FowData,
         grid2d::*,
         rlmap::TiledRlMap,
     },
-    rokol::gfx as rg,
-    snow2d::{gfx::Color, PassConfig, Snow2d},
-    std::path::Path,
 };
 
 use crate::render::FovRenderer;
@@ -102,4 +110,16 @@ impl World {
 pub struct Player {
     pub pos: Vec2i,
     pub fov: FovData,
+}
+
+pub struct CharaImage {
+    pub tex: SharedTexture2d,
+    pub anim: FrameAnimPattern<SharedSubTexture2d>,
+}
+
+impl CharaImage {
+    pub fn from_path(path: impl AsRef<Path>) {
+        let tex = Texture2dDrop::from_path(path).unwrap();
+        //
+    }
 }
