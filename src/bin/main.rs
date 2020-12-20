@@ -5,6 +5,7 @@ fn main() -> rokol::Result {
         w: 1280,
         h: 720,
         title: "SnowRL".to_string(),
+        use_high_dpi: false,
         ..Default::default()
     };
 

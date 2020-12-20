@@ -136,7 +136,7 @@ fn fov_alpha(pos: [u32; 2], fov: &FovData) -> f32 {
         let x = len / fov.radius() as f32;
         0.5 * ease(x)
     } else {
-        0.7
+        0.80
     };
 
     /// x: [0.0, 1.0]
