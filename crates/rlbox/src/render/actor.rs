@@ -51,6 +51,7 @@ pub fn gen_anim4_with(
                                 uv_rect: [uv_pos[0], uv_pos[1], uv_size[0], uv_size[1]],
                             },
                             rot: 0.0,
+                            origin: [0.5, 0.5],
                         };
 
                         f(&mut sprite);

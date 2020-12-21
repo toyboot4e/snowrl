@@ -4,3 +4,6 @@
 [submodule "crates/rokol"]
 	path = crates/rokol
 	url = https://github.com/toyboot4e/rokol
+[submodule "crates/xdl"]
+	path = crates/xdl
+	url = https://github.com/toyboot4e/xdl

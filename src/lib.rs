@@ -18,6 +18,7 @@ pub fn run(app: rokol::Rokol) -> rokol::Result {
 
 #[derive(Debug)]
 pub struct SnowRl {
+    // use `Option` for lazily initialization
     wcx: Option<WorldContext>,
     world: Option<World>,
 }
@@ -42,16 +43,33 @@ impl rokol::app::RApp for SnowRl {
         self.world = Some(World::from_tiled_file(self.wcx.as_mut().unwrap(), &file).unwrap());
     }
 
-    fn frame(&mut self) {
+    fn event(&mut self, ev: &ra::Event) {
         let wcx = self.wcx.as_mut().unwrap();
-        wcx.update();
         let world = self.world.as_mut().unwrap();
-        world.update(wcx);
-        world.render(wcx);
-        rg::commit();
+
+        wcx.event(ev);
+        world.event(wcx, ev);
     }
 
-    fn event(&mut self, _ev: &ra::RAppEvent) {
-        // println!("{:?}", ev);
+    fn frame(&mut self) {
+        let wcx = self.wcx.as_mut().unwrap();
+        let world = self.world.as_mut().unwrap();
+
+        wcx.update();
+        world.update(wcx);
+
+        wcx.render();
+        world.render(wcx);
+
+        wcx.on_end_frame();
+        world.on_end_frame(wcx);
+
+        rg::commit();
     }
+}
+
+/// Collects magic values (yes, it shuld be removed at some time)
+pub mod consts {
+    pub const ACTOR_FPS: f32 = 4.0;
+    pub const FOV_R: u32 = 5;
 }

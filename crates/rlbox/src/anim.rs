@@ -43,10 +43,10 @@ impl<T> FrameAnimPattern<T> {
     }
 
     /// Returns (duration, state) after completion handling
-    fn on_tick(&mut self, past: Duration) -> (Duration, LoopState) {
+    fn on_tick(&mut self, dt: Duration) -> (Duration, LoopState) {
         let loop_duration = self.loop_duration();
-        if past < loop_duration {
-            return (past, LoopState::Running);
+        if dt < loop_duration {
+            return (dt, LoopState::Running);
         }
 
         // on end
@@ -55,19 +55,20 @@ impl<T> FrameAnimPattern<T> {
             LoopMode::Once | LoopMode::ClampForever => (loop_duration, LoopState::Stopped),
             // loop
             LoopMode::Loop | LoopMode::PingPong | LoopMode::PingPongOnce => {
-                (past - loop_duration, LoopState::Running)
+                (dt - loop_duration, LoopState::Running)
             }
         }
     }
 
-    pub fn frame(&self, past: Duration) -> &T {
-        &self.frames[self.frame_ix(past)]
+    /// Current animation frame
+    pub fn frame(&self, dt: Duration) -> &T {
+        &self.frames[self.frame_ix(dt)]
     }
 
-    fn frame_ix(&self, past: Duration) -> usize {
+    fn frame_ix(&self, dt: Duration) -> usize {
         let ms_per_frame = 1000.0 * 1.0 / self.fps;
-        let ms_past = past.as_millis();
-        let frame = (ms_past / ms_per_frame as u128) as usize;
+        let ms_dt = dt.as_millis();
+        let frame = (ms_dt / ms_per_frame as u128) as usize;
 
         let len = self.frames.len();
         match self.loop_mode {
@@ -125,21 +126,26 @@ impl<K, T> FrameAnimState<K, T> {
 
 impl<K: Eq + std::hash::Hash, T> FrameAnimState<K, T> {
     /// Lifecycle
-    pub fn tick(&mut self, past: Duration) {
-        if matches!(self.state, LoopState::Stopped | LoopState::Stopped) {
+    pub fn tick(&mut self, dt: Duration) {
+        if matches!(self.state, LoopState::Stopped) {
             return;
         }
 
         let pattern = self.patterns.get_mut(&self.cur_key).unwrap();
 
-        self.accum += past;
+        self.accum += dt;
         let (next_duration, next_state) = pattern.on_tick(self.accum);
         self.accum = next_duration;
         self.state = next_state;
     }
 
-    pub fn current_frame(&mut self) -> &T {
-        let pattern = self.patterns.get_mut(&self.cur_key).unwrap();
+    // /// Accumulated time
+    // pub fn accumu(&self) -> Duration {
+    //     self.accum
+    // }
+
+    pub fn current_frame(&self) -> &T {
+        let pattern = self.patterns.get(&self.cur_key).unwrap();
         pattern.frame(self.accum)
     }
 

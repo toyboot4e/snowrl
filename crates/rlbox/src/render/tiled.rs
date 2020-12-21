@@ -28,8 +28,23 @@ pub fn w2t_floor(w: impl Into<Vec2f>, tiled: &tiled::Map) -> Vec2i {
 pub fn w2t_round_up(w: impl Into<Vec2f>, tiled: &tiled::Map) -> Vec2i {
     let w = w.into();
     let x = (w.x as u32 + tiled.tile_width - 1) / tiled.tile_width;
-    let y = (w.y as u32 + tiled.tile_width - 1) / tiled.tile_height;
+    let y = (w.y as u32 + tiled.tile_height - 1) / tiled.tile_height;
     Vec2i::new(x as i32, y as i32)
+}
+
+/// Tile coordinates to world coordinates (left-up corner)
+pub fn t2w(pos: impl Into<Vec2i>, tiled: &tiled::Map) -> Vec2f {
+    let pos = pos.into();
+    let x = pos.x as f32 * tiled.tile_width as f32;
+    let y = pos.y as f32 * tiled.tile_height as f32;
+    Vec2f::new(x, y)
+}
+
+pub fn t2w_center(pos: impl Into<Vec2i>, tiled: &tiled::Map) -> Vec2f {
+    let pos = pos.into();
+    let x = pos.x as f32 * tiled.tile_width as f32 + tiled.tile_width as f32 / 2.0;
+    let y = pos.y as f32 * tiled.tile_height as f32 + tiled.tile_height as f32 / 2.0;
+    Vec2f::new(x, y)
 }
 
 // --------------------------------------------------------------------------------
@@ -109,9 +124,9 @@ pub fn render_fov_shadows_blend(
     draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     bounds: &Rect2f,
-    fov1: &FovData,
-    fov2: &FovData,
-    blend: f32,
+    fov_new: &FovData,
+    fov_old: &FovData,
+    blend_factor_new: f32,
 ) {
     let tile_size = Vec2u::new(tiled.tile_width, tiled.tile_height);
 
@@ -119,9 +134,9 @@ pub fn render_fov_shadows_blend(
     for y in ys[0]..ys[1] {
         for x in xs[0]..xs[1] {
             let alpha = {
-                let alpha1 = self::fov_alpha([x, y], fov1);
-                let alpha2 = self::fov_alpha([x, y], fov2);
-                alpha1 * blend + alpha2 * (1.0 - blend)
+                let alpha_new = self::fov_alpha([x, y], fov_new);
+                let alpha_old = self::fov_alpha([x, y], fov_old);
+                alpha_new * blend_factor_new + alpha_old * (1.0 - blend_factor_new)
             };
 
             self::render_shadow_cell(draw, alpha, [x, y], bounds, tile_size);

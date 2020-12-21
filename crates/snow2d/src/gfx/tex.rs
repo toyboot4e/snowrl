@@ -8,6 +8,8 @@ use {
 
 use crate::gfx::batcher::draw::{CheatTexture2d, OnSpritePush, QuadParamsBuilder, Texture2d};
 
+pub type Result<T> = image::ImageResult<T>;
+
 fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
     rg::Image::create(&{
         let mut desc = rg::ImageDesc {
@@ -66,13 +68,13 @@ impl Drop for Texture2dDrop {
 /// The width and height have to be in scaled size (e.g. if on 2x DPI monitor with 1280x720 scaled
 /// screen size, pass 1280x720)
 impl Texture2dDrop {
-    pub fn from_path(path: impl AsRef<Path>) -> image::ImageResult<Self> {
+    pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
         let img = image::open(path)?;
 
         Ok(Self::from_pixels(img.as_bytes(), img.width(), img.height()))
     }
 
-    pub fn from_encoded_bytes(bytes: &[u8]) -> image::ImageResult<Self> {
+    pub fn from_encoded_bytes(bytes: &[u8]) -> Result<Self> {
         let img = image::load_from_memory(bytes)?;
 
         Ok(Self::from_pixels(img.as_bytes(), img.width(), img.height()))
@@ -113,9 +115,11 @@ pub struct SharedSubTexture2d {
 }
 
 /// Full-featured reference counted sub texture
+#[derive(Debug, Clone)]
 pub struct SpriteData {
     pub sub_tex: SharedSubTexture2d,
     pub rot: f32,
+    pub origin: [f32; 2],
 }
 
 // --------------------------------------------------------------------------------
@@ -149,7 +153,21 @@ impl AsRef<Texture2dDrop> for SpriteData {
 
 // ----------------------------------------
 
-impl<T: AsRef<Texture2dDrop>> Texture2d for T {
+impl Texture2d for Texture2dDrop {
+    fn img(&self) -> rg::Image {
+        self.img
+    }
+
+    fn w(&self) -> f32 {
+        self.w as f32
+    }
+
+    fn h(&self) -> f32 {
+        self.h as f32
+    }
+}
+
+impl Texture2d for SharedTexture2d {
     fn img(&self) -> rg::Image {
         self.as_ref().img
     }
@@ -160,6 +178,34 @@ impl<T: AsRef<Texture2dDrop>> Texture2d for T {
 
     fn h(&self) -> f32 {
         self.as_ref().h as f32
+    }
+}
+
+impl Texture2d for SharedSubTexture2d {
+    fn img(&self) -> rg::Image {
+        self.as_ref().img
+    }
+
+    fn w(&self) -> f32 {
+        self.as_ref().w as f32 * self.uv_rect[2] as f32
+    }
+
+    fn h(&self) -> f32 {
+        self.as_ref().h as f32 * self.uv_rect[3] as f32
+    }
+}
+
+impl Texture2d for SpriteData {
+    fn img(&self) -> rg::Image {
+        self.sub_tex.img()
+    }
+
+    fn w(&self) -> f32 {
+        self.sub_tex.w()
+    }
+
+    fn h(&self) -> f32 {
+        self.sub_tex.h()
     }
 }
 
@@ -201,7 +247,7 @@ impl OnSpritePush for SharedSubTexture2d {
     fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
         builder
             .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
-            .dst_size_px([self.as_ref().w(), self.as_ref().h()])
+            .dst_size_px([self.w(), self.h()])
             .uv_rect(self.uv_rect);
     }
 }
@@ -213,10 +259,11 @@ impl OnSpritePush for SpriteData {
 
     fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
         builder
-            .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
-            .dst_size_px([self.as_ref().w(), self.as_ref().h()])
+            .src_rect_px([0.0, 0.0, self.w(), self.h()])
+            .dst_size_px([self.w(), self.h()])
             .uv_rect(self.sub_tex.uv_rect)
-            .rot(self.rot);
+            .rot(self.rot)
+            .origin(self.origin);
     }
 }
 

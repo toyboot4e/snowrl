@@ -32,7 +32,7 @@ pub struct FovRenderer {
     pip_gauss_ofs: rg::Pipeline,
     // FoV rendering states
     fov_prev: FovData,
-    fov_blend: f32,
+    fov_blend_factor: f32,
 }
 
 impl FovRenderer {
@@ -55,7 +55,6 @@ impl FovRenderer {
                 layout: VertexData::layout_desc(),
                 blend: rg::BlendState {
                     depth_format: rg::PixelFormat::Depth as u32,
-                    // ..ALPHA_BLEND
                     ..Default::default()
                 },
                 rasterizer: rg::RasterizerState {
@@ -66,16 +65,28 @@ impl FovRenderer {
                 ..Default::default()
             }),
             fov_prev: Default::default(),
-            fov_blend: 0.0,
+            fov_blend_factor: 0.0,
         }
     }
 
-    pub fn set_prev_fov(&mut self, fov: &FovData) {
+    pub fn force_set_fov(&mut self, fov: &FovData) {
         self.fov_prev = fov.clone();
-        self.fov_blend = 0.0;
+        self.fov_blend_factor = 0.0;
     }
 
-    // TODO: separate gaussian blur shader
+    pub fn before_update_fov(&mut self, fov: &FovData) {
+        self.fov_prev = fov.clone();
+        self.fov_blend_factor = 0.0;
+    }
+
+    pub fn update(&mut self) {
+        // advance FoV blend factor
+        self.fov_blend_factor += 1.0 / 8.0;
+        if self.fov_blend_factor >= 1.0 {
+            self.fov_blend_factor = 1.0;
+        }
+    }
+
     /// Render shadow texture
     pub fn render_ofs(&mut self, rdr: &mut Snow2d, world: &World) {
         // get shadow
@@ -95,14 +106,8 @@ impl FovRenderer {
             &bounds,
             &world.player.fov,
             &self.fov_prev,
-            self.fov_blend,
+            self.fov_blend_factor,
         );
-
-        // advance FoV blend factor
-        self.fov_blend += 0.01;
-        if self.fov_blend >= 1.0 {
-            self.fov_blend = 1.0;
-        }
 
         drop(offscreen);
 
