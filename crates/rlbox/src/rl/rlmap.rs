@@ -72,24 +72,22 @@ impl RlMap {
             .find(|l| l.name == "collision")
             .expect("layer with name `collision` is required");
 
+        // extract collision data from tiled map data
+        let mut blocks = Vec::with_capacity((tiled.width * tiled.height) as usize);
         let tiles = match &collision.tiles {
             tiled::LayerData::Finite(f) => f,
             tiled::LayerData::Infinite(_) => unimplemented!("tiled map infinite layer"),
         };
 
-        // extract collision data from tiled map data
-        let mut collision = Vec::with_capacity((tiled.width * tiled.height) as usize);
         for (_y, row) in tiles.iter().enumerate() {
             for (_x, tile) in row.iter().enumerate() {
-                collision.push(tile.gid != 0);
+                // if any tile is placed, it's blocking
+                blocks.push(tile.gid != 0);
             }
         }
 
         let size = [tiled.width as usize, tiled.height as usize];
-        Self {
-            size,
-            blocks: collision,
-        }
+        Self { size, blocks }
     }
 }
 

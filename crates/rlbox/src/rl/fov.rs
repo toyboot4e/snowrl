@@ -14,7 +14,7 @@ pub trait FovWrite {
     fn on_refresh<T: OpacityMap>(&mut self, params: &RefreshParams<T>);
     /// Define that the cell is in view
     ///
-    /// The position is guaranteed to be inside te map
+    /// The `pos` is guaranteed to be inside the map
     fn light(&mut self, pos: Vec2i);
 }
 
@@ -35,12 +35,10 @@ pub trait OpacityMap {
 /// Stub implementation of [`FovWrite`]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FovData {
-    data: Vec<bool>,
+    is_visible: Vec<bool>,
     radius: u32,
     /// Where the character is
     origin: Vec2i,
-    /// Whether updated or not
-    is_dirty: bool,
 }
 
 impl FovData {
@@ -49,20 +47,16 @@ impl FovData {
         let data = vec![false; (edge * edge) as usize];
 
         Self {
-            data,
+            is_visible: data,
             origin: Vec2i::default(),
             radius,
-            is_dirty: false,
         }
     }
 
     pub fn clear(&mut self) {
-        let area = (self.radius * self.radius + 1) as usize;
-        for i in 0..area {
-            self.data[i] = false;
+        for i in 0..self.is_visible.len() {
+            self.is_visible[i] = false;
         }
-
-        self.is_dirty = false;
     }
 
     pub fn radius(&self) -> u32 {
@@ -82,11 +76,34 @@ impl FovData {
     pub fn is_in_view(&self, pos: Vec2i) -> bool {
         let delta = pos - self.origin;
         if delta.len_king() > self.radius {
-            return false; // out of scope
+            false
+        } else {
+            let ix = self.ix(pos);
+            self.is_visible[ix]
         }
+    }
 
-        let ix = self.ix(pos);
-        self.data[ix]
+    pub fn print(&self) {
+        println!("r = {}", self.radius);
+        for y in 0..(2 * self.radius + 1) {
+            for x in 0..(2 * self.radius + 1) {
+                if x == self.radius && y == self.radius {
+                    print!("@");
+                    continue;
+                }
+
+                let ix = x + y * (2 * self.radius + 1);
+                print!(
+                    "{}",
+                    if self.is_visible[ix as usize] {
+                        " "
+                    } else {
+                        "x"
+                    }
+                );
+            }
+            println!("");
+        }
     }
 }
 
@@ -97,12 +114,11 @@ impl FovWrite for FovData {
         // TODO: resize if needed
 
         self.clear();
-        self.is_dirty = true;
     }
 
     fn light(&mut self, pos: Vec2i) {
         let ix = self.ix(pos);
-        self.data[ix] = true;
+        self.is_visible[ix] = true;
     }
 }
 
@@ -143,7 +159,7 @@ impl<'a, Fov: FovWrite, Opa: OpacityMap> ScanContext<'a, Fov, Opa> {
     }
 
     /// (row, column) -> (absolute grid position)
-    pub fn rc2pos(&self, row: u32, col: u32) -> Vec2i {
+    pub fn rc2abs(&self, row: u32, col: u32) -> Vec2i {
         self.origin + row as i32 * self.oct.row + col as i32 * self.oct.col
     }
 }
@@ -181,7 +197,7 @@ impl Scanner {
         row: u32,
         scx: &mut ScanContext<T, U>,
     ) -> bool {
-        if !scx.opa.contains(scx.rc2pos(row, 0)) {
+        if !scx.opa.contains(scx.rc2abs(row, 0)) {
             return false; // the row is out of the map
         }
 
@@ -195,7 +211,7 @@ impl Scanner {
         let mut state = ScanState::Initial;
 
         for col in cols[0]..=cols[1] {
-            let pos = scx.rc2pos(row, col);
+            let pos = scx.rc2abs(row, col);
 
             if !scx.opa.contains(pos) {
                 // outside of map. fix the end slope to right-up coner of the cell outside of the map
@@ -239,7 +255,7 @@ impl Scanner {
         // permissive scan only for opaque cell
         let col = (self.slopes[1] * row as f32).ceil() as u32;
         if col > cols[1] {
-            let pos = scx.rc2pos(row, col);
+            let pos = scx.rc2abs(row, col);
             if scx.opa.contains(pos) && scx.opa.is_opaque(pos) {
                 scx.fov.light(pos);
                 // left-up

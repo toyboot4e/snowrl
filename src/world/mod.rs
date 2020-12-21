@@ -3,7 +3,7 @@
 pub mod actor;
 mod vi;
 
-use {rokol::gfx as rg, std::path::Path, xdl::Key};
+use {rokol::gfx as rg, std::path::Path};
 
 use snow2d::{
     asset,
@@ -87,11 +87,17 @@ impl World {
         let mut player = Player {
             pos,
             dir: Dir8::N,
-            fov: FovData::new(6, 12),
-            img: ActorImage::from_path(asset::path("ika-chan.png"), pos, Dir8::N)?,
+            fov: FovData::new(crate::consts::FOV_R, 10),
+            // img: ActorImage::from_path(asset::path("ika-chan.png"), pos, Dir8::N)?,
+            img: ActorImage::from_path(asset::path("chicken.png"), pos, Dir8::N)?,
         };
 
-        Self::update_fov(&mut player.fov, player.pos, &map.rlmap);
+        Self::update_fov(
+            &mut player.fov,
+            player.pos,
+            crate::consts::FOV_R,
+            &map.rlmap,
+        );
         wcx.fov_render.force_set_fov(&player.fov);
 
         Ok(Self {
@@ -101,11 +107,11 @@ impl World {
         })
     }
 
-    fn update_fov(fov: &mut impl FovWrite, pos: Vec2i, map: &impl OpacityMap) {
+    fn update_fov(fov: &mut impl FovWrite, pos: Vec2i, r: u32, map: &impl OpacityMap) {
         rl::fov::refresh(
             fov,
             rl::fov::RefreshParams {
-                r: crate::consts::FOV_R,
+                r,
                 origin: pos,
                 opa: map,
             },
@@ -118,11 +124,19 @@ impl World {
         if let Some(dir) = wcx.vi.dir.to_dir8() {
             let pos = self.player.pos + Vec2i::from(dir.signs_i32());
             if !self.map.rlmap.is_blocked(pos) {
+                // TODO: use command pattern. ActorIndex.. ECS?
+                wcx.fov_render.before_update_fov(&self.player.fov);
+
                 self.player.img.before_walk(self.player.pos, dir);
                 self.player.pos = pos;
                 self.player.dir = dir;
-                wcx.fov_render.before_update_fov(&self.player.fov);
-                Self::update_fov(&mut self.player.fov, self.player.pos, &self.map.rlmap);
+
+                Self::update_fov(
+                    &mut self.player.fov,
+                    self.player.pos,
+                    crate::consts::FOV_R,
+                    &self.map.rlmap,
+                );
             }
         }
     }
@@ -149,8 +163,8 @@ impl World {
     fn render_actor(draw: &mut impl DrawApi, actor: &Player, tiled: &tiled::Map) {
         // align the bottom-center of actor to one of cell
         let mut pos = rlbox::render::tiled::t2w_center(actor.pos, &tiled);
+        pos.y += tiled.tile_height as f32 / 2.0;
         pos.y -= actor.img.sprite().h() / 2.0;
-        pos.y += tiled.tile_height as f32;
         draw.sprite(actor.img.sprite()).dst_pos_px(pos);
     }
 

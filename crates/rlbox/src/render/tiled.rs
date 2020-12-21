@@ -146,8 +146,9 @@ pub fn render_fov_shadows_blend(
 
 #[inline]
 fn fov_alpha(pos: [u32; 2], fov: &FovData) -> f32 {
-    return if fov.is_in_view([pos[0] as i32, pos[1] as i32].into()) {
-        let len = (Vec2i::new(pos[0] as i32, pos[1] as i32) - fov.origin()).len_f32();
+    let pos = Vec2i::new(pos[0] as i32, pos[1] as i32);
+    return if fov.is_in_view(pos.into()) {
+        let len = (pos - fov.origin()).len_f32();
         let x = len / fov.radius() as f32;
         0.5 * ease(x)
     } else {
