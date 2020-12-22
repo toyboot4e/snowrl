@@ -80,8 +80,11 @@ impl FovRenderer {
     }
 
     pub fn update(&mut self) {
+        // FIXME: use real dt
+        let dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
+
         // advance FoV blend factor
-        self.fov_blend_factor += 1.0 / 8.0;
+        self.fov_blend_factor += dt.as_secs_f32() / crate::consts::WALK_TIME;
         if self.fov_blend_factor >= 1.0 {
             self.fov_blend_factor = 1.0;
         }
@@ -99,7 +102,9 @@ impl FovRenderer {
             },
         );
 
+        // TODO: use camera
         let bounds = Rect2f::from(([0.0, 0.0], ra::size_scaled()));
+
         tiled_render::render_fov_shadows_blend(
             &mut offscreen,
             &world.map.tiled,

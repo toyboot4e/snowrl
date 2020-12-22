@@ -15,8 +15,9 @@ impl VInput {
     // TODO: use `serde`
     pub fn new() -> Self {
         let repeat = KeyRepeat::Repeat {
+            // FIXME: currently these values for smooth walking animation
             first: Duration::from_nanos(1_000_000_000 / 60 * 8),
-            multi: Duration::from_nanos(1_000_000_000 / 60 * 6),
+            multi: Duration::from_nanos(1_000_000_000 / 60 * 8),
         };
 
         Self {

@@ -114,7 +114,7 @@ pub fn render_fov_shadows(
     let (ys, xs) = self::visible_cells_from_px_bounds(bounds, tiled);
     for y in ys[0]..ys[1] {
         for x in xs[0]..xs[1] {
-            let alpha = self::fov_alpha([x, y], fov);
+            let alpha = self::shadow_alpha([x, y], fov);
             self::render_shadow_cell(draw, alpha, [x, y], bounds, tile_size);
         }
     }
@@ -129,13 +129,14 @@ pub fn render_fov_shadows_blend(
     blend_factor_new: f32,
 ) {
     let tile_size = Vec2u::new(tiled.tile_width, tiled.tile_height);
+    // eas `blend_factor_new( or not: linear interpolation)
 
     let (ys, xs) = self::visible_cells_from_px_bounds(bounds, tiled);
     for y in ys[0]..ys[1] {
         for x in xs[0]..xs[1] {
             let alpha = {
-                let alpha_new = self::fov_alpha([x, y], fov_new);
-                let alpha_old = self::fov_alpha([x, y], fov_old);
+                let alpha_new = self::shadow_alpha([x, y], fov_new);
+                let alpha_old = self::shadow_alpha([x, y], fov_old);
                 alpha_new * blend_factor_new + alpha_old * (1.0 - blend_factor_new)
             };
 
@@ -145,18 +146,18 @@ pub fn render_fov_shadows_blend(
 }
 
 #[inline]
-fn fov_alpha(pos: [u32; 2], fov: &FovData) -> f32 {
+fn shadow_alpha(pos: [u32; 2], fov: &FovData) -> f32 {
     let pos = Vec2i::new(pos[0] as i32, pos[1] as i32);
     return if fov.is_in_view(pos.into()) {
         let len = (pos - fov.origin()).len_f32();
         let x = len / fov.radius() as f32;
-        0.5 * ease(x)
+        0.60 * ease_shadow_alpha(x)
     } else {
         0.80
     };
 
     /// x: [0.0, 1.0]
-    fn ease(x: f32) -> f32 {
+    fn ease_shadow_alpha(x: f32) -> f32 {
         if x < 0.5 {
             4.0 * x * x * x
         } else {

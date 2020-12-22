@@ -72,4 +72,5 @@ impl rokol::app::RApp for SnowRl {
 pub mod consts {
     pub const ACTOR_FPS: f32 = 4.0;
     pub const FOV_R: u32 = 5;
+    pub const WALK_TIME: f32 = 8.0 / 60.0;
 }
