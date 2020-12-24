@@ -13,6 +13,7 @@ pub mod gfx;
 
 use rokol::{
     app as ra,
+    fons::FontBook,
     gfx::{self as rg, BakedResource, Pipeline},
 };
 
@@ -22,6 +23,7 @@ use crate::gfx::{
         vertex::{QuadData, VertexData},
         Batch,
     },
+    geom2d::*,
     tex::RenderTexture,
 };
 
@@ -59,10 +61,11 @@ pub struct PassConfig<'a> {
 }
 
 /// The 2D renderer
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Snow2d {
     /// Vertex/index buffer and images slots
     pub batch: Batch,
+    pub fontbook: FontBook,
     /// Default pipeline object for on-screen rendering
     pub screen_pip: rg::Pipeline,
     /// Default pipeline object for off-screen rendering
@@ -70,18 +73,10 @@ pub struct Snow2d {
 }
 
 impl Snow2d {
-    pub fn new() -> Self {
-        Self {
-            ..Default::default()
-        }
-    }
-
-    /// Only be called from [`rokol::app::RApp::init`].
-    pub unsafe fn init(&mut self) {
+    /// Call when rokol is ready
+    pub unsafe fn new() -> Self {
         // create white dot image
         crate::gfx::batcher::draw::init();
-
-        self.batch.init();
 
         let mut desc = rg::PipelineDesc {
             shader: gfx::shaders::tex_1(),
@@ -96,15 +91,34 @@ impl Snow2d {
             ..Default::default()
         };
 
-        self.screen_pip = Pipeline::create(&desc);
+        let screen_pip = Pipeline::create(&desc);
 
-        self.ofs_pip = Pipeline::create({
+        let ofs_pip = Pipeline::create({
             desc.blend = ALPHA_BLEND;
             desc.blend.depth_format = rg::PixelFormat::Depth as u32;
             // TODO: sample_count? (also on internal image of render texture)
             desc.rasterizer.sample_count = 1;
             &desc
         });
+
+        Self {
+            batch: Batch::new(),
+            fontbook: {
+                let book = FontBook::new(128, 128);
+
+                // FIXME: font path
+                let font = include_bytes!("mplus-1p-regular.ttf");
+
+                let ix = book.stash().add_font_mem("mplus-1p-regular", font).unwrap();
+                book.stash().set_font(ix);
+
+                // TODO: high DPI?
+                book.stash().set_size(22.0);
+                book
+            },
+            screen_pip,
+            ofs_pip,
+        }
     }
 
     /// Begins on-screen rendering pass
@@ -185,5 +199,53 @@ impl<'a> DrawApi for Pass<'a> {
             params: &mut self.snow.batch.params,
             target,
         }
+    }
+}
+
+impl<'a> Pass<'a> {
+    pub fn text(&mut self, pos: impl Into<Vec2f>, text: &str) {
+        // use non-premultipiled alpha blending
+
+        // FIXME: fontstash should handle newline.. but not. why?
+        // self.render_text_line(text, pos.into());
+
+        let pos = pos.into();
+        let nl_space = 20.0 + 2.0;
+
+        for (i, line) in text.lines().enumerate() {
+            let pos = pos + Vec2f::new(0.0, nl_space * i as f32);
+            self.render_text_line(pos, line);
+        }
+
+        // dcx.flush();
+    }
+
+    #[inline]
+    fn render_text_line(&mut self, pos: Vec2f, text: &str) {
+        let img = self.snow.fontbook.img();
+
+        let mut iter = self.snow.fontbook.text_iter(text).unwrap();
+        while let Some(quad) = iter.next() {
+            let q = self._next_quad_mut(img);
+
+            q[0].uv = [quad.s0, quad.t0];
+            q[1].uv = [quad.s1, quad.t0];
+            q[2].uv = [quad.s0, quad.t1];
+            q[3].uv = [quad.s1, quad.t1];
+
+            q[0].pos = [quad.x0 as f32 + pos.x, quad.y0 as f32 + pos.y];
+            q[1].pos = [quad.x1 as f32 + pos.x, quad.y0 as f32 + pos.y];
+            q[2].pos = [quad.x0 as f32 + pos.x, quad.y1 as f32 + pos.y];
+            q[3].pos = [quad.x1 as f32 + pos.x, quad.y1 as f32 + pos.y];
+
+            let color = [255, 255, 255, 255];
+            q[0].color = color;
+            q[1].color = color;
+            q[2].color = color;
+            q[3].color = color;
+        }
+
+        // we should update the image because we might have changed it
+        self.snow.batch.force_set_img(self.snow.fontbook.img());
     }
 }

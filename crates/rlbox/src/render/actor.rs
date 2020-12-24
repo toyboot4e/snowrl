@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use snow2d::gfx::tex::{SharedSubTexture2d, SharedTexture2d, SpriteData};
 
 use crate::{
-    anim::{FrameAnimPattern, LoopMode},
+    render::anim::{FrameAnimPattern, LoopMode},
     rl::grid2d::Dir8,
 };
 

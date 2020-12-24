@@ -11,7 +11,7 @@ edition = "2018"
 # description = ""
 
 [dependencies]
-rokol = { path = "../rokol", features = ["glcore33"] }
+rokol = { path = "../rokol", features = ["glcore33", "use-fontstash"] }
 
 log = "0.4.11"
 env_logger = "0.8.2"

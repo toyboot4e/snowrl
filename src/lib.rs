@@ -1,8 +1,12 @@
 //! SnowRL
 
+// use generator (unstable Rust)
+#![feature(generators, generator_trait)]
+
 pub use {rlbox, rokol, snow2d};
 
 pub mod render;
+pub mod utils;
 pub mod world;
 
 use {
@@ -10,17 +14,22 @@ use {
     std::path::PathBuf,
 };
 
-use self::world::{World, WorldContext};
+use crate::world::{World, WorldContext};
 
 pub fn run(app: rokol::Rokol) -> rokol::Result {
     app.run(&mut SnowRl::new())
 }
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct SnowRl {
-    // use `Option` for lazily initialization
+    /// Use `Option` for lazy initialization
     wcx: Option<WorldContext>,
+    /// Use `Option` for lazy initialization
     world: Option<World>,
+    /// Hack to detect window unfocused
+    was_event_called: bool,
+    /// Hack to detect window unfocused
+    n_event_uncalled: usize,
 }
 
 impl SnowRl {
@@ -28,6 +37,8 @@ impl SnowRl {
         Self {
             wcx: None,
             world: None,
+            was_event_called: false,
+            n_event_uncalled: 0,
         }
     }
 }
@@ -49,11 +60,31 @@ impl rokol::app::RApp for SnowRl {
 
         wcx.event(ev);
         world.event(wcx, ev);
+
+        use rokol::app::EventType as Ev;
+        let type_ = rokol::app::EventType::from_u32(ev.type_).unwrap();
+        if !matches!(type_, rokol::app::EventType::MouseMove) {
+            let key = rokol::app::Key::from_u32(ev.key_code).unwrap();
+            println!("{:?}, {:?}", type_, key);
+        }
+
+        self.was_event_called = true;
     }
 
     fn frame(&mut self) {
         let wcx = self.wcx.as_mut().unwrap();
         let world = self.world.as_mut().unwrap();
+
+        if self.was_event_called {
+            if self.n_event_uncalled >= 100 {
+                // because we didn't listen key released event
+                wcx.input.clear();
+            }
+            self.n_event_uncalled = 0;
+        } else {
+            self.n_event_uncalled += 1;
+        }
+        self.was_event_called = false;
 
         wcx.update();
         world.update(wcx);

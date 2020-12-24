@@ -43,7 +43,7 @@ macro_rules! gen_quad_indices {
 }
 
 /// Internal batch utility
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Batch {
     /// Each item of `mesh.verts` is actually [`QuadData`]
     pub mesh: DynamicMesh<QuadData>,
@@ -55,11 +55,19 @@ pub struct Batch {
 }
 
 impl Batch {
-    pub fn init(&mut self) {
-        self.mesh = DynamicMesh::new_16(
+    pub fn new() -> Self {
+        let mesh = DynamicMesh::new_16(
             vec![QuadData::default(); N_QUADS],
             &gen_quad_indices!(u16, N_QUADS)[0..],
         );
+
+        Self {
+            mesh,
+            quad_ix: 0,
+            buffer_offset: 0,
+            img: None,
+            params: Default::default(),
+        }
     }
 
     pub fn flush(&mut self) {
@@ -114,5 +122,9 @@ impl Batch {
         let ix = self.quad_ix;
         self.quad_ix += 1;
         ix
+    }
+
+    pub fn force_set_img(&mut self, img: rg::Image) {
+        self.img = Some(img);
     }
 }

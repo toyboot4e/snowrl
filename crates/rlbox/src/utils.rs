@@ -83,30 +83,3 @@ impl<T> Double<T> {
         }
     }
 }
-
-/// Lifetime-free pointer to type `T`
-///
-/// This is dangerous but works on certain senarios.
-pub struct Cheat<T> {
-    ptr: *mut T,
-}
-
-impl<T> Cheat<T> {
-    pub fn new(ptr: *mut T) -> Self {
-        Self { ptr }
-    }
-}
-
-impl<T> std::ops::Deref for Cheat<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*self.ptr }
-    }
-}
-
-impl<T> std::ops::DerefMut for Cheat<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.ptr }
-    }
-}

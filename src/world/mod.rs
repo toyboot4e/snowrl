@@ -1,6 +1,7 @@
 //! The game world
 
 pub mod actor;
+pub mod turn;
 mod vi;
 
 use {
@@ -19,15 +20,15 @@ use rlbox::rl::{
     rlmap::{RlMap, TiledRlMap},
 };
 
-use crate::render::FovRenderer;
+use crate::{render::FovRenderer, utils::cheat};
 
-use self::{actor::*, vi::VInput};
+use self::{actor::*, turn::GameLoop, vi::VInput};
 
 /// Powers the game [`World`]
-#[derive(Debug)]
 pub struct WorldContext {
     /// 2D renderer
     pub rdr: Snow2d,
+    pub soloud: soloud::Soloud,
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
     pub fov_render: FovRenderer,
@@ -38,13 +39,10 @@ pub struct WorldContext {
 
 impl WorldContext {
     pub fn new() -> Self {
-        let mut rdr = Snow2d::new();
-        unsafe {
-            rdr.init();
-        }
-
         Self {
-            rdr,
+            rdr: unsafe { Snow2d::new() },
+            // TODO: do not unwrap
+            soloud: soloud::Soloud::default().unwrap(),
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             fov_render: FovRenderer::new(),
             input: xdl::Input::new(),
@@ -73,40 +71,66 @@ impl WorldContext {
     }
 }
 
-/// The game world
 #[derive(Debug)]
+pub enum GameState {
+    Tick,
+    Anim,
+}
+
+/// The game world
 pub struct World {
     pub map: TiledRlMap,
     pub fow: FowData,
-    pub player: Player,
+    pub entities: Vec<Player>,
+    pub state: GameState,
+    pub game_loop: GameLoop,
 }
 
 /// Lifecycle
 impl World {
     pub fn from_tiled_file(wcx: &mut WorldContext, path: &Path) -> anyhow::Result<Self> {
         let map = TiledRlMap::from_tiled_path(path)?;
+
+        let mut entities = Vec::with_capacity(20);
+
+        entities.push({
+            let pos = Vec2i::new(14, 12);
+            let mut player = Player {
+                pos,
+                dir: Dir8::N,
+                fov: FovData::new(crate::consts::FOV_R, 10),
+                img: ActorImage::from_path(asset::path("ika-chan.png"), pos, Dir8::N)?,
+            };
+
+            Self::update_fov(
+                &mut player.fov,
+                player.pos,
+                crate::consts::FOV_R,
+                &map.rlmap,
+            );
+            wcx.fov_render.force_set_fov(&player.fov);
+
+            player
+        });
+
+        entities.push({
+            let pos = Vec2i::new(20, 15);
+            let dir = Dir8::S;
+            Player {
+                pos,
+                dir,
+                fov: FovData::empty(),
+                img: ActorImage::from_path(asset::path("ika-chan.png"), pos, Dir8::N)?,
+            }
+        });
+
         let size = map.rlmap.size;
-
-        let pos = Vec2i::new(14, 12);
-        let mut player = Player {
-            pos,
-            dir: Dir8::N,
-            fov: FovData::new(crate::consts::FOV_R, 10),
-            img: ActorImage::from_path(asset::path("ika-chan.png"), pos, Dir8::N)?,
-        };
-
-        Self::update_fov(
-            &mut player.fov,
-            player.pos,
-            crate::consts::FOV_R,
-            &map.rlmap,
-        );
-        wcx.fov_render.force_set_fov(&player.fov);
-
         Ok(Self {
             map,
             fow: FowData::new(size),
-            player,
+            entities,
+            state: GameState::Tick,
+            game_loop: GameLoop::new(),
         })
     }
 
@@ -114,12 +138,12 @@ impl World {
 
     pub fn update(&mut self, wcx: &mut WorldContext) {
         if let Some(dir) = wcx.vi.dir.to_dir8() {
-            Self::walk(&mut self.player, &self.map.rlmap, wcx, dir);
+            Self::walk(&mut self.entities[0], &self.map.rlmap, wcx, dir);
         }
 
-        self.player
-            .img
-            .update(wcx.dt, self.player.pos, self.player.dir);
+        for e in &mut self.entities {
+            e.img.update(wcx.dt, e.pos, e.dir);
+        }
     }
 
     pub fn render(&mut self, wcx: &mut WorldContext) {
@@ -130,15 +154,37 @@ impl World {
         });
 
         crate::render::render_tiled(&mut screen, self);
-        self.player.img.render(&mut screen, &self.map.tiled);
+
+        for e in &self.entities {
+            e.img.render(&mut screen, &self.map.tiled);
+        }
 
         drop(screen);
 
         wcx.fov_render.render_ofs(&mut wcx.rdr, self);
         wcx.fov_render.blend_to_screen(&mut wcx.rdr);
+
+        unsafe {
+            // update fontbook GPU texture
+            // FIXME: it may not work on the first frame, unfortunatelly
+            wcx.rdr.fontbook.update_image();
+        }
     }
 
-    pub fn on_end_frame(&mut self, wcx: &mut WorldContext) {}
+    pub fn on_end_frame(&mut self, wcx: &mut WorldContext) {
+        //
+    }
+}
+
+/// API
+impl World {
+    pub fn player(&self) -> &Player {
+        &self.entities[0]
+    }
+
+    pub fn player_mut(&mut self) -> &mut Player {
+        &mut self.entities[0]
+    }
 }
 
 /// Internals

@@ -9,7 +9,7 @@ use snow2d::gfx::{
 };
 
 use rlbox::{
-    anim::FrameAnimState,
+    render::anim::FrameAnimState,
     rl::{fov::FovData, grid2d::*},
 };
 
@@ -84,7 +84,7 @@ impl ActorImage {
         self.anim_state.tick(dt);
     }
 
-    pub fn render(&mut self, draw: &mut impl DrawApi, tiled: &tiled::Map) {
+    pub fn render(&self, draw: &mut impl DrawApi, tiled: &tiled::Map) {
         let pos_prev = self.align(self.state.b.pos, tiled);
         let pos_curr = self.align(self.state.a.pos, tiled);
 

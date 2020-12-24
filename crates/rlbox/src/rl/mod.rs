@@ -1,6 +1,10 @@
-//! Roguelike module
-//!
-//! Orthogonal grid map is assumed.
+/*!
+
+Roguelike game utilities
+
+Orthogonal grid map is assumed.
+
+*/
 
 pub mod dun;
 pub mod fov;

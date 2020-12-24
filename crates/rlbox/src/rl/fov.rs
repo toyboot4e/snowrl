@@ -53,6 +53,10 @@ impl FovData {
         }
     }
 
+    pub fn empty() -> Self {
+        Self::new(0, 0)
+    }
+
     pub fn clear(&mut self) {
         for i in 0..self.is_visible.len() {
             self.is_visible[i] = false;
