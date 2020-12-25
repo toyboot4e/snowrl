@@ -5,6 +5,7 @@
 
 pub use {rlbox, rokol, snow2d};
 
+pub mod ev;
 pub mod render;
 pub mod utils;
 pub mod world;
@@ -14,44 +15,83 @@ use {
     std::path::PathBuf,
 };
 
-use crate::world::{World, WorldContext};
+use crate::world::{
+    turn::{GameLoop, GameLoopImpl},
+    World, WorldContext,
+};
 
 pub fn run(app: rokol::Rokol) -> rokol::Result {
     app.run(&mut SnowRl::new())
 }
 
-// #[derive(Debug)]
+#[derive(Debug)]
+enum GameState {
+    Tick,
+    Anim,
+    Player,
+}
+
 pub struct SnowRl {
     /// Use `Option` for lazy initialization
-    wcx: Option<WorldContext>,
-    /// Use `Option` for lazy initialization
-    world: Option<World>,
+    x: Option<SnowRlImpl>,
 }
 
 impl SnowRl {
     pub fn new() -> Self {
-        Self {
-            wcx: None,
-            world: None,
+        Self { x: None }
+    }
+}
+
+/// Delay the initialization
+impl rokol::app::RApp for SnowRl {
+    fn init(&mut self) {
+        rg::setup(&mut rokol::glue::app_desc());
+        self.x = Some(SnowRlImpl::new());
+    }
+
+    fn event(&mut self, ev: &ra::Event) {
+        if let Some(x) = self.x.as_mut() {
+            x.event(ev);
+        }
+    }
+
+    fn frame(&mut self) {
+        if let Some(x) = self.x.as_mut() {
+            x.frame();
         }
     }
 }
 
-impl rokol::app::RApp for SnowRl {
-    fn init(&mut self) {
-        rg::setup(&mut rokol::glue::app_desc());
+// #[derive(Debug)]
+struct SnowRlImpl {
+    /// Give fixed memory location for [`GameLoop`]
+    wcx: Box<WorldContext>,
+    /// Give fixed memory location for [`GameLoop`]
+    world: Box<World>,
+    game_loop: GameLoop,
+    state: GameState,
+}
 
+impl SnowRlImpl {
+    pub fn new() -> Self {
         let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("assets");
         let file = root.join("map/tmx/rl_start.tmx");
 
-        self.wcx = Some(WorldContext::new());
-        self.world = Some(World::from_tiled_file(self.wcx.as_mut().unwrap(), &file).unwrap());
+        let mut wcx = Box::new(WorldContext::new());
+        let world = Box::new(World::from_tiled_file(&mut wcx, &file).unwrap());
+        let game_loop = GameLoopImpl::new(&world, &wcx);
+
+        Self {
+            wcx,
+            world,
+            game_loop,
+            state: GameState::Tick,
+        }
     }
+}
 
+impl rokol::app::RApp for SnowRlImpl {
     fn event(&mut self, ev: &ra::Event) {
-        let wcx = self.wcx.as_mut().unwrap();
-        let world = self.world.as_mut().unwrap();
-
         // print event type
         let type_ = rokol::app::EventType::from_u32(ev.type_).unwrap();
         use rokol::app::EventType as Ev;
@@ -60,25 +100,53 @@ impl rokol::app::RApp for SnowRl {
             println!("{:?}, {:?}", type_, key);
         }
 
-        wcx.event(ev);
-        world.event(wcx, ev);
+        self.wcx.event(ev);
+        self.world.event(&mut self.wcx, ev);
     }
 
     fn frame(&mut self) {
-        let wcx = self.wcx.as_mut().unwrap();
-        let world = self.world.as_mut().unwrap();
+        self.wcx.update();
+        self.update_scene();
+        self.world.update_images(&mut self.wcx);
 
-        wcx.update();
-        world.update_scene(wcx);
-        world.update_images(wcx);
+        self.wcx.render();
+        self.world.render(&mut self.wcx);
 
-        wcx.render();
-        world.render(wcx);
-
-        wcx.on_end_frame();
-        world.on_end_frame(wcx);
+        self.wcx.on_end_frame();
+        self.world.on_end_frame(&mut self.wcx);
 
         rg::commit();
+    }
+}
+
+impl SnowRlImpl {
+    /// Updates the game depending on the state
+    fn update_scene(&mut self) {
+        loop {
+            match self.state {
+                // tick the game (take turn and process actions)
+                GameState::Tick => {
+                    let res = self.game_loop.tick(&mut self.world, &mut self.wcx);
+                    // println!("tick() -> {:?}", res);
+
+                    // TODO: handle player action
+                    break;
+
+                    self.state = GameState::Player;
+                    continue;
+                }
+
+                // GameState::Player => {
+                //     if self.update_player(wcx) {
+                //         self.state = GameState::Tick;
+                //     }
+                // }
+                // play animation and wait for it to finish
+                // GameState::Anim => unimplemented!(),
+                _ => unimplemented!(),
+            }
+            break;
+        }
     }
 }
 

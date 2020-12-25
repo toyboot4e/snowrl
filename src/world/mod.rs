@@ -2,12 +2,11 @@
 
 pub mod actor;
 pub mod turn;
-mod vi;
+pub mod vi;
 
 use {
     rokol::gfx as rg,
     std::{path::Path, time::Duration},
-    xdl::Key,
 };
 
 use snow2d::{
@@ -24,9 +23,9 @@ use rlbox::rl::{
     rlmap::{RlMap, TiledRlMap},
 };
 
-use crate::{render::FovRenderer, utils::cheat};
+use crate::render::FovRenderer;
 
-use self::{actor::*, turn::GameLoop, vi::VInput};
+use self::{actor::*, vi::VInput};
 
 /// Powers the game [`World`]
 pub struct WorldContext {
@@ -78,20 +77,13 @@ impl WorldContext {
     }
 }
 
-#[derive(Debug)]
-pub enum GameState {
-    Tick,
-    Anim,
-    Player,
-}
-
-/// The game world
+/// The rougelike game world
+///
+/// Turn-based game state should be outside of this struct.
 pub struct World {
     pub map: TiledRlMap,
     pub fow: FowData,
     pub entities: Vec<Player>,
-    pub state: GameState,
-    pub game_loop: GameLoop,
 }
 
 /// Lifecycle
@@ -137,37 +129,14 @@ impl World {
             map,
             fow: FowData::new(size),
             entities,
-            state: GameState::Tick,
-            game_loop: GameLoop::new(),
         })
     }
 
-    pub fn event(&mut self, wcx: &mut WorldContext, ev: &rokol::app::Event) {}
-
-    pub fn update_scene(&mut self, wcx: &mut WorldContext) {
-        match self.state {
-            GameState::Tick => {
-                let res = self.game_loop.tick();
-                println!("tick() -> {:?}", res);
-                self.state = GameState::Player;
-            }
-            GameState::Anim => unimplemented!(),
-            GameState::Player => {
-                self.update_player(wcx);
-            }
-        }
-    }
+    pub fn event(&mut self, _wcx: &mut WorldContext, _ev: &rokol::app::Event) {}
 
     pub fn update_images(&mut self, wcx: &mut WorldContext) {
         for e in &mut self.entities {
             e.img.update(wcx.dt, e.pos, e.dir);
-        }
-    }
-
-    fn update_player(&mut self, wcx: &mut WorldContext) {
-        // TODO: return player command
-        if let Some(dir) = wcx.vi.dir.to_dir8() {
-            self::walk(self, 0, wcx, dir);
         }
     }
 
@@ -188,7 +157,7 @@ impl World {
 
         unsafe {
             // update fontbook GPU texture
-            // FIXME: it may not work on the first frame, unfortunatelly
+            // TODO: it may not work on the first frame
             wcx.rdr.fontbook.update_image();
         }
     }
@@ -222,45 +191,6 @@ impl World {
 
         false
     }
-}
-
-fn walk(world: &mut World, actor_ix: usize, wcx: &mut WorldContext, dir: Dir8) {
-    let player = &mut world.entities[actor_ix];
-
-    let pos = player.pos + Vec2i::from(dir.signs_i32());
-
-    // if rotate only
-    if wcx
-        .input
-        .kbd
-        .is_any_key_down(&[Key::LeftShift, Key::RightShift])
-    {
-        player.dir = dir;
-        return;
-    }
-
-    drop(player); // drop mutable borrow
-
-    // can't walk
-    if world.is_blocked(pos) {
-        let player = &mut world.entities[actor_ix];
-        player.dir = dir;
-        return;
-    }
-
-    let player = &mut world.entities[actor_ix];
-    // TODO: remove this line and observe walk command
-    wcx.fov_render.before_update_fov(&player.fov);
-
-    player.pos = pos;
-    player.dir = dir;
-
-    self::update_fov(
-        &mut player.fov,
-        player.pos,
-        crate::consts::FOV_R,
-        &world.map.rlmap,
-    );
 }
 
 fn update_fov(fov: &mut impl FovWrite, pos: Vec2i, r: u32, map: &impl OpacityMap) {
