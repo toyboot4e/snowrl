@@ -79,10 +79,7 @@ impl FovRenderer {
         self.fov_blend_factor = 0.0;
     }
 
-    pub fn update(&mut self) {
-        // FIXME: use real dt
-        let dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
-
+    pub fn update(&mut self, dt: std::time::Duration) {
         // advance FoV blend factor
         self.fov_blend_factor += dt.as_secs_f32() / crate::consts::WALK_TIME;
         if self.fov_blend_factor >= 1.0 {

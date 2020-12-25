@@ -26,10 +26,6 @@ pub struct SnowRl {
     wcx: Option<WorldContext>,
     /// Use `Option` for lazy initialization
     world: Option<World>,
-    /// Hack to detect window unfocused
-    was_event_called: bool,
-    /// Hack to detect window unfocused
-    n_event_uncalled: usize,
 }
 
 impl SnowRl {
@@ -37,8 +33,6 @@ impl SnowRl {
         Self {
             wcx: None,
             world: None,
-            was_event_called: false,
-            n_event_uncalled: 0,
         }
     }
 }
@@ -58,36 +52,25 @@ impl rokol::app::RApp for SnowRl {
         let wcx = self.wcx.as_mut().unwrap();
         let world = self.world.as_mut().unwrap();
 
-        wcx.event(ev);
-        world.event(wcx, ev);
-
-        use rokol::app::EventType as Ev;
+        // print event type
         let type_ = rokol::app::EventType::from_u32(ev.type_).unwrap();
-        if !matches!(type_, rokol::app::EventType::MouseMove) {
+        use rokol::app::EventType as Ev;
+        if !matches!(type_, Ev::MouseMove | Ev::MouseEnter | Ev::MouseLeave) {
             let key = rokol::app::Key::from_u32(ev.key_code).unwrap();
             println!("{:?}, {:?}", type_, key);
         }
 
-        self.was_event_called = true;
+        wcx.event(ev);
+        world.event(wcx, ev);
     }
 
     fn frame(&mut self) {
         let wcx = self.wcx.as_mut().unwrap();
         let world = self.world.as_mut().unwrap();
 
-        if self.was_event_called {
-            if self.n_event_uncalled >= 100 {
-                // because we didn't listen key released event
-                wcx.input.clear();
-            }
-            self.n_event_uncalled = 0;
-        } else {
-            self.n_event_uncalled += 1;
-        }
-        self.was_event_called = false;
-
         wcx.update();
-        world.update(wcx);
+        world.update_scene(wcx);
+        world.update_images(wcx);
 
         wcx.render();
         world.render(wcx);

@@ -89,23 +89,22 @@ impl FovData {
 
     pub fn print(&self) {
         println!("r = {}", self.radius);
+
         for y in 0..(2 * self.radius + 1) {
             for x in 0..(2 * self.radius + 1) {
-                if x == self.radius && y == self.radius {
-                    print!("@");
-                    continue;
-                }
-
                 let ix = x + y * (2 * self.radius + 1);
-                print!(
-                    "{}",
-                    if self.is_visible[ix as usize] {
-                        " "
-                    } else {
-                        "x"
-                    }
-                );
+
+                let ch = if x == self.radius && y == self.radius {
+                    "@"
+                } else if self.is_visible[ix as usize] {
+                    " "
+                } else {
+                    "x"
+                };
+
+                print!("{}", ch);
             }
+
             println!("");
         }
     }

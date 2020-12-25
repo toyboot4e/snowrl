@@ -13,6 +13,12 @@ impl<T> Cheat<T> {
         }
     }
 
+    pub fn empty() -> Self {
+        Self {
+            ptr: std::ptr::null_mut(),
+        }
+    }
+
     /// Explicit cast to `T`
     ///
     /// `deref_mut` without importing `DerefMut`.

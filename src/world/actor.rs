@@ -36,7 +36,7 @@ struct Double<T> {
 }
 
 /// Interpolate two snapshots to draw actor
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ActorSnapshot {
     pos: Vec2i,
     dir: Dir8,
@@ -70,15 +70,13 @@ impl ActorImage {
         if pos != self.state.a.pos {
             self.dt = 0.0;
         } else {
-            self.dt += dt.as_secs_f32();
-            if self.dt >= crate::consts::WALK_TIME {
-                self.dt = crate::consts::WALK_TIME;
-            }
+            self.dt = f32::min(self.dt + dt.as_secs_f32(), crate::consts::WALK_TIME);
         }
 
-        if dir != self.state.a.dir || pos != self.state.a.pos {
+        let next_snap = ActorSnapshot { dir, pos };
+        if next_snap != self.state.a {
             self.state.b = self.state.a;
-            self.state.a = ActorSnapshot { dir, pos };
+            self.state.a = next_snap;
         }
 
         self.anim_state.tick(dt);
@@ -94,7 +92,7 @@ impl ActorImage {
         draw.sprite(self.sprite()).dst_pos_px(pos);
     }
 
-    /// align the bottom-center of actor to one of cell
+    /// Align the bottom-center of an actor to the bottom-center of a cell
     fn align(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
         let mut pos = rlbox::render::tiled::t2w_center(pos, &tiled);
         pos.y += tiled.tile_height as f32 / 2.0;
@@ -102,7 +100,7 @@ impl ActorImage {
         pos
     }
 
-    /// Current sprite frame
+    /// Sprite for current frame
     pub fn sprite(&self) -> &SpriteData {
         self.anim_state.current_frame()
     }

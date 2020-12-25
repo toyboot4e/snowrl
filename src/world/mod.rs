@@ -10,7 +10,11 @@ use {
     xdl::Key,
 };
 
-use snow2d::{asset, gfx::Color, PassConfig, Snow2d};
+use snow2d::{
+    asset,
+    gfx::{batcher::draw::*, Color},
+    PassConfig, Snow2d,
+};
 
 use rlbox::rl::{
     self,
@@ -59,12 +63,15 @@ impl WorldContext {
         // FIXME: use real dt
         self.dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
 
+        // input
         self.vi.dir.update(&self.input, self.dt);
-
-        self.fov_render.update();
+        // rendering state
+        self.fov_render.update(self.dt);
     }
 
-    pub fn render(&mut self) {}
+    pub fn render(&mut self) {
+        // debug render?
+    }
 
     pub fn on_end_frame(&mut self) {
         self.input.on_end_frame();
@@ -75,6 +82,7 @@ impl WorldContext {
 pub enum GameState {
     Tick,
     Anim,
+    Player,
 }
 
 /// The game world
@@ -102,7 +110,7 @@ impl World {
                 img: ActorImage::from_path(asset::path("ika-chan.png"), pos, Dir8::N)?,
             };
 
-            Self::update_fov(
+            self::update_fov(
                 &mut player.fov,
                 player.pos,
                 crate::consts::FOV_R,
@@ -136,13 +144,30 @@ impl World {
 
     pub fn event(&mut self, wcx: &mut WorldContext, ev: &rokol::app::Event) {}
 
-    pub fn update(&mut self, wcx: &mut WorldContext) {
-        if let Some(dir) = wcx.vi.dir.to_dir8() {
-            Self::walk(&mut self.entities[0], &self.map.rlmap, wcx, dir);
+    pub fn update_scene(&mut self, wcx: &mut WorldContext) {
+        match self.state {
+            GameState::Tick => {
+                let res = self.game_loop.tick();
+                println!("tick() -> {:?}", res);
+                self.state = GameState::Player;
+            }
+            GameState::Anim => unimplemented!(),
+            GameState::Player => {
+                self.update_player(wcx);
+            }
         }
+    }
 
+    pub fn update_images(&mut self, wcx: &mut WorldContext) {
         for e in &mut self.entities {
             e.img.update(wcx.dt, e.pos, e.dir);
+        }
+    }
+
+    fn update_player(&mut self, wcx: &mut WorldContext) {
+        // TODO: return player command
+        if let Some(dir) = wcx.vi.dir.to_dir8() {
+            self::walk(self, 0, wcx, dir);
         }
     }
 
@@ -154,10 +179,7 @@ impl World {
         });
 
         crate::render::render_tiled(&mut screen, self);
-
-        for e in &self.entities {
-            e.img.render(&mut screen, &self.map.tiled);
-        }
+        self.render_actors(&mut screen);
 
         drop(screen);
 
@@ -168,6 +190,13 @@ impl World {
             // update fontbook GPU texture
             // FIXME: it may not work on the first frame, unfortunatelly
             wcx.rdr.fontbook.update_image();
+        }
+    }
+
+    fn render_actors(&mut self, draw: &mut impl DrawApi) {
+        // TODO: y sort + culling
+        for e in &self.entities {
+            e.img.render(draw, &self.map.tiled);
         }
     }
 
@@ -185,40 +214,62 @@ impl World {
     pub fn player_mut(&mut self) -> &mut Player {
         &mut self.entities[0]
     }
+
+    pub fn is_blocked(&mut self, pos: Vec2i) -> bool {
+        if self.map.rlmap.is_blocked(pos) {
+            return true;
+        }
+
+        false
+    }
 }
 
-/// Internals
-impl World {
-    fn update_fov(fov: &mut impl FovWrite, pos: Vec2i, r: u32, map: &impl OpacityMap) {
-        rl::fov::refresh(
-            fov,
-            rl::fov::RefreshParams {
-                r,
-                origin: pos,
-                opa: map,
-            },
-        );
+fn walk(world: &mut World, actor_ix: usize, wcx: &mut WorldContext, dir: Dir8) {
+    let player = &mut world.entities[actor_ix];
+
+    let pos = player.pos + Vec2i::from(dir.signs_i32());
+
+    // if rotate only
+    if wcx
+        .input
+        .kbd
+        .is_any_key_down(&[Key::LeftShift, Key::RightShift])
+    {
+        player.dir = dir;
+        return;
     }
 
-    fn walk(player: &mut Player, rlmap: &RlMap, wcx: &mut WorldContext, dir: Dir8) {
-        let pos = player.pos + Vec2i::from(dir.signs_i32());
-        if !rlmap.is_blocked(pos) {
-            if wcx
-                .input
-                .kbd
-                .is_any_key_down(&[Key::LeftShift, Key::RightShift])
-            {
-                // rotate only
-                player.dir = dir;
-            } else {
-                // TODO: use command pattern. ActorIndex.. ECS?
-                wcx.fov_render.before_update_fov(&player.fov);
+    drop(player); // drop mutable borrow
 
-                player.pos = pos;
-                player.dir = dir;
-
-                Self::update_fov(&mut player.fov, player.pos, crate::consts::FOV_R, rlmap);
-            }
-        }
+    // can't walk
+    if world.is_blocked(pos) {
+        let player = &mut world.entities[actor_ix];
+        player.dir = dir;
+        return;
     }
+
+    let player = &mut world.entities[actor_ix];
+    // TODO: remove this line and observe walk command
+    wcx.fov_render.before_update_fov(&player.fov);
+
+    player.pos = pos;
+    player.dir = dir;
+
+    self::update_fov(
+        &mut player.fov,
+        player.pos,
+        crate::consts::FOV_R,
+        &world.map.rlmap,
+    );
+}
+
+fn update_fov(fov: &mut impl FovWrite, pos: Vec2i, r: u32, map: &impl OpacityMap) {
+    rl::fov::refresh(
+        fov,
+        rl::fov::RefreshParams {
+            r,
+            origin: pos,
+            opa: map,
+        },
+    );
 }
