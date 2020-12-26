@@ -72,8 +72,7 @@ struct SnowRlImpl {
 
 impl SnowRlImpl {
     pub fn new() -> Self {
-        let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("assets");
-        let file = root.join("map/tmx/rl_start.tmx");
+        let file = snow2d::asset::path("map/tmx/rl_start.tmx");
 
         let mut wcx = WorldContext::new();
         let world = World::from_tiled_file(&mut wcx, &file).unwrap();
