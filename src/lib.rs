@@ -64,10 +64,8 @@ impl rokol::app::RApp for SnowRl {
 
 // #[derive(Debug)]
 struct SnowRlImpl {
-    /// Give fixed memory location for [`GameLoop`]
-    wcx: Box<WorldContext>,
-    /// Give fixed memory location for [`GameLoop`]
-    world: Box<World>,
+    wcx: WorldContext,
+    world: World,
     game_loop: GameLoop,
     state: GameState,
 }
@@ -77,9 +75,9 @@ impl SnowRlImpl {
         let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("assets");
         let file = root.join("map/tmx/rl_start.tmx");
 
-        let mut wcx = Box::new(WorldContext::new());
-        let world = Box::new(World::from_tiled_file(&mut wcx, &file).unwrap());
-        let game_loop = GameLoopImpl::new(&world, &wcx);
+        let mut wcx = WorldContext::new();
+        let world = World::from_tiled_file(&mut wcx, &file).unwrap();
+        let game_loop = GameLoopImpl::new();
 
         Self {
             wcx,

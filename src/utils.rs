@@ -1,9 +1,16 @@
 /// Lifetime-free pointer to type `T`
 ///
-/// This is dangerous but works on certain senarios.
+/// This is dangerous but works on certain senario. I basicaly prefer `Cheat<T>` to
+/// `Rc<RefCell<T>>`.
 #[derive(Debug)]
 pub struct Cheat<T> {
     ptr: *mut T,
+}
+
+impl<T> Clone for Cheat<T> {
+    fn clone(&self) -> Self {
+        Self { ptr: self.ptr }
+    }
 }
 
 impl<T> Cheat<T> {

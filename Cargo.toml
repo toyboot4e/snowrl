@@ -42,4 +42,5 @@ once_cell = "1.5.2"
 tiled = "0.9.3"
 soloud = "0.2.3"
 genawaiter = "0.99.1"
+rand = "0.8.0"
 

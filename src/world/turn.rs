@@ -3,9 +3,11 @@
 use std::{
     ops::{Generator, GeneratorState},
     pin::Pin,
+    rc::Rc,
 };
 
 use crate::{
+    ev::{self, ActorIndex},
     utils::Cheat,
     world::{World, WorldContext},
 };
@@ -14,72 +16,72 @@ use crate::{
 ///
 /// It was hard to `resume` with lifetimed parameters so, we'll cheat the borrow rules using a
 /// pointer.
-type Gen = Box<dyn Generator<Yield = TickResult, Return = ()> + Unpin>;
+type Gen = Box<dyn Generator<TickContext, Yield = TickResult, Return = ()> + Unpin>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone)]
+struct TickContext {
+    world: Cheat<World>,
+    wcx: Cheat<WorldContext>,
+}
+
+// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TickResult {
     TakeTurn,
+    BeforeCommand(Rc<dyn Command>),
+    ProcessingCommand,
 }
 
 pub type GameLoop = Box<GameLoopImpl>;
 
 /// Roguelike game loop
 pub struct GameLoopImpl {
-    /// Stack of generators
     gen_stack: Vec<Gen>,
-    /// Currently processing actor
-    actor_ix: usize,
-    world: Cheat<World>,
-    wcx: Cheat<WorldContext>,
+    tcx: TickContext,
 }
 
 impl GameLoopImpl {
     /// Arguments are boxed to have fixed memory position
-    pub fn new(world: &Box<World>, wcx: &Box<WorldContext>) -> GameLoop {
-        // give fixed memory position
+    pub fn new() -> GameLoop {
         let mut me = Box::new(Self {
             gen_stack: Vec::with_capacity(10),
-            actor_ix: 0,
-            world: Cheat::new(world),
-            wcx: Cheat::new(wcx),
+            tcx: TickContext {
+                world: Cheat::empty(),
+                wcx: Cheat::empty(),
+            },
         });
 
-        let ptr: *mut Self = (&*me) as *const Self as *mut Self;
-        me.gen_stack.push(unsafe { Self::game_loop(ptr) });
+        me.gen_stack.push(unsafe { Self::game_loop() });
 
         me
     }
 
     /// Ticks the game for "one step"
-    ///
-    /// `World` and `WorldContext` are semantic parameters and not actually used.
-    pub fn tick(&mut self, _world: &mut World, _wcx: &mut WorldContext) -> TickResult {
+    pub fn tick(&mut self, world: &mut World, wcx: &mut WorldContext) -> TickResult {
         // // set cheat borrows here (for the generators)
-        // self.world = Cheat::new(world);
-        // self.wcx = Cheat::new(wcx);
+        self.tcx.world = Cheat::new(world);
+        self.tcx.wcx = Cheat::new(wcx);
 
         let gen = self.gen_stack.last_mut().expect("generator stack is null!");
 
-        match Pin::new(gen).resume(()) {
+        match Pin::new(gen).resume(self.tcx.clone()) {
             GeneratorState::Yielded(res) => res,
             _ => panic!("unexpected value from resume"),
         }
     }
 
     /// Internal game loop implemented as a generator
-    ///
-    /// The pointer has to be valid for a while.
-    unsafe fn game_loop(ptr: *mut Self) -> Gen {
-        Box::new(move || {
-            use crate::ev::{ActorIndex, PlayerTurn};
-
-            // get illegally create mutable borrow to self = tick context
-            let tcx = { &mut *ptr }; // unsafe
+    unsafe fn game_loop() -> Gen {
+        Box::new(|mut tcx: TickContext| {
+            // TODO: separate TickState so that it can be observed
+            let mut actor_ix = 0;
 
             loop {
-                // TODO: decide command depending on actor
-                let mut cmd = PlayerTurn {
-                    actor: ActorIndex(tcx.actor_ix),
+                // TODO: do not hard code entity actions
+                let actor = ActorIndex(actor_ix);
+
+                let cmd: Rc<dyn Command> = match actor.0 {
+                    0 => Rc::new(ev::PlayerTurn { actor }),
+                    _ => Rc::new(ev::RandomWalk { actor }),
                 };
 
                 let mut ccx = CommandContext {
@@ -87,30 +89,34 @@ impl GameLoopImpl {
                     wcx: &mut tcx.wcx,
                 };
 
-                match Self::run_cmd(&mut ccx, &mut cmd) {
-                    // TODO: allow interactive/blocking command
+                match Self::run_cmd(&mut ccx, &cmd) {
                     CommandResult::Continue => {
                         // wait for next frame
+                        yield TickResult::ProcessingCommand;
                     }
                     CommandResult::Finish => {
-                        // process next actor
+                        yield TickResult::TakeTurn;
+
+                        // go to next actor
+                        actor_ix += 1;
+                        actor_ix %= tcx.world.entities.len();
                     }
-                    CommandResult::Chain(cmd) => {
+                    CommandResult::Chain(_) => {
                         unreachable!()
                     }
                 }
 
-                yield TickResult::TakeTurn;
+                // loop
             }
         })
     }
 
-    // TODO: allow nest
-    /// Runs command recursively
-    fn run_cmd(ccx: &mut CommandContext, cmd: &mut dyn Command) -> CommandResult {
+    // TODO: allow nest and interactive command
+    /// Runs a command recursively if it chains
+    fn run_cmd(ccx: &mut CommandContext, cmd: &dyn Command) -> CommandResult {
         let res = cmd.run(ccx);
-        if let CommandResult::Chain(mut cmd) = res {
-            Self::run_cmd(ccx, &mut cmd)
+        if let CommandResult::Chain(cmd) = res {
+            Self::run_cmd(ccx, &cmd)
         } else {
             res
         }
@@ -144,12 +150,19 @@ impl CommandResult {
 ///
 /// TODO: prefer chain-of-responsibility pattern
 pub trait Command {
-    fn run(&mut self, ccx: &mut CommandContext) -> CommandResult;
+    fn run(&self, ccx: &mut CommandContext) -> CommandResult;
 }
 
 /// impl `Command` for `Box<dyn Command>`
 impl<T: Command + ?Sized> Command for Box<T> {
-    fn run(&mut self, ccx: &mut CommandContext) -> CommandResult {
+    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
+        (**self).run(ccx)
+    }
+}
+
+/// impl `Command` for `Rc<dyn Command>`
+impl<T: Command + ?Sized> Command for Rc<T> {
+    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
         (**self).run(ccx)
     }
 }
