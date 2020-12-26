@@ -4,11 +4,9 @@ use rlbox::rl::grid2d::*;
 
 use xdl::Key;
 
-use crate::world::{
-    turn::{Command, CommandContext, CommandResult},
-    World, WorldContext,
-};
+use crate::world::turn::{Command, CommandContext, CommandResult};
 
+// do we actually need it?
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ActorIndex(pub usize);
 
@@ -80,34 +78,6 @@ pub struct Attack {
 }
 
 #[derive(Debug)]
-pub struct Walk {
-    pub actor: ActorIndex,
-    pub dir: Dir8,
-}
-
-// --------------------------------------------------------------------------------
-// Higher-level events
-
-/// Interactive command for player input
-#[derive(Debug)]
-pub struct PlayerTurn {
-    pub actor: ActorIndex,
-}
-
-impl Command for PlayerTurn {
-    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
-        if let Some(dir) = ccx.wcx.vi.dir.to_dir8() {
-            CommandResult::chain(Walk {
-                actor: self.actor,
-                dir,
-            })
-        } else {
-            CommandResult::Continue
-        }
-    }
-}
-
-#[derive(Debug)]
 pub struct RandomWalk {
     pub actor: ActorIndex,
 }
@@ -120,14 +90,24 @@ impl Command for RandomWalk {
             Dir8::CLOCKWISE[rng.gen_range(0..8)]
         };
 
-        CommandResult::chain(Walk {
+        CommandResult::chain(PlayerWalk {
             actor: self.actor,
             dir,
         })
     }
 }
 
-impl Command for Walk {
+// --------------------------------------------------------------------------------
+// Player control
+
+/// Walk or change direction
+#[derive(Debug)]
+pub struct PlayerWalk {
+    pub actor: ActorIndex,
+    pub dir: Dir8,
+}
+
+impl Command for PlayerWalk {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult {
         let CommandContext { world, wcx } = ccx;
 
@@ -155,6 +135,25 @@ impl Command for Walk {
                 from_dir: actor.dir,
                 to_dir: self.dir,
             })
+        }
+    }
+}
+
+/// Interactive command for player input
+#[derive(Debug)]
+pub struct PlayerTurn {
+    pub actor: ActorIndex,
+}
+
+impl Command for PlayerTurn {
+    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
+        if let Some(dir) = ccx.wcx.vi.dir.to_dir8() {
+            CommandResult::chain(PlayerWalk {
+                actor: self.actor,
+                dir,
+            })
+        } else {
+            CommandResult::Continue
         }
     }
 }

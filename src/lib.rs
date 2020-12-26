@@ -10,10 +10,7 @@ pub mod render;
 pub mod utils;
 pub mod world;
 
-use {
-    rokol::{app as ra, gfx as rg},
-    std::path::PathBuf,
-};
+use rokol::{app as ra, gfx as rg};
 
 use crate::world::{
     turn::{GameLoop, GameLoopImpl},
