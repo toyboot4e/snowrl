@@ -4,9 +4,9 @@ use rlbox::rl::grid2d::*;
 
 use xdl::Key;
 
-use crate::world::{
+use crate::turn::{
     anim::{self, Anim},
-    turn::{ActorIndex, AnimContext, Command, CommandContext, CommandResult, GenAnim},
+    tick::{ActorIndex, AnimContext, Command, CommandContext, CommandResult, GenAnim},
 };
 
 // --------------------------------------------------------------------------------

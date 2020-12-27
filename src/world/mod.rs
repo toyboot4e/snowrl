@@ -1,8 +1,6 @@
 //! The game world
 
 pub mod actor;
-pub mod anim;
-pub mod turn;
 pub mod vi;
 
 use {
@@ -21,7 +19,7 @@ use rlbox::rl::{
     fov::{FovData, FovWrite, OpacityMap},
     fow::FowData,
     grid2d::*,
-    rlmap::{RlMap, TiledRlMap},
+    rlmap::TiledRlMap,
 };
 
 use crate::render::FovRenderer;

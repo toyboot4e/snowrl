@@ -7,12 +7,9 @@ use std::{
 };
 
 use crate::{
-    ev,
+    turn::{anim::Anim, ev},
     utils::Cheat,
-    world::{
-        anim::{Anim, AnimPlayer},
-        World, WorldContext,
-    },
+    world::{World, WorldContext},
 };
 
 /// [Generator](https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html)
@@ -129,6 +126,9 @@ impl GameLoopImpl {
     }
 }
 
+// ----------------------------------------
+// Animation
+
 /// Context for making animation
 pub struct AnimContext<'a, 'b> {
     pub world: &'a mut World,
@@ -140,6 +140,9 @@ pub trait GenAnim {
         None
     }
 }
+
+// ----------------------------------------
+// Command
 
 /// Context for any command to process
 pub struct CommandContext<'a, 'b> {

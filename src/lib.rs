@@ -5,17 +5,19 @@
 
 pub use {rlbox, rokol, snow2d};
 
-pub mod ev;
 pub mod render;
+pub mod turn;
 pub mod utils;
 pub mod world;
 
 use rokol::{app as ra, gfx as rg};
 
-use crate::world::{
-    anim::{Anim, AnimPlayer, AnimResult, AnimUpdateContext},
-    turn::{AnimContext, GameLoop, GameLoopImpl, TickResult},
-    World, WorldContext,
+use crate::{
+    turn::{
+        anim::{AnimPlayer, AnimResult, AnimUpdateContext},
+        tick::{AnimContext, GameLoop, GameLoopImpl, TickResult},
+    },
+    world::{World, WorldContext},
 };
 
 pub fn run(app: rokol::Rokol) -> rokol::Result {
