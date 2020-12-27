@@ -13,7 +13,8 @@ pub mod world;
 use rokol::{app as ra, gfx as rg};
 
 use crate::world::{
-    turn::{GameLoop, GameLoopImpl},
+    anim::{Anim, AnimPlayer, AnimResult, AnimUpdateContext},
+    turn::{AnimContext, GameLoop, GameLoopImpl, TickResult},
     World, WorldContext,
 };
 
@@ -25,7 +26,12 @@ pub fn run(app: rokol::Rokol) -> rokol::Result {
 enum GameState {
     Tick,
     Anim,
-    Player,
+}
+
+enum UpdateResult {
+    GotoNextFrame,
+    SwitchThisFrame(GameState),
+    SwitchNextFrame(GameState),
 }
 
 pub struct SnowRl {
@@ -64,6 +70,7 @@ struct SnowRlImpl {
     wcx: WorldContext,
     world: World,
     game_loop: GameLoop,
+    anim_player: AnimPlayer,
     state: GameState,
 }
 
@@ -79,6 +86,7 @@ impl SnowRlImpl {
             wcx,
             world,
             game_loop,
+            anim_player: AnimPlayer::new(),
             state: GameState::Tick,
         }
     }
@@ -117,35 +125,71 @@ impl SnowRlImpl {
     /// Updates the game depending on the state
     fn update_scene(&mut self) {
         loop {
-            match self.state {
-                // tick the game (take turn and process actions)
-                GameState::Tick => {
-                    let res = self.game_loop.tick(&mut self.world, &mut self.wcx);
-                    // println!("tick() -> {:?}", res);
+            let res = match self.state {
+                GameState::Tick => self.update_tick(),
+                GameState::Anim => self.update_anim(),
+                _ => unimplemented!(),
+            };
 
-                    // TODO: handle player action
+            match res {
+                UpdateResult::GotoNextFrame => {
                     break;
-
-                    self.state = GameState::Player;
+                }
+                UpdateResult::SwitchThisFrame(state) => {
+                    self.state = state;
                     continue;
                 }
-
-                // GameState::Player => {
-                //     if self.update_player(wcx) {
-                //         self.state = GameState::Tick;
-                //     }
-                // }
-                // play animation and wait for it to finish
-                // GameState::Anim => unimplemented!(),
-                _ => unimplemented!(),
+                UpdateResult::SwitchNextFrame(state) => {
+                    self.state = state;
+                    break;
+                }
             }
-            break;
+        }
+    }
+
+    fn update_tick(&mut self) -> UpdateResult {
+        loop {
+            // TODO: warn if every actor took turn and nothing happened
+            match self.game_loop.tick(&mut self.world, &mut self.wcx) {
+                TickResult::TakeTurn(_actor) => {
+                    // TODO: handle walk animation stack
+                    continue;
+                }
+                TickResult::Command(cmd) => {
+                    // try to create animation
+                    let mut acx = AnimContext {
+                        world: &mut self.world,
+                        wcx: &mut self.wcx,
+                    };
+
+                    if let Some(anim) = cmd.gen_anim(&mut acx) {
+                        self.anim_player.push_boxed(anim);
+
+                        self.anim_player.on_start();
+                        return UpdateResult::SwitchThisFrame(GameState::Anim);
+                    }
+                }
+                TickResult::ProcessingCommand => {
+                    return UpdateResult::GotoNextFrame;
+                }
+            }
+        }
+    }
+
+    fn update_anim(&mut self) -> UpdateResult {
+        let mut ucx = AnimUpdateContext { dt: self.wcx.dt };
+
+        // TODO: handle walk animation stack
+        match self.anim_player.update(&mut ucx) {
+            AnimResult::Continue => UpdateResult::GotoNextFrame,
+            AnimResult::Finished => UpdateResult::SwitchThisFrame(GameState::Tick),
         }
     }
 }
 
 /// Collects magic values (yes, it shuld be removed at some time)
 pub mod consts {
+    pub const HALF_FRAME: f32 = 1.0 / 120.0;
     pub const ACTOR_FPS: f32 = 4.0;
     pub const FOV_R: u32 = 5;
     pub const WALK_TIME: f32 = 8.0 / 60.0;

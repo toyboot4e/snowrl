@@ -7,9 +7,12 @@ use std::{
 };
 
 use crate::{
-    ev::{self, ActorIndex},
+    ev,
     utils::Cheat,
-    world::{World, WorldContext},
+    world::{
+        anim::{Anim, AnimPlayer},
+        World, WorldContext,
+    },
 };
 
 /// [Generator](https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html)
@@ -24,10 +27,17 @@ struct TickContext {
     wcx: Cheat<WorldContext>,
 }
 
+// do we actually need it?
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ActorIndex(pub usize);
+
 // #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TickResult {
-    TakeTurn,
-    BeforeCommand(Rc<dyn Command>),
+    /// Yielded when a new actor takes turn
+    TakeTurn(ActorIndex),
+    /// Yielded when a new command is emitted
+    Command(Rc<dyn Command>),
+    /// Yielded when proessing a command taking more than one frame
     ProcessingCommand,
 }
 
@@ -78,55 +88,60 @@ impl GameLoopImpl {
             loop {
                 // TODO: do not hard code entity actions
                 let actor = ActorIndex(actor_ix);
+                yield TickResult::TakeTurn(actor);
 
-                let cmd: Rc<dyn Command> = match actor.0 {
+                let mut cmd: Rc<dyn Command> = match actor.0 {
                     0 => Rc::new(ev::PlayerTurn { actor }),
                     _ => Rc::new(ev::RandomWalk { actor }),
                 };
 
-                let mut ccx = CommandContext {
-                    world: &mut tcx.world,
-                    wcx: &mut tcx.wcx,
-                };
+                // process command
+                loop {
+                    yield TickResult::Command(cmd.clone());
 
-                match Self::run_cmd(&mut ccx, &cmd) {
-                    CommandResult::Continue => {
-                        // wait for next frame
-                        yield TickResult::ProcessingCommand;
-                    }
-                    CommandResult::Finish => {
-                        yield TickResult::TakeTurn;
+                    let mut ccx = CommandContext {
+                        world: &mut tcx.world,
+                        wcx: &mut tcx.wcx,
+                    };
 
-                        // go to next actor
-                        actor_ix += 1;
-                        actor_ix %= tcx.world.entities.len();
-                    }
-                    CommandResult::Chain(_) => {
-                        unreachable!()
+                    match cmd.run(&mut ccx) {
+                        CommandResult::Continue => {
+                            // wait for next frame
+                            yield TickResult::ProcessingCommand;
+                            break;
+                        }
+                        CommandResult::Finish => {
+                            // go to next actor
+                            actor_ix += 1;
+                            actor_ix %= tcx.world.entities.len();
+                            break;
+                        }
+                        CommandResult::Chain(new_cmd) => {
+                            cmd = new_cmd.into();
+                            continue;
+                        }
                     }
                 }
 
-                // loop
+                // next step for the turn-based game loop
             }
         })
     }
-
-    // TODO: allow nest and interactive command
-    /// Runs a command recursively if it chains
-    fn run_cmd(ccx: &mut CommandContext, cmd: &dyn Command) -> CommandResult {
-        let res = cmd.run(ccx);
-        if let CommandResult::Chain(cmd) = res {
-            Self::run_cmd(ccx, &cmd)
-        } else {
-            res
-        }
-    }
-
-    // fn process_action() -> GameLoop {
-    // }
 }
 
-/// Bindings for any command to process
+/// Context for making animation
+pub struct AnimContext<'a, 'b> {
+    pub world: &'a mut World,
+    pub wcx: &'b mut WorldContext,
+}
+
+pub trait GenAnim {
+    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        None
+    }
+}
+
+/// Context for any command to process
 pub struct CommandContext<'a, 'b> {
     pub world: &'a mut World,
     pub wcx: &'b mut WorldContext,
@@ -149,18 +164,22 @@ impl CommandResult {
 /// Special event that can run itself
 ///
 /// TODO: prefer chain-of-responsibility pattern
-pub trait Command {
+pub trait Command: GenAnim {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult;
 }
 
-/// impl `Command` for `Box<dyn Command>`
+// `impl Trait for Box<dyn trait>`
+
+impl<T: GenAnim + ?Sized> GenAnim for Box<T> {}
+
 impl<T: Command + ?Sized> Command for Box<T> {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult {
         (**self).run(ccx)
     }
 }
 
-/// impl `Command` for `Rc<dyn Command>`
+impl<T: GenAnim + ?Sized> GenAnim for Rc<T> {}
+
 impl<T: Command + ?Sized> Command for Rc<T> {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult {
         (**self).run(ccx)

@@ -1,6 +1,7 @@
 //! The game world
 
 pub mod actor;
+pub mod anim;
 pub mod turn;
 pub mod vi;
 

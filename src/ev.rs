@@ -4,11 +4,10 @@ use rlbox::rl::grid2d::*;
 
 use xdl::Key;
 
-use crate::world::turn::{Command, CommandContext, CommandResult};
-
-// do we actually need it?
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ActorIndex(pub usize);
+use crate::world::{
+    anim::{self, Anim},
+    turn::{ActorIndex, AnimContext, Command, CommandContext, CommandResult, GenAnim},
+};
 
 // --------------------------------------------------------------------------------
 // Primitive events
@@ -22,6 +21,13 @@ pub struct ChangeDir {
     pub dir: Dir8,
 }
 
+impl GenAnim for ChangeDir {
+    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        // TODO: rotation and wait for it to finish
+        None
+    }
+}
+
 impl Command for ChangeDir {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult {
         let actor = &mut ccx.world.entities[self.actor.0];
@@ -29,6 +35,12 @@ impl Command for ChangeDir {
 
         CommandResult::Finish
     }
+}
+
+#[derive(Debug)]
+pub enum MoveContext {
+    Teleport,
+    Walk,
 }
 
 #[derive(Debug)]
@@ -41,18 +53,9 @@ pub struct Move {
     pub to_dir: Dir8,
 }
 
-#[derive(Debug)]
-pub enum MoveContext {
-    Teleport,
-    Walk,
-}
-
-impl Command for Move {
-    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
-        let actor = &mut ccx.world.entities[self.actor.0];
-        actor.dir = self.to_dir;
-        actor.pos = self.to_pos;
-
+impl GenAnim for Move {
+    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        Some(Box::new(anim::WalkAnim::new()))
         // TODO: update FoV. mark dirty subscribing walk event
         // wcx.fov_render.before_update_fov(&player.fov);
 
@@ -63,6 +66,14 @@ impl Command for Move {
         //     crate::consts::FOV_R,
         //     &world.map.rlmap,
         // );
+    }
+}
+
+impl Command for Move {
+    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
+        let actor = &mut ccx.world.entities[self.actor.0];
+        actor.dir = self.to_dir;
+        actor.pos = self.to_pos;
 
         CommandResult::Finish
     }
@@ -77,10 +88,14 @@ pub struct Attack {
     pub dir: Dir8,
 }
 
+impl GenAnim for Attack {}
+
 #[derive(Debug)]
 pub struct RandomWalk {
     pub actor: ActorIndex,
 }
+
+impl GenAnim for RandomWalk {}
 
 impl Command for RandomWalk {
     fn run(&self, _ccx: &mut CommandContext) -> CommandResult {
@@ -107,6 +122,8 @@ pub struct PlayerWalk {
     pub dir: Dir8,
 }
 
+impl GenAnim for PlayerWalk {}
+
 impl Command for PlayerWalk {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult {
         let CommandContext { world, wcx } = ccx;
@@ -121,10 +138,10 @@ impl Command for PlayerWalk {
             .is_any_key_down(&[Key::LeftShift, Key::RightShift]);
 
         if is_rotate_only || world.is_blocked(pos) {
-            return CommandResult::chain(ChangeDir {
+            CommandResult::chain(ChangeDir {
                 actor: self.actor,
                 dir: self.dir,
-            });
+            })
         } else {
             let actor = &world.entities[self.actor.0];
             CommandResult::chain(Move {
@@ -144,6 +161,8 @@ impl Command for PlayerWalk {
 pub struct PlayerTurn {
     pub actor: ActorIndex,
 }
+
+impl GenAnim for PlayerTurn {}
 
 impl Command for PlayerTurn {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult {
