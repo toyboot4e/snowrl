@@ -1,0 +1,23 @@
+* SnowRL devlog
+
+** Batcher (Dec 17, 2020)
+   SnowRL (Snow roguelike) is going to be built on top of [[https://github.com/toyboot4e/rokol][Rokol]], which is a wrapper of [[https://github.com/floooh/sokol][Sokol]]
+   header-only C libraries. I used to use [[https://github.com/toyboot4e/rust-fna3d][Rust-FNA3D]] ([[https://github.com/FNA-XNA/FNA3D][FNA3D]]), but the
+   [[https://www.geertarien.com/learnopengl-examples-html5/][Learn OpenGL examples]] (with Sokol) was so good for a beginner.
+
+   I basically started copying [[https://github.com/prime31/zig-gamekit][zig-gamekit]] in Rust, which became the =snow2d= crate. It proides with
+   a builder-like 2D rendering API (with an internal batcher).
+
+** FoV rendering (Dec 20, 2020)
+   This is the raw output of FoV shadows:
+   [[./img/fov_raw.png]]
+
+   Then I applied gaussian blur to it:
+   [[./img/fov_gauss.png]]
+
+   Great! Which would you prefer? Players would switch it with just a flag.
+
+** Turn-based game loop (Dec 27, 2020)
+   [[https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html][Generators]] in Rust is currently unstable and would not be stablized for a while. But I liked its
+   simplicity and using it under the hood.
+
