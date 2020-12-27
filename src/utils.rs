@@ -1,7 +1,10 @@
-/// Lifetime-free pointer to type `T`
+//! Utilities
+
+/// Lifetime-free mutable reference to type `T`
 ///
-/// This is dangerous but works on certain senario. I basicaly prefer `Cheat<T>` to
-/// `Rc<RefCell<T>>`.
+/// Be sure that the pointer lives as long as required.
+///
+/// I basicaly prefer `Cheat<T>` to `Rc<RefCell<T>>`.
 #[derive(Debug)]
 pub struct Cheat<T> {
     ptr: *mut T,

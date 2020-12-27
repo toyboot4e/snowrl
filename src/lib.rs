@@ -1,11 +1,14 @@
-//! SnowRL
+/*!
+
+Snow the roguelike game
+
+*/
 
 // use generator (unstable Rust)
 #![feature(generators, generator_trait)]
 
 pub use {rlbox, rokol, snow2d};
 
-pub mod render;
 pub mod turn;
 pub mod utils;
 pub mod world;
@@ -130,7 +133,6 @@ impl SnowRlImpl {
             let res = match self.state {
                 GameState::Tick => self.update_tick(),
                 GameState::Anim => self.update_anim(),
-                _ => unimplemented!(),
             };
 
             match res {
@@ -189,10 +191,18 @@ impl SnowRlImpl {
     }
 }
 
-/// Collects magic values (yes, it shuld be removed at some time)
 pub mod consts {
-    pub const HALF_FRAME: f32 = 1.0 / 120.0;
+    //! Magic values (should be removed)
+
+    /// FPS of character graphics animation
     pub const ACTOR_FPS: f32 = 4.0;
+
+    /// Filed of view radius
     pub const FOV_R: u32 = 5;
+
+    /// Walk duration in seconds
     pub const WALK_TIME: f32 = 8.0 / 60.0;
+
+    /// Half frame in seconds (fixed timestep with 60 FPS)
+    pub const HALF_FRAME: f32 = 1.0 / 120.0;
 }

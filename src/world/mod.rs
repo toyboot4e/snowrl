@@ -1,6 +1,7 @@
-//! The game world
+//! The game world, internals and GUI
 
 pub mod actor;
+pub mod render;
 pub mod vi;
 
 use {
@@ -22,9 +23,7 @@ use rlbox::rl::{
     rlmap::TiledRlMap,
 };
 
-use crate::render::FovRenderer;
-
-use self::{actor::*, vi::VInput};
+use self::{actor::*, render::FovRenderer, vi::VInput};
 
 /// Powers the game [`World`]
 pub struct WorldContext {
@@ -146,7 +145,7 @@ impl World {
             pip: None,
         });
 
-        crate::render::render_tiled(&mut screen, self);
+        self::render::render_tiled(&mut screen, self);
         self.render_actors(&mut screen);
 
         drop(screen);

@@ -1,4 +1,4 @@
-//! 2D camera
+//! [WIP] 2D camera
 
 /// 2D camera
 pub struct Cam2d {

@@ -1,4 +1,11 @@
-//! Actor
+/*!
+
+Game entity with GUI
+
+Ideally, internals should be separated from graphics, but coupling them would be good for
+prototpyes.
+
+*/
 
 use std::{path::Path, time::Duration};
 

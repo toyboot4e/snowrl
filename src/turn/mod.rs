@@ -1,4 +1,4 @@
-//! Turn-based roguelike system
+//! Turn-based roguelike system with animation considered
 
 pub mod anim;
 pub mod ev;

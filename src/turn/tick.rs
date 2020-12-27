@@ -1,4 +1,8 @@
-//! Turn-based game loop
+/*!
+
+Turn-based game loop implemented with generator in unstable Rust
+
+*/
 
 use std::{
     ops::{Generator, GeneratorState},
@@ -136,7 +140,7 @@ pub struct AnimContext<'a, 'b> {
 }
 
 pub trait GenAnim {
-    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
         None
     }
 }

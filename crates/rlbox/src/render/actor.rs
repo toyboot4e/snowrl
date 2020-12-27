@@ -1,4 +1,4 @@
-//! Actor sprite
+//! Frame-based actor sprite animation
 
 use std::collections::HashMap;
 

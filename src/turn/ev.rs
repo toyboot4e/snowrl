@@ -1,4 +1,13 @@
-//! Event-based roguelike game system
+/*!
+
+Roguelike game events
+
+Most actor actions result in primitive events. Every change to the roguelike game world should be
+handled as primitive event. That's good for both flexibility and visualization.
+
+e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
+
+*/
 
 use rlbox::rl::grid2d::*;
 
@@ -22,8 +31,8 @@ pub struct ChangeDir {
 }
 
 impl GenAnim for ChangeDir {
-    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
-        // TODO: rotation and wait for it to finish
+    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        // TODO: play rotation and wait for it to finish
         None
     }
 }
@@ -37,12 +46,14 @@ impl Command for ChangeDir {
     }
 }
 
+/// Walk | Teleport
 #[derive(Debug)]
 pub enum MoveContext {
     Teleport,
     Walk,
 }
 
+/// Change in actor's position and direction
 #[derive(Debug)]
 pub struct Move {
     pub actor: ActorIndex,
@@ -54,7 +65,7 @@ pub struct Move {
 }
 
 impl GenAnim for Move {
-    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
         Some(Box::new(anim::WalkAnim::new()))
         // TODO: update FoV. mark dirty subscribing walk event
         // wcx.fov_render.before_update_fov(&player.fov);
@@ -82,6 +93,7 @@ impl Command for Move {
 // --------------------------------------------------------------------------------
 // Events
 
+/// Attack in direction
 #[derive(Debug)]
 pub struct Attack {
     pub actor: ActorIndex,

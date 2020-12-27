@@ -1,6 +1,6 @@
 /*!
 
-Roguelike box
+Roguelike toolbox
 
 2D graphical roguelike framework on top of [`snow2d`].
 
