@@ -5,7 +5,7 @@
    header-only C libraries. I used to use [[https://github.com/toyboot4e/rust-fna3d][Rust-FNA3D]] ([[https://github.com/FNA-XNA/FNA3D][FNA3D]]), but the
    [[https://www.geertarien.com/learnopengl-examples-html5/][Learn OpenGL examples]] (with Sokol) was so good for a beginner.
 
-   I basically started copying [[https://github.com/prime31/zig-gamekit][zig-gamekit]] in Rust, which became the =snow2d= crate. It proides with
+   I basically started copying [[https://github.com/prime31/zig-gamekit][zig-gamekit]] in Rust, which became the =snow2d= crate. It provides with
    a builder-like 2D rendering API (with an internal batcher).
 
 ** FoV rendering (Dec 20, 2020)
@@ -15,9 +15,13 @@
    Then I applied gaussian blur to it:
    [[./img/fov_gauss.png]]
 
-   Great! Which would you prefer? Players would switch it with just a flag.
+   Great! Which would you prefer? I like the latter, but it doesn't look like cell-based
+   FoV. So I would make a flag that decides if we use gaussian blur or not.
 
 ** Turn-based game loop (Dec 27, 2020)
    [[https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html][Generators]] in Rust is currently unstable and would not be stablized for a while. But I liked its
-   simplicity and using it under the hood.
+   simplicity and I'm using it under the hood.
+
+   Actor actions are immutable objects. They are going to be mapped from one to another and result
+   in primitive events to make changes to the game world. For example, =MeleeAttack= → =Hit= → =GiveDamage=.
 

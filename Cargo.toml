@@ -43,4 +43,5 @@ tiled = "0.9.3"
 soloud = "0.2.3"
 genawaiter = "0.99.1"
 rand = "0.8.0"
+downcast-rs = "1.2.0"
 

@@ -33,12 +33,6 @@ enum GameState {
     Anim,
 }
 
-enum UpdateResult {
-    GotoNextFrame,
-    SwitchThisFrame(GameState),
-    SwitchNextFrame(GameState),
-}
-
 pub struct SnowRl {
     /// Use `Option` for lazy initialization
     x: Option<SnowRlImpl>,
@@ -68,6 +62,12 @@ impl rokol::app::RApp for SnowRl {
             x.frame();
         }
     }
+}
+
+enum UpdateResult {
+    GotoNextFrame,
+    SwitchThisFrame(GameState),
+    SwitchNextFrame(GameState),
 }
 
 // #[derive(Debug)]
@@ -100,12 +100,12 @@ impl SnowRlImpl {
 impl rokol::app::RApp for SnowRlImpl {
     fn event(&mut self, ev: &ra::Event) {
         // print event type
-        let type_ = rokol::app::EventType::from_u32(ev.type_).unwrap();
-        use rokol::app::EventType as Ev;
-        if !matches!(type_, Ev::MouseMove | Ev::MouseEnter | Ev::MouseLeave) {
-            let key = rokol::app::Key::from_u32(ev.key_code).unwrap();
-            println!("{:?}, {:?}", type_, key);
-        }
+        // let type_ = rokol::app::EventType::from_u32(ev.type_).unwrap();
+        // use rokol::app::EventType as Ev;
+        // if !matches!(type_, Ev::MouseMove | Ev::MouseEnter | Ev::MouseLeave) {
+        //     let key = rokol::app::Key::from_u32(ev.key_code).unwrap();
+        //     log::trace!("{:?}, {:?}", type_, key);
+        // }
 
         self.wcx.event(ev);
         self.world.event(&mut self.wcx, ev);
@@ -155,8 +155,15 @@ impl SnowRlImpl {
         loop {
             // TODO: warn if every actor took turn and nothing happened
             match self.game_loop.tick(&mut self.world, &mut self.wcx) {
-                TickResult::TakeTurn(_actor) => {
-                    // TODO: handle walk animation stack
+                TickResult::TakeTurn(actor) => {
+                    if actor.0 == 0 {
+                        // TODO: consider non-frame-consuming commnad
+                        // TODO: handle walk animation stack
+                        // TODO: wait if on same frame
+                        if !self.anim_player.is_empty() {
+                            return UpdateResult::SwitchThisFrame(GameState::Anim);
+                        }
+                    }
                     continue;
                 }
                 TickResult::Command(cmd) => {

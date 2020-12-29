@@ -47,7 +47,7 @@ impl Command for ChangeDir {
 }
 
 /// Walk | Teleport
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MoveContext {
     Teleport,
     Walk,

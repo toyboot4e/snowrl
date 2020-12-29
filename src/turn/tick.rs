@@ -5,6 +5,7 @@ Turn-based game loop implemented with generator in unstable Rust
 */
 
 use std::{
+    fmt,
     ops::{Generator, GeneratorState},
     pin::Pin,
     rc::Rc,
@@ -32,7 +33,7 @@ struct TickContext {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ActorIndex(pub usize);
 
-// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub enum TickResult {
     /// Yielded when a new actor takes turn
     TakeTurn(ActorIndex),
@@ -45,6 +46,7 @@ pub enum TickResult {
 pub type GameLoop = Box<GameLoopImpl>;
 
 /// Roguelike game loop
+// #[derive(Debug)]
 pub struct GameLoopImpl {
     gen_stack: Vec<Gen>,
     tcx: TickContext,
@@ -134,6 +136,7 @@ impl GameLoopImpl {
 // Animation
 
 /// Context for making animation
+// #[derive(Debug)]
 pub struct AnimContext<'a, 'b> {
     pub world: &'a mut World,
     pub wcx: &'b mut WorldContext,
@@ -149,12 +152,14 @@ pub trait GenAnim {
 // Command
 
 /// Context for any command to process
+// #[derive(Debug)]
 pub struct CommandContext<'a, 'b> {
     pub world: &'a mut World,
     pub wcx: &'b mut WorldContext,
 }
 
 /// Return value of command processing
+#[derive(Debug)]
 pub enum CommandResult {
     /// Interactive actions can take multiple frames returning this varient
     Continue,
@@ -171,7 +176,7 @@ impl CommandResult {
 /// Special event that can run itself
 ///
 /// TODO: prefer chain-of-responsibility pattern
-pub trait Command: GenAnim {
+pub trait Command: fmt::Debug + GenAnim {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult;
 }
 

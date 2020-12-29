@@ -26,6 +26,7 @@ use rlbox::rl::{
 use self::{actor::*, render::FovRenderer, vi::VInput};
 
 /// Powers the game [`World`]
+// #[derive(Debug)]
 pub struct WorldContext {
     /// 2D renderer
     pub rdr: Snow2d,
@@ -78,6 +79,7 @@ impl WorldContext {
 /// The rougelike game world
 ///
 /// Turn-based game state should be outside of this struct.
+#[derive(Debug)]
 pub struct World {
     pub map: TiledRlMap,
     pub fow: FowData,
@@ -97,7 +99,7 @@ impl World {
                 pos,
                 dir: Dir8::N,
                 fov: FovData::new(crate::consts::FOV_R, 10),
-                img: ActorImage::from_path(asset::path("ika-chan.png"), pos, Dir8::N)?,
+                img: ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?,
             };
 
             self::update_fov(
@@ -118,7 +120,18 @@ impl World {
                 pos,
                 dir,
                 fov: FovData::empty(),
-                img: ActorImage::from_path(asset::path("ika-chan.png"), pos, Dir8::N)?,
+                img: ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?,
+            }
+        });
+
+        entities.push({
+            let pos = Vec2i::new(20, 18);
+            let dir = Dir8::S;
+            Player {
+                pos,
+                dir,
+                fov: FovData::empty(),
+                img: ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?,
             }
         });
 

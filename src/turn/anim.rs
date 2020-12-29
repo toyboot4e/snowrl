@@ -1,6 +1,14 @@
 //! Animation framework for the roguelike game
 
-use std::time::Duration;
+use downcast_rs::{impl_downcast, Downcast};
+
+use std::{
+    any::{Any, TypeId},
+    fmt,
+    time::Duration,
+};
+
+use crate::turn::ev;
 
 pub struct AnimPlayer {
     anims: Vec<Box<dyn Anim>>,
@@ -15,23 +23,32 @@ impl AnimPlayer {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.anims.is_empty()
+    }
+
     /// Push animation boxing it
     pub fn push<T: Anim + 'static>(&mut self, anim: T) {
         self.anims.push(Box::new(anim));
     }
 
-    /// Push boxed animatio
+    /// Push boxed animation
     pub fn push_boxed(&mut self, anim: Box<dyn Anim>) {
-        self.anims.push(anim);
+        if (*anim).as_any().is::<WalkAnim>() {
+            self.push_walk_anim();
+            self.is_top_walk = true;
+        } else {
+            self.anims.push(anim);
+            self.is_top_walk = false;
+        }
     }
 
     /// Multiple walk animations should be run as a batched animation (so that player don't have to
     /// wait for unnecessary long time)
-    pub fn push_walk_anim(&mut self) {
+    fn push_walk_anim(&mut self) {
         if self.is_top_walk {
-            //
+            // parallelize the walk animation
         } else {
-            self.is_top_walk = true;
             self.push(WalkAnim::new());
         }
     }
@@ -41,39 +58,51 @@ impl AnimPlayer {
             !self.anims.is_empty(),
             "Tried to start playing stack animation while it's empty!"
         );
+
+        let last = self.anims.last_mut().unwrap();
+        last.on_start();
     }
 
     pub fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
-        self.anims.last_mut().unwrap().update(ucx)
+        loop {
+            let last = match self.anims.last_mut() {
+                Some(a) => a,
+                None => return AnimResult::Finished,
+            };
+
+            let res = last.update(ucx);
+            if res == AnimResult::Finished {
+                // TODO: wait for one frame or not?
+                continue; // next animation
+            }
+
+            return res;
+        }
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AnimResult {
     Continue,
     Finished,
 }
 
+#[derive(Debug)]
 pub struct AnimUpdateContext {
     pub dt: Duration,
 }
 
-pub trait Anim {
+pub trait Anim: fmt::Debug + Downcast {
     fn on_start(&mut self) {}
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult;
 }
 
-/// impl `Anim` for `Box<dyn Anim>`
-impl<T: Anim + ?Sized> Anim for Box<T> {
-    fn on_start(&mut self) {
-        (**self).on_start();
-    }
+impl_downcast!(Anim);
 
-    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
-        (**self).update(ucx)
-    }
-}
+// do not impl `Anim` for `Box<dyn Anim>`
 
 /// Walk animation is currently run automatically, so we just wait for it to finish
+#[derive(Debug)]
 pub struct WalkAnim {
     pub dt: Duration,
 }
