@@ -198,8 +198,6 @@ impl SnowRlImpl {
                     return UpdateResult::GotoNextFrame;
                 }
             }
-
-            unreachable!();
         }
     }
 

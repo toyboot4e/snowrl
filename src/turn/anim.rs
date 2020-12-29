@@ -1,15 +1,14 @@
-//! Animation framework for the roguelike game
+/*!
+
+Animations for the roguelike game
+
+They're created referencing rogulike events and then we forget about original events.
+
+*/
 
 use downcast_rs::{impl_downcast, Downcast};
 
-use std::{
-    any::{Any, TypeId},
-    collections::VecDeque,
-    fmt,
-    time::Duration,
-};
-
-use crate::turn::ev;
+use std::{collections::VecDeque, fmt, time::Duration};
 
 #[derive(Debug)]
 pub struct AnimPlayer {

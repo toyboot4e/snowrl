@@ -181,7 +181,7 @@ impl World {
         }
     }
 
-    pub fn on_end_frame(&mut self, wcx: &mut WorldContext) {
+    pub fn on_end_frame(&mut self, _wcx: &mut WorldContext) {
         //
     }
 }
