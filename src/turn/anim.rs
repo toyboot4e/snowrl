@@ -4,41 +4,50 @@ use downcast_rs::{impl_downcast, Downcast};
 
 use std::{
     any::{Any, TypeId},
+    collections::VecDeque,
     fmt,
     time::Duration,
 };
 
 use crate::turn::ev;
 
+#[derive(Debug)]
 pub struct AnimPlayer {
-    anims: Vec<Box<dyn Anim>>,
+    /// Queue of animations
+    anims: VecDeque<Box<dyn Anim>>,
     is_top_walk: bool,
 }
 
 impl AnimPlayer {
     pub fn new() -> Self {
         Self {
-            anims: Vec::with_capacity(10),
+            anims: VecDeque::with_capacity(10),
             is_top_walk: false,
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.anims.is_empty()
+    /// If the animation should be batched or not
+    pub fn should_batch_top_anim(&self) -> bool {
+        self.is_top_walk
     }
 
-    /// Push animation boxing it
-    pub fn push<T: Anim + 'static>(&mut self, anim: T) {
-        self.anims.push(Box::new(anim));
+    /// If we have animations to batch or not (actually empty or not)
+    pub fn any_batch(&self) -> bool {
+        !self.anims.is_empty()
     }
 
-    /// Push boxed animation
-    pub fn push_boxed(&mut self, anim: Box<dyn Anim>) {
+    /// Add animation boxing it
+    pub fn enqueue<T: Anim + 'static>(&mut self, anim: T) {
+        self.anims.push_back(Box::new(anim));
+    }
+
+    /// Add boxed animation
+    pub fn enqueue_boxed(&mut self, anim: Box<dyn Anim>) {
         if (*anim).as_any().is::<WalkAnim>() {
             self.push_walk_anim();
             self.is_top_walk = true;
         } else {
-            self.anims.push(anim);
+            self.anims.push_back(anim);
             self.is_top_walk = false;
         }
     }
@@ -49,31 +58,46 @@ impl AnimPlayer {
         if self.is_top_walk {
             // parallelize the walk animation
         } else {
-            self.push(WalkAnim::new());
+            self.enqueue(WalkAnim::new());
         }
     }
 
     pub fn on_start(&mut self) {
         assert!(
             !self.anims.is_empty(),
-            "Tried to start playing stack animation while it's empty!"
+            "Tried to start playing animation stack while it's empty!"
         );
 
-        let last = self.anims.last_mut().unwrap();
+        let last = self.anims.front_mut().unwrap();
         last.on_start();
+
+        log::trace!("animation queue: {:?}", self.anims);
+    }
+
+    fn on_exit(&mut self) {
+        self.is_top_walk = false;
     }
 
     pub fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
         loop {
-            let last = match self.anims.last_mut() {
+            let last = match self.anims.front_mut() {
                 Some(a) => a,
-                None => return AnimResult::Finished,
+                None => {
+                    self.on_exit();
+                    return AnimResult::Finished;
+                }
             };
 
+            // TODO: separate `AnimResult` and `AnimPlayerResult`
             let res = last.update(ucx);
             if res == AnimResult::Finished {
-                // TODO: wait for one frame or not?
-                continue; // next animation
+                self.anims.pop_front();
+
+                if let Some(last) = self.anims.front_mut() {
+                    last.on_start();
+                }
+
+                continue; // process next animation
             }
 
             return res;

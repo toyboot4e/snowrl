@@ -23,7 +23,7 @@ use crate::{
 /// pointer.
 type Gen = Box<dyn Generator<TickContext, Yield = TickResult, Return = ()> + Unpin>;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct TickContext {
     world: Cheat<World>,
     wcx: Cheat<WorldContext>,
@@ -46,10 +46,19 @@ pub enum TickResult {
 pub type GameLoop = Box<GameLoopImpl>;
 
 /// Roguelike game loop
-// #[derive(Debug)]
 pub struct GameLoopImpl {
     gen_stack: Vec<Gen>,
     tcx: TickContext,
+}
+
+impl std::fmt::Debug for GameLoopImpl {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(
+            fmt,
+            "GameLoopImpl {{ gen_stack: <cant show for now>, txc: {:?} }}",
+            self.tcx,
+        )
+    }
 }
 
 impl GameLoopImpl {
@@ -136,7 +145,7 @@ impl GameLoopImpl {
 // Animation
 
 /// Context for making animation
-// #[derive(Debug)]
+#[derive(Debug)]
 pub struct AnimContext<'a, 'b> {
     pub world: &'a mut World,
     pub wcx: &'b mut WorldContext,
@@ -152,7 +161,7 @@ pub trait GenAnim {
 // Command
 
 /// Context for any command to process
-// #[derive(Debug)]
+#[derive(Debug)]
 pub struct CommandContext<'a, 'b> {
     pub world: &'a mut World,
     pub wcx: &'b mut WorldContext,
@@ -180,6 +189,7 @@ pub trait Command: fmt::Debug + GenAnim {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult;
 }
 
+// TODO: do we need them? or `get_mut` might make sense
 // `impl Trait for Box<dyn trait>`
 
 impl<T: GenAnim + ?Sized> GenAnim for Box<T> {}

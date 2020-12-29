@@ -26,7 +26,7 @@ use rlbox::rl::{
 use self::{actor::*, render::FovRenderer, vi::VInput};
 
 /// Powers the game [`World`]
-// #[derive(Debug)]
+#[derive(Debug)]
 pub struct WorldContext {
     /// 2D renderer
     pub rdr: Snow2d,
@@ -95,6 +95,7 @@ impl World {
 
         entities.push({
             let pos = Vec2i::new(14, 12);
+            let dir = Dir8::S;
             let mut player = Player {
                 pos,
                 dir: Dir8::N,

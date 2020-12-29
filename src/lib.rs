@@ -66,16 +66,16 @@ impl rokol::app::RApp for SnowRl {
 
 enum UpdateResult {
     GotoNextFrame,
-    SwitchThisFrame(GameState),
+    SwitchInThisFrame(GameState),
     SwitchNextFrame(GameState),
 }
 
-// #[derive(Debug)]
+#[derive(Debug)]
 struct SnowRlImpl {
     wcx: WorldContext,
     world: World,
     game_loop: GameLoop,
-    anim_player: AnimPlayer,
+    anims: AnimPlayer,
     state: GameState,
 }
 
@@ -91,7 +91,7 @@ impl SnowRlImpl {
             wcx,
             world,
             game_loop,
-            anim_player: AnimPlayer::new(),
+            anims: AnimPlayer::new(),
             state: GameState::Tick,
         }
     }
@@ -139,7 +139,7 @@ impl SnowRlImpl {
                 UpdateResult::GotoNextFrame => {
                     break;
                 }
-                UpdateResult::SwitchThisFrame(state) => {
+                UpdateResult::SwitchInThisFrame(state) => {
                     self.state = state;
                     continue;
                 }
@@ -153,17 +153,22 @@ impl SnowRlImpl {
 
     fn update_tick(&mut self) -> UpdateResult {
         loop {
-            // TODO: warn if every actor took turn and nothing happened
-            match self.game_loop.tick(&mut self.world, &mut self.wcx) {
+            let res = self.game_loop.tick(&mut self.world, &mut self.wcx);
+            // log::trace!("{:?}", res);
+
+            match res {
                 TickResult::TakeTurn(actor) => {
                     if actor.0 == 0 {
+                        // TODO: warn if nothing happened
                         // TODO: consider non-frame-consuming commnad
-                        // TODO: handle walk animation stack
                         // TODO: wait if on same frame
-                        if !self.anim_player.is_empty() {
-                            return UpdateResult::SwitchThisFrame(GameState::Anim);
+
+                        // run batched walk animation if it's player's turn
+                        if self.anims.any_batch() {
+                            return UpdateResult::SwitchInThisFrame(GameState::Anim);
                         }
                     }
+
                     continue;
                 }
                 TickResult::Command(cmd) => {
@@ -173,27 +178,42 @@ impl SnowRlImpl {
                         wcx: &mut self.wcx,
                     };
 
+                    // play animations if any
                     if let Some(anim) = cmd.gen_anim(&mut acx) {
-                        self.anim_player.push_boxed(anim);
+                        // log::trace!("command animation: {:?}", anim);
 
-                        self.anim_player.on_start();
-                        return UpdateResult::SwitchThisFrame(GameState::Anim);
+                        self.anims.enqueue_boxed(anim);
+
+                        // run non-batched animation
+                        // (batch walk animations as much as possible)
+                        if !self.anims.should_batch_top_anim() {
+                            self.on_enter_anim_state();
+                            return UpdateResult::SwitchInThisFrame(GameState::Anim);
+                        }
                     }
+
+                    continue;
                 }
                 TickResult::ProcessingCommand => {
                     return UpdateResult::GotoNextFrame;
                 }
             }
+
+            unreachable!();
         }
+    }
+
+    fn on_enter_anim_state(&mut self) {
+        self.anims.on_start();
     }
 
     fn update_anim(&mut self) -> UpdateResult {
         let mut ucx = AnimUpdateContext { dt: self.wcx.dt };
 
         // TODO: handle walk animation stack
-        match self.anim_player.update(&mut ucx) {
+        match self.anims.update(&mut ucx) {
             AnimResult::Continue => UpdateResult::GotoNextFrame,
-            AnimResult::Finished => UpdateResult::SwitchThisFrame(GameState::Tick),
+            AnimResult::Finished => UpdateResult::SwitchInThisFrame(GameState::Tick),
         }
     }
 }
