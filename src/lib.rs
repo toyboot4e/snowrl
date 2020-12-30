@@ -103,15 +103,8 @@ impl SnowRlImpl {
 
 impl rokol::app::RApp for SnowRlImpl {
     fn event(&mut self, ev: &ra::Event) {
-        // print event type
-        // let type_ = rokol::app::EventType::from_u32(ev.type_).unwrap();
-        // use rokol::app::EventType as Ev;
-        // if !matches!(type_, Ev::MouseMove | Ev::MouseEnter | Ev::MouseLeave) {
-        //     let key = rokol::app::Key::from_u32(ev.key_code).unwrap();
-        //     log::trace!("{:?}, {:?}", type_, key);
-        // }
-
         self.frame_count = ev.frame_count;
+
         self.wcx.event(ev);
         self.world.event(&mut self.wcx, ev);
     }
@@ -144,8 +137,8 @@ impl SnowRlImpl {
                 UpdateResult::GotoNextFrame => {
                     break;
                 }
-                UpdateResult::SwitchInThisFrame(state) => {
-                    self.state = state;
+                UpdateResult::SwitchInThisFrame(next_state) => {
+                    switch_state(self, next_state);
                     continue;
                 }
                 UpdateResult::SwitchNextFrame(state) => {
@@ -153,6 +146,16 @@ impl SnowRlImpl {
                     break;
                 }
             }
+        }
+
+        /// Handles `on_enter` and `on_exist` for each state
+        fn switch_state(me: &mut SnowRlImpl, next_state: GameState) {
+            match next_state {
+                GameState::Anim => me.on_enter_anim_state(),
+                _ => {}
+            }
+
+            me.state = next_state;
         }
     }
 
@@ -175,7 +178,6 @@ impl SnowRlImpl {
 
                         // run batched walk animation if it's player's turn
                         if self.anims.any_batch() {
-                            self.on_enter_anim_state();
                             return UpdateResult::SwitchInThisFrame(GameState::Anim);
                         }
                     }
@@ -198,7 +200,6 @@ impl SnowRlImpl {
                         // run non-batched animation
                         // (batch walk animations as much as possible)
                         if !self.anims.should_batch_top_anim() {
-                            self.on_enter_anim_state();
                             return UpdateResult::SwitchInThisFrame(GameState::Anim);
                         }
                     }
