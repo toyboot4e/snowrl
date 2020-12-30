@@ -77,6 +77,8 @@ struct SnowRlImpl {
     game_loop: GameLoop,
     anims: AnimPlayer,
     state: GameState,
+    frame_count: u64,
+    last_frame_on_tick: u64,
 }
 
 impl SnowRlImpl {
@@ -93,6 +95,8 @@ impl SnowRlImpl {
             game_loop,
             anims: AnimPlayer::new(),
             state: GameState::Tick,
+            frame_count: 0,
+            last_frame_on_tick: 0,
         }
     }
 }
@@ -107,6 +111,7 @@ impl rokol::app::RApp for SnowRlImpl {
         //     log::trace!("{:?}, {:?}", type_, key);
         // }
 
+        self.frame_count = ev.frame_count;
         self.wcx.event(ev);
         self.world.event(&mut self.wcx, ev);
     }
@@ -159,9 +164,14 @@ impl SnowRlImpl {
             match res {
                 TickResult::TakeTurn(actor) => {
                     if actor.0 == 0 {
-                        // TODO: warn if nothing happened
-                        // TODO: consider non-frame-consuming commnad
-                        // TODO: wait if on same frame
+                        let is_on_same_frame = self.last_frame_on_tick == self.frame_count;
+                        self.last_frame_on_tick = self.frame_count;
+                        if is_on_same_frame {
+                            // another player turn after all actors taking turns.
+                            // maybe all actions didn't take any frame.
+                            // force waiting for a frame to ensure we don't enter inifinite loop:
+                            return UpdateResult::GotoNextFrame;
+                        }
 
                         // run batched walk animation if it's player's turn
                         if self.anims.any_batch() {
