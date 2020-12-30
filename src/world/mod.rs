@@ -201,6 +201,12 @@ impl World {
             return true;
         }
 
+        for e in &self.entities {
+            if e.pos == pos {
+                return true;
+            }
+        }
+
         false
     }
 }

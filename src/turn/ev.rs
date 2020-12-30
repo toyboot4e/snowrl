@@ -72,11 +72,17 @@ impl GenAnim for Move {
 
 impl Command for Move {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult {
-        let actor = &mut ccx.world.entities[self.actor.0];
-        actor.dir = self.to_dir;
-        actor.pos = self.to_pos;
-
-        CommandResult::Finish
+        if !ccx.world.is_blocked(self.to_pos) {
+            let actor = &mut ccx.world.entities[self.actor.0];
+            actor.dir = self.to_dir;
+            actor.pos = self.to_pos;
+            CommandResult::Finish
+        } else {
+            CommandResult::chain(ChangeDir {
+                actor: self.actor,
+                dir: self.to_dir,
+            })
+        }
     }
 }
 
