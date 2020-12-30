@@ -165,6 +165,7 @@ impl SnowRlImpl {
 
                         // run batched walk animation if it's player's turn
                         if self.anims.any_batch() {
+                            self.on_enter_anim_state();
                             return UpdateResult::SwitchInThisFrame(GameState::Anim);
                         }
                     }
@@ -202,11 +203,21 @@ impl SnowRlImpl {
     }
 
     fn on_enter_anim_state(&mut self) {
-        self.anims.on_start();
+        let mut ucx = AnimUpdateContext {
+            dt: self.wcx.dt,
+            world: &mut self.world,
+            wcx: &mut self.wcx,
+        };
+
+        self.anims.on_start(&mut ucx);
     }
 
     fn update_anim(&mut self) -> UpdateResult {
-        let mut ucx = AnimUpdateContext { dt: self.wcx.dt };
+        let mut ucx = AnimUpdateContext {
+            dt: self.wcx.dt,
+            world: &mut self.world,
+            wcx: &mut self.wcx,
+        };
 
         // TODO: handle walk animation stack
         match self.anims.update(&mut ucx) {

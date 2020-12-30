@@ -205,7 +205,7 @@ impl World {
     }
 }
 
-fn update_fov(fov: &mut impl FovWrite, pos: Vec2i, r: u32, map: &impl OpacityMap) {
+pub fn update_fov(fov: &mut impl FovWrite, pos: Vec2i, r: u32, map: &impl OpacityMap) {
     rl::fov::refresh(
         fov,
         rl::fov::RefreshParams {

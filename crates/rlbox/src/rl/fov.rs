@@ -36,9 +36,9 @@ pub trait OpacityMap {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FovData {
     is_visible: Vec<bool>,
-    radius: u32,
+    pub radius: u32,
     /// Where the character is
-    origin: Vec2i,
+    pub origin: Vec2i,
 }
 
 impl FovData {

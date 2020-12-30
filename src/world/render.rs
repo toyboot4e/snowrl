@@ -69,16 +69,19 @@ impl FovRenderer {
         }
     }
 
+    /// Change FoV view instantly (without animation)
     pub fn force_set_fov(&mut self, fov: &FovData) {
         self.fov_prev = fov.clone();
         self.fov_blend_factor = 0.0;
     }
 
-    pub fn before_update_fov(&mut self, fov: &FovData) {
+    /// Copies the "previous " FoV data so that we can make FoV animation
+    pub fn on_fov_change(&mut self, fov: &FovData) {
         self.fov_prev = fov.clone();
         self.fov_blend_factor = 0.0;
     }
 
+    /// Call it every frame to animate FoV
     pub fn update(&mut self, dt: std::time::Duration) {
         // advance FoV blend factor
         self.fov_blend_factor += dt.as_secs_f32() / crate::consts::WALK_TIME;

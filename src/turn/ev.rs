@@ -66,17 +66,7 @@ pub struct Move {
 
 impl GenAnim for Move {
     fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
-        Some(Box::new(anim::WalkAnim::new()))
-        // TODO: update FoV. mark dirty subscribing walk event
-        // wcx.fov_render.before_update_fov(&player.fov);
-
-        // TODO: update FoV. mark dirty subscribing walk event
-        // self::update_fov(
-        //     &mut player.fov,
-        //     player.pos,
-        //     crate::consts::FOV_R,
-        //     &world.map.rlmap,
-        // );
+        Some(Box::new(anim::WalkAnim::new(self.actor)))
     }
 }
 
