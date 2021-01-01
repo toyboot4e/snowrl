@@ -18,7 +18,7 @@ use rokol::{app as ra, gfx as rg};
 use crate::{
     turn::{
         anim::{AnimPlayer, AnimResult, AnimUpdateContext},
-        tick::{AnimContext, GameLoop, GameLoopImpl, TickResult},
+        tick::{AnimContext, GameLoop, TickResult},
     },
     world::{World, WorldContext},
 };
@@ -87,7 +87,7 @@ impl SnowRlImpl {
 
         let mut wcx = WorldContext::new();
         let world = World::from_tiled_file(&mut wcx, &file).unwrap();
-        let game_loop = GameLoopImpl::new();
+        let game_loop = GameLoop::new();
 
         Self {
             wcx,
@@ -185,6 +185,8 @@ impl SnowRlImpl {
                     continue;
                 }
                 TickResult::Command(cmd) => {
+                    log::trace!("command: {:?}", cmd);
+
                     // try to create animation
                     let mut acx = AnimContext {
                         world: &mut self.world,
@@ -232,8 +234,8 @@ impl SnowRlImpl {
 
         // TODO: handle walk animation stack
         match self.anims.update(&mut ucx) {
-            AnimResult::Continue => UpdateResult::GotoNextFrame,
-            AnimResult::Finished => UpdateResult::SwitchInThisFrame(GameState::Tick),
+            AnimResult::GotoNextFrame => UpdateResult::GotoNextFrame,
+            AnimResult::Finish => UpdateResult::SwitchInThisFrame(GameState::Tick),
         }
     }
 }

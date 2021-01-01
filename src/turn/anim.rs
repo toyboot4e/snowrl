@@ -92,14 +92,14 @@ impl AnimPlayer {
                 Some(a) => a,
                 None => {
                     self.on_exit();
-                    return AnimResult::Finished;
+                    return AnimResult::Finish;
                 }
             };
 
             // TODO: separate `AnimResult` and `AnimPlayerResult`
             let res = front.update(ucx);
 
-            if res == AnimResult::Finished {
+            if res == AnimResult::Finish {
                 self.anims.pop_front();
 
                 if let Some(front) = self.anims.front_mut() {
@@ -116,8 +116,8 @@ impl AnimPlayer {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AnimResult {
-    Continue,
-    Finished,
+    GotoNextFrame,
+    Finish,
 }
 
 #[derive(Debug)]
@@ -128,14 +128,30 @@ pub struct AnimUpdateContext<'a, 'b> {
 }
 
 pub trait Anim: fmt::Debug + Downcast {
-    fn on_start(&mut self, ucx: &mut AnimUpdateContext);
+    fn on_start(&mut self, ucx: &mut AnimUpdateContext) {}
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult;
 }
 
 impl_downcast!(Anim);
 
-// do not impl `Anim` for `Box<dyn Anim>`
+// do not impl `Anim` for `Box<dyn Anim>` so that the downcast works fine
 
+/// Wait for n frames
+#[derive(Debug, Clone)]
+pub struct Wait {
+    pub frames: usize,
+}
+
+impl Anim for Wait {
+    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
+        if self.frames == 0 {
+            AnimResult::Finish
+        } else {
+            self.frames -= 1;
+            AnimResult::GotoNextFrame
+        }
+    }
+}
 /// Walk animation is currently run automatically, so we just wait for it to finish
 #[derive(Debug, Clone)]
 pub struct WalkAnim {
@@ -187,9 +203,9 @@ impl Anim for WalkAnim {
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
         self.dt += ucx.dt;
         if self.dt.as_secs_f32() >= (crate::consts::WALK_TIME - crate::consts::HALF_FRAME) {
-            AnimResult::Finished
+            AnimResult::Finish
         } else {
-            AnimResult::Continue
+            AnimResult::GotoNextFrame
         }
     }
 }

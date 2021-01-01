@@ -17,7 +17,9 @@ use crate::{
     world::{World, WorldContext},
 };
 
-/// [Generator](https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html)
+/// Boxed [generator]
+///
+/// [gemerator]: (https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html)
 ///
 /// It was hard to `resume` with lifetimed parameters so, we'll cheat the borrow rules using a
 /// pointer.
@@ -35,110 +37,101 @@ pub struct ActorIndex(pub usize);
 
 #[derive(Debug)]
 pub enum TickResult {
-    /// Yielded when a new actor takes turn
+    /// Yielded when an actor takes turn
     TakeTurn(ActorIndex),
     /// Yielded when a new command is emitted
     Command(Rc<dyn Command>),
-    /// Yielded when proessing a command taking more than one frame
+    /// Yielded when processing a command takes greater than or equal to one frame
     ProcessingCommand,
 }
 
-pub type GameLoop = Box<GameLoopImpl>;
-
 /// Roguelike game loop
-pub struct GameLoopImpl {
-    gen_stack: Vec<Gen>,
+pub struct GameLoop {
+    gen: Gen,
     tcx: TickContext,
 }
 
-impl std::fmt::Debug for GameLoopImpl {
+impl std::fmt::Debug for GameLoop {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(
             fmt,
-            "GameLoopImpl {{ gen_stack: <cant show for now>, txc: {:?} }}",
+            "GameLoopImpl {{ gen: <cant print for now>, tcx: {:?} }}",
             self.tcx,
         )
     }
 }
 
-impl GameLoopImpl {
-    /// Arguments are boxed to have fixed memory position
+impl GameLoop {
     pub fn new() -> GameLoop {
-        let mut me = Box::new(Self {
-            gen_stack: Vec::with_capacity(10),
+        Self {
+            gen: self::game_loop(),
             tcx: TickContext {
                 world: Cheat::empty(),
                 wcx: Cheat::empty(),
             },
-        });
-
-        me.gen_stack.push(unsafe { Self::game_loop() });
-
-        me
+        }
     }
 
     /// Ticks the game for "one step"
     pub fn tick(&mut self, world: &mut World, wcx: &mut WorldContext) -> TickResult {
-        // // set cheat borrows here (for the generators)
+        // set cheat borrows here (for the generators)
         self.tcx.world = Cheat::new(world);
         self.tcx.wcx = Cheat::new(wcx);
 
-        let gen = self.gen_stack.last_mut().expect("generator stack is null!");
-
-        match Pin::new(gen).resume(self.tcx.clone()) {
+        match Pin::new(&mut self.gen).resume(self.tcx.clone()) {
             GeneratorState::Yielded(res) => res,
             _ => panic!("unexpected value from resume"),
         }
     }
+}
 
-    /// Internal game loop implemented as a generator
-    unsafe fn game_loop() -> Gen {
-        Box::new(|mut tcx: TickContext| {
-            // TODO: separate TickState so that it can be observed
-            let mut actor_ix = 0;
+/// Internal game loop implemented as a generator
+fn game_loop() -> Gen {
+    Box::new(|mut tcx: TickContext| {
+        // TODO: separate TickState so that it can be observed
+        let mut actor_ix = 0;
 
+        loop {
+            // TODO: do not hard code entity actions
+            let actor = ActorIndex(actor_ix);
+            yield TickResult::TakeTurn(actor);
+
+            let mut cmd: Rc<dyn Command> = match actor.0 {
+                0 => Rc::new(ev::PlayerTurn { actor }),
+                _ => Rc::new(ev::RandomWalk { actor }),
+            };
+
+            // process command
             loop {
-                // TODO: do not hard code entity actions
-                let actor = ActorIndex(actor_ix);
-                yield TickResult::TakeTurn(actor);
+                yield TickResult::Command(cmd.clone());
 
-                let mut cmd: Rc<dyn Command> = match actor.0 {
-                    0 => Rc::new(ev::PlayerTurn { actor }),
-                    _ => Rc::new(ev::RandomWalk { actor }),
+                let mut ccx = CommandContext {
+                    world: &mut tcx.world,
+                    wcx: &mut tcx.wcx,
                 };
 
-                // process command
-                loop {
-                    yield TickResult::Command(cmd.clone());
-
-                    let mut ccx = CommandContext {
-                        world: &mut tcx.world,
-                        wcx: &mut tcx.wcx,
-                    };
-
-                    match cmd.run(&mut ccx) {
-                        CommandResult::Continue => {
-                            // wait for next frame
-                            yield TickResult::ProcessingCommand;
-                            break;
-                        }
-                        CommandResult::Finish => {
-                            // go to next actor
-                            actor_ix += 1;
-                            actor_ix %= tcx.world.entities.len();
-                            break;
-                        }
-                        CommandResult::Chain(new_cmd) => {
-                            cmd = new_cmd.into();
-                            continue;
-                        }
+                match cmd.run(&mut ccx) {
+                    CommandResult::Continue => {
+                        // wait for next frame
+                        yield TickResult::ProcessingCommand;
+                        break;
+                    }
+                    CommandResult::Finish => {
+                        // go to next actor
+                        actor_ix += 1;
+                        actor_ix %= tcx.world.entities.len();
+                        break;
+                    }
+                    CommandResult::Chain(new_cmd) => {
+                        cmd = new_cmd.into();
+                        continue;
                     }
                 }
-
-                // next step for the turn-based game loop
             }
-        })
-    }
+
+            // next step for the turn-based game loop
+        }
+    })
 }
 
 // ----------------------------------------
@@ -173,6 +166,7 @@ pub enum CommandResult {
     /// Interactive actions can take multiple frames returning this varient
     Continue,
     Finish,
+    // TODO: chain multiple commands
     Chain(Box<dyn Command>),
 }
 

@@ -18,6 +18,38 @@ use crate::turn::{
     tick::{ActorIndex, AnimContext, Command, CommandContext, CommandResult, GenAnim},
 };
 
+/// Some action resulted in a non-turn consuming action
+///
+/// Player should take another turn.
+///
+/// FIXME: this is not a complete solution.
+#[derive(Debug)]
+pub struct NotConsumeTurn {
+    pub actor: ActorIndex,
+}
+
+impl GenAnim for NotConsumeTurn {
+    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        if self.actor.0 == 0 {
+            // wait for one frame so that we won't enter inifinite loop
+            Some(Box::new(anim::Wait { frames: 1 }))
+        } else {
+            None
+        }
+    }
+}
+
+impl Command for NotConsumeTurn {
+    fn run(&self, _ccx: &mut CommandContext) -> CommandResult {
+        if self.actor.0 == 0 {
+            // TODO: require one frame wait
+            CommandResult::chain(PlayerTurn { actor: self.actor })
+        } else {
+            CommandResult::Finish
+        }
+    }
+}
+
 // --------------------------------------------------------------------------------
 // Primitive events
 
@@ -42,7 +74,7 @@ impl Command for ChangeDir {
         let actor = &mut ccx.world.entities[self.actor.0];
         actor.dir = self.dir;
 
-        CommandResult::Finish
+        CommandResult::chain(NotConsumeTurn { actor: self.actor })
     }
 }
 
@@ -87,7 +119,7 @@ impl Command for Move {
 }
 
 // --------------------------------------------------------------------------------
-// Events
+// Higher-level commands
 
 /// Attack in direction
 #[derive(Debug)]
@@ -123,7 +155,7 @@ impl Command for RandomWalk {
 // --------------------------------------------------------------------------------
 // Player control
 
-/// Walk or change direction
+/// Walk or change direction and chain [`PlayerTurn`]
 #[derive(Debug)]
 pub struct PlayerWalk {
     pub actor: ActorIndex,
@@ -146,12 +178,14 @@ impl Command for PlayerWalk {
             .is_any_key_down(&[Key::LeftShift, Key::RightShift]);
 
         if is_rotate_only || world.is_blocked(pos) {
+            // TODO: change direction without consuming turn
             CommandResult::chain(ChangeDir {
                 actor: self.actor,
                 dir: self.dir,
             })
         } else {
             let actor = &world.entities[self.actor.0];
+
             CommandResult::chain(Move {
                 actor: self.actor,
                 mcx: MoveContext::Walk,
