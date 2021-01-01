@@ -15,10 +15,9 @@ use snow2d::gfx::{
     tex::{SpriteData, Texture2dDrop},
 };
 
-use rlbox::{
-    render::anim::FrameAnimState,
-    rl::{fov::FovData, grid2d::*},
-};
+use rlbox::{render::anim::FrameAnimState, rl::grid2d::*};
+
+use crate::utils::Double;
 
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -33,12 +32,6 @@ pub struct ActorImage {
     state: Double<ActorSnapshot>,
     /// Sec
     dt: f32,
-}
-
-#[derive(Debug, Clone)]
-struct Double<T> {
-    pub a: T,
-    pub b: T,
 }
 
 /// Interpolate two snapshots to draw actor

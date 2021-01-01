@@ -23,6 +23,8 @@ use rlbox::rl::{
     rlmap::TiledRlMap,
 };
 
+use crate::utils::Double;
+
 use self::{actor::*, render::FovRenderer, vi::VInput};
 
 /// Powers the game [`World`]
@@ -63,8 +65,6 @@ impl WorldContext {
 
         // input
         self.vi.dir.update(&self.input, self.dt);
-        // rendering state
-        self.fov_render.update(self.dt);
     }
 
     pub fn render(&mut self) {
@@ -76,10 +76,31 @@ impl WorldContext {
     }
 }
 
+/// Shadow data suitable for visualization
 #[derive(Debug)]
 pub struct Shadow {
-    pub fov: FovData,
-    pub fow: FowData,
+    /// Field of view
+    pub fov: Double<FovData>,
+    /// Fog of war (shadow on map)
+    pub fow: Double<FowData>,
+    /// Used to render FoV
+    pub blend_factor: f32,
+}
+
+impl Shadow {
+    pub fn calculate(&mut self, origin: Vec2i, radius: u32, map: &impl OpacityMap) {
+        self.fov.swap();
+        self.fow.swap();
+        rlbox::rl::fow::update_fov_fow(&mut self.fov.a, &mut self.fow.a, Some(radius), origin, map);
+    }
+
+    /// Call it every frame to animate FoV
+    pub fn update(&mut self, dt: std::time::Duration) {
+        self.blend_factor += dt.as_secs_f32() / crate::consts::WALK_TIME;
+        if self.blend_factor >= 1.0 {
+            self.blend_factor = 1.0;
+        }
+    }
 }
 
 /// The rougelike game world
@@ -98,8 +119,15 @@ impl World {
         let map = TiledRlMap::from_tiled_path(path)?;
 
         let mut shadow = Shadow {
-            fov: FovData::new(crate::consts::FOV_R, 10),
-            fow: FowData::new(map.rlmap.size),
+            fov: Double {
+                a: FovData::new(crate::consts::FOV_R, 10),
+                b: FovData::new(crate::consts::FOV_R, 10),
+            },
+            fow: Double {
+                a: FowData::new(map.rlmap.size),
+                b: FowData::new(map.rlmap.size),
+            },
+            blend_factor: 0.0,
         };
 
         let mut entities = Vec::with_capacity(20);
@@ -114,13 +142,7 @@ impl World {
                 img: ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?,
             };
 
-            self::update_fov(
-                &mut shadow.fov,
-                player.pos,
-                crate::consts::FOV_R,
-                &map.rlmap,
-            );
-            wcx.fov_render.force_set_fov(&shadow.fov);
+            shadow.calculate(player.pos, crate::consts::FOV_R, &map.rlmap);
 
             player
         });

@@ -114,13 +114,13 @@ pub fn render_fov_shadows(
     let (ys, xs) = self::visible_cells_from_px_bounds(bounds, tiled);
     for y in ys[0]..ys[1] {
         for x in xs[0]..xs[1] {
-            let alpha = self::shadow_alpha([x, y], fov);
+            let alpha = self::shadow_alpha_from_fov([x, y], fov);
             self::render_shadow_cell(draw, alpha, [x, y], bounds, tile_size);
         }
     }
 }
 
-pub fn render_fov_shadows_blend(
+pub fn render_fov_blend(
     draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     bounds: &Rect2f,
@@ -129,14 +129,40 @@ pub fn render_fov_shadows_blend(
     blend_factor_new: f32,
 ) {
     let tile_size = Vec2u::new(tiled.tile_width, tiled.tile_height);
-    // eas `blend_factor_new( or not: linear interpolation)
 
     let (ys, xs) = self::visible_cells_from_px_bounds(bounds, tiled);
     for y in ys[0]..ys[1] {
         for x in xs[0]..xs[1] {
             let alpha = {
-                let alpha_new = self::shadow_alpha([x, y], fov_new);
-                let alpha_old = self::shadow_alpha([x, y], fov_old);
+                let alpha_new = self::shadow_alpha_from_fov([x, y], fov_new);
+                let alpha_old = self::shadow_alpha_from_fov([x, y], fov_old);
+                alpha_new * blend_factor_new + alpha_old * (1.0 - blend_factor_new)
+            };
+
+            self::render_shadow_cell(draw, alpha, [x, y], bounds, tile_size);
+        }
+    }
+}
+
+pub fn render_fov_fow_blend(
+    draw: &mut impl DrawApi,
+    tiled: &tiled::Map,
+    bounds: &Rect2f,
+    fov_new: &FovData,
+    fov_old: &FovData,
+    blend_factor_new: f32,
+    fow_old: &FowData,
+    fow_new: &FowData,
+) {
+    let tile_size = Vec2u::new(tiled.tile_width, tiled.tile_height);
+
+    let (ys, xs) = self::visible_cells_from_px_bounds(bounds, tiled);
+    for y in ys[0]..ys[1] {
+        for x in xs[0]..xs[1] {
+            let alpha = {
+                let alpha_new = self::shadow_alpha_from_fov_fow([x, y], fov_new, fow_new);
+                let alpha_old = self::shadow_alpha_from_fov_fow([x, y], fov_old, fow_old);
+
                 alpha_new * blend_factor_new + alpha_old * (1.0 - blend_factor_new)
             };
 
@@ -146,14 +172,40 @@ pub fn render_fov_shadows_blend(
 }
 
 #[inline]
-fn shadow_alpha(pos: [u32; 2], fov: &FovData) -> f32 {
+fn shadow_alpha_from_fov(pos: [u32; 2], fov: &FovData) -> f32 {
     let pos = Vec2i::new(pos[0] as i32, pos[1] as i32);
+
     return if fov.is_in_view(pos.into()) {
         let len = (pos - fov.origin()).len_f32();
         let x = len / fov.radius() as f32;
         0.60 * ease_shadow_alpha(x)
     } else {
         0.80
+    };
+
+    /// x: [0.0, 1.0]
+    fn ease_shadow_alpha(x: f32) -> f32 {
+        if x < 0.5 {
+            4.0 * x * x * x
+        } else {
+            1.0 - (-2.0 * x as f32 + 2.0).powf(3.0) / 2.0
+        }
+    }
+}
+
+#[inline]
+fn shadow_alpha_from_fov_fow(pos: [u32; 2], fov: &FovData, fow: &FowData) -> f32 {
+    let pos = Vec2i::new(pos[0] as i32, pos[1] as i32);
+
+    return if fov.is_in_view(pos.into()) {
+        let len = (pos - fov.origin()).len_f32();
+        let x = len / fov.radius() as f32;
+
+        0.60 * ease_shadow_alpha(x)
+    } else if fow.is_visible([pos.x as usize, pos.y as usize]) {
+        0.80
+    } else {
+        1.00 // TODO: change FoW alpha
     };
 
     /// x: [0.0, 1.0]
@@ -234,7 +286,7 @@ fn render_tiled_layer_consider_fow(
 
     for y in ys[0]..ys[1] {
         for x in xs[0]..xs[1] {
-            if fow.is_convered([x as usize, y as usize].into()) {
+            if fow.is_visible([x as usize, y as usize].into()) {
                 continue;
             }
 

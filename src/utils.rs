@@ -1,5 +1,21 @@
 //! Utilities
 
+/// Double buffer
+#[derive(Debug, Clone)]
+pub struct Double<T> {
+    /// Front
+    pub a: T,
+    /// Back
+    pub b: T,
+}
+
+impl<T> Double<T> {
+    /// TODO: maybe improve efficiency
+    pub fn swap(&mut self) {
+        std::mem::swap(&mut self.a, &mut self.b);
+    }
+}
+
 /// Lifetime-free mutable reference to type `T`
 ///
 /// Be sure that the pointer lives as long as required.

@@ -1,7 +1,7 @@
 //! The game world renderers
 
 use {
-    rlbox::{render::tiled as tiled_render, rl::fov::FovData},
+    rlbox::render::tiled as tiled_render,
     rokol::{
         app as ra,
         gfx::{self as rg, BakedResource},
@@ -17,7 +17,7 @@ use {
     },
 };
 
-use crate::world::World;
+use crate::world::{Shadow, World};
 
 pub fn render_tiled(draw: &mut impl DrawApi, world: &World) {
     let bounds = Rect2f::from(([0.0, 0.0], ra::size_scaled()));
@@ -27,12 +27,10 @@ pub fn render_tiled(draw: &mut impl DrawApi, world: &World) {
 #[derive(Debug)]
 pub struct FovRenderer {
     pa_trans: rg::PassAction,
+    /// Shadow textures for gaussian blur
     shadows: [RenderTexture; 2],
     /// Pipeline object for off-screen rendering with gausssian blur
     pip_gauss_ofs: rg::Pipeline,
-    // FoV rendering states
-    fov_prev: FovData,
-    fov_blend_factor: f32,
 }
 
 impl FovRenderer {
@@ -64,31 +62,14 @@ impl FovRenderer {
                 },
                 ..Default::default()
             }),
-            fov_prev: Default::default(),
-            fov_blend_factor: 0.0,
         }
     }
 
-    /// Change FoV view instantly (without animation)
-    pub fn force_set_fov(&mut self, fov: &FovData) {
-        self.fov_prev = fov.clone();
-        self.fov_blend_factor = 0.0;
-    }
-
-    /// Copies the "previous " FoV data so that we can make FoV animation
-    pub fn on_fov_change(&mut self, fov: &FovData) {
-        self.fov_prev = fov.clone();
-        self.fov_blend_factor = 0.0;
-    }
-
-    /// Call it every frame to animate FoV
-    pub fn update(&mut self, dt: std::time::Duration) {
-        // advance FoV blend factor
-        self.fov_blend_factor += dt.as_secs_f32() / crate::consts::WALK_TIME;
-        if self.fov_blend_factor >= 1.0 {
-            self.fov_blend_factor = 1.0;
-        }
-    }
+    // /// Copies the "previous " FoV data so that we can make FoV animation
+    // pub fn on_fov_change(&mut self, fov: &FovData) {
+    //     self.fov_prev = fov.clone();
+    //     self.fov_blend_factor = 0.0;
+    // }
 
     /// Render shadow texture
     pub fn render_ofs(&mut self, rdr: &mut Snow2d, world: &World) {
@@ -105,13 +86,15 @@ impl FovRenderer {
         // TODO: use camera
         let bounds = Rect2f::from(([0.0, 0.0], ra::size_scaled()));
 
-        tiled_render::render_fov_shadows_blend(
+        tiled_render::render_fov_fow_blend(
             &mut offscreen,
             &world.map.tiled,
             &bounds,
-            &world.shadow.fov,
-            &self.fov_prev,
-            self.fov_blend_factor,
+            &world.shadow.fov.a,
+            &world.shadow.fov.b,
+            world.shadow.blend_factor,
+            &world.shadow.fow.a,
+            &world.shadow.fow.b,
         );
 
         drop(offscreen);

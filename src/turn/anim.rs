@@ -128,7 +128,7 @@ pub struct AnimUpdateContext<'a, 'b> {
 }
 
 pub trait Anim: fmt::Debug + Downcast {
-    fn on_start(&mut self, ucx: &mut AnimUpdateContext) {}
+    fn on_start(&mut self, _ucx: &mut AnimUpdateContext) {}
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult;
 }
 
@@ -143,7 +143,7 @@ pub struct Wait {
 }
 
 impl Anim for Wait {
-    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
+    fn update(&mut self, _ucx: &mut AnimUpdateContext) -> AnimResult {
         if self.frames == 0 {
             AnimResult::Finish
         } else {
@@ -188,16 +188,14 @@ impl Anim for WalkAnim {
             return;
         }
 
-        // update FoV animation
-        // FIXME: there are other chances that can change FoV, so
-        // we should store two FoV and track their states
-        ucx.wcx.fov_render.on_fov_change(&ucx.world.shadow.fov);
-
+        // FIXME: do it in proper place
         // update Player FoV
-        let actor = &mut ucx.world.entities[0];
-        let pos = actor.pos;
-        let r = ucx.world.shadow.fov.radius;
-        crate::world::update_fov(&mut ucx.world.shadow.fov, pos, r, &ucx.world.map.rlmap);
+        let pos = ucx.world.entities[0].pos;
+        let radius = ucx.world.shadow.fov.a.radius;
+
+        ucx.world
+            .shadow
+            .calculate(pos, radius, &ucx.world.map.rlmap);
     }
 
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {

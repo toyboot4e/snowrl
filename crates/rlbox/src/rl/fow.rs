@@ -10,6 +10,7 @@ use crate::rl::{
 pub struct FowData {
     /// [w, h]
     map_size: [usize; 2],
+    /// True if uncovered
     shadows: Vec<bool>,
 }
 
@@ -51,12 +52,12 @@ impl FowData {
     }
 
     // TODO: maybe prefer u32
-    pub fn is_convered(&self, pos: [usize; 2]) -> bool {
+    pub fn is_visible(&self, pos: [usize; 2]) -> bool {
         let ix = self.ix(pos);
         if ix >= self.shadows.len() {
             false
         } else {
-            !self.shadows[ix]
+            self.shadows[ix]
         }
     }
 }

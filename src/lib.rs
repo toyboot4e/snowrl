@@ -111,6 +111,8 @@ impl rokol::app::RApp for SnowRlImpl {
 
     fn frame(&mut self) {
         self.wcx.update();
+        self.world.shadow.update(self.wcx.dt);
+
         self.update_scene();
         self.world.update_images(&mut self.wcx);
 
@@ -185,7 +187,7 @@ impl SnowRlImpl {
                     continue;
                 }
                 TickResult::Command(cmd) => {
-                    log::trace!("command: {:?}", cmd);
+                    // log::trace!("command: {:?}", cmd);
 
                     // try to create animation
                     let mut acx = AnimContext {
