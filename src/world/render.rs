@@ -109,7 +109,7 @@ impl FovRenderer {
             &mut offscreen,
             &world.map.tiled,
             &bounds,
-            &world.player().fov,
+            &world.shadow.fov,
             &self.fov_prev,
             self.fov_blend_factor,
         );

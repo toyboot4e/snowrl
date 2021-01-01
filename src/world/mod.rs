@@ -76,13 +76,19 @@ impl WorldContext {
     }
 }
 
+#[derive(Debug)]
+pub struct Shadow {
+    pub fov: FovData,
+    pub fow: FowData,
+}
+
 /// The rougelike game world
 ///
 /// Turn-based game state should be outside of this struct.
 #[derive(Debug)]
 pub struct World {
     pub map: TiledRlMap,
-    pub fow: FowData,
+    pub shadow: Shadow,
     pub entities: Vec<Player>,
 }
 
@@ -91,25 +97,30 @@ impl World {
     pub fn from_tiled_file(wcx: &mut WorldContext, path: &Path) -> anyhow::Result<Self> {
         let map = TiledRlMap::from_tiled_path(path)?;
 
+        let mut shadow = Shadow {
+            fov: FovData::new(crate::consts::FOV_R, 10),
+            fow: FowData::new(map.rlmap.size),
+        };
+
         let mut entities = Vec::with_capacity(20);
 
         entities.push({
             let pos = Vec2i::new(14, 12);
             let dir = Dir8::S;
-            let mut player = Player {
+
+            let player = Player {
                 pos,
                 dir: Dir8::N,
-                fov: FovData::new(crate::consts::FOV_R, 10),
                 img: ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?,
             };
 
             self::update_fov(
-                &mut player.fov,
+                &mut shadow.fov,
                 player.pos,
                 crate::consts::FOV_R,
                 &map.rlmap,
             );
-            wcx.fov_render.force_set_fov(&player.fov);
+            wcx.fov_render.force_set_fov(&shadow.fov);
 
             player
         });
@@ -120,7 +131,6 @@ impl World {
             Player {
                 pos,
                 dir,
-                fov: FovData::empty(),
                 img: ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?,
             }
         });
@@ -131,15 +141,13 @@ impl World {
             Player {
                 pos,
                 dir,
-                fov: FovData::empty(),
                 img: ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?,
             }
         });
 
-        let size = map.rlmap.size;
         Ok(Self {
             map,
-            fow: FowData::new(size),
+            shadow,
             entities,
         })
     }

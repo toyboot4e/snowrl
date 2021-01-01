@@ -24,7 +24,6 @@ use rlbox::{
 pub struct Player {
     pub pos: Vec2i,
     pub dir: Dir8,
-    pub fov: FovData,
     pub img: ActorImage,
 }
 

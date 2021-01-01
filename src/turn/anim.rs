@@ -191,13 +191,13 @@ impl Anim for WalkAnim {
         // update FoV animation
         // FIXME: there are other chances that can change FoV, so
         // we should store two FoV and track their states
-        ucx.wcx.fov_render.on_fov_change(&ucx.world.entities[0].fov);
+        ucx.wcx.fov_render.on_fov_change(&ucx.world.shadow.fov);
 
         // update Player FoV
         let actor = &mut ucx.world.entities[0];
         let pos = actor.pos;
-        let r = actor.fov.radius;
-        crate::world::update_fov(&mut actor.fov, pos, r, &ucx.world.map.rlmap);
+        let r = ucx.world.shadow.fov.radius;
+        crate::world::update_fov(&mut ucx.world.shadow.fov, pos, r, &ucx.world.map.rlmap);
     }
 
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {

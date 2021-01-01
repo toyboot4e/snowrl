@@ -22,7 +22,7 @@ use crate::turn::{
 ///
 /// Player should take another turn.
 ///
-/// FIXME: this is not a complete solution.
+/// FIXME: unintentional side effects
 #[derive(Debug)]
 pub struct NotConsumeTurn {
     pub actor: ActorIndex,
