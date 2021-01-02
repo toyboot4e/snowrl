@@ -91,6 +91,7 @@ impl Shadow {
     pub fn calculate(&mut self, origin: Vec2i, radius: u32, map: &impl OpacityMap) {
         self.fov.swap();
         self.fow.swap();
+        self.blend_factor = 0.0;
         rlbox::rl::fow::update_fov_fow(&mut self.fov.a, &mut self.fow.a, Some(radius), origin, map);
     }
 
