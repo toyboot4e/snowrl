@@ -39,14 +39,13 @@ fn target_desc(w: u32, h: u32) -> rg::ImageDesc {
         width: w as i32,
         height: h as i32,
         // usage: rg::ResourceUsage::Immutable as u32,
-        // FIXME: set filter manually
-        min_filter: rg::Filter::Nearest as u32,
-        mag_filter: rg::Filter::Nearest as u32,
-        // min_filter: rg::Filter::Linear as u32,
-        // mag_filter: rg::Filter::Linear as u32,
-        // TODO:
+        min_filter: rg::Filter::Linear as u32,
+        mag_filter: rg::Filter::Linear as u32,
+        // TODO: (see also: rasterizer in pipeline)
+        wrap_u: rg::Wrap::ClampToEdge as u32,
+        wrap_v: rg::Wrap::ClampToEdge as u32,
+        wrap_w: rg::Wrap::ClampToEdge as u32,
         sample_count: 1,
-        // (see also: rasterizer in pipeline)
         ..Default::default()
     }
 }
@@ -89,7 +88,7 @@ impl Texture2dDrop {
         SharedTexture2d { tex: Rc::new(self) }
     }
 
-    pub fn offscreen(w: u32, h: u32) -> (Self, rg::ImageDesc) {
+    fn offscreen(w: u32, h: u32) -> (Self, rg::ImageDesc) {
         let desc = self::target_desc(w, h);
         let me = Self {
             img: rg::Image::create(&desc),

@@ -91,14 +91,22 @@ impl Shadow {
     pub fn calculate(&mut self, origin: Vec2i, radius: u32, map: &impl OpacityMap) {
         // FoV is always cleared so we just swap them
         self.fov.swap();
+
         // FoW is continued from the previous state, so we'll copy it
         self.fow.b = self.fow.a.clone();
+
+        // `self.blend_factor` is `tick`ed later in this frame
         self.blend_factor = 0.0;
+
         rlbox::rl::fow::update_fov_fow(&mut self.fov.a, &mut self.fow.a, Some(radius), origin, map);
     }
 
     /// Call it every frame to animate FoV
-    pub fn update(&mut self, dt: std::time::Duration) {
+    pub fn update(&mut self, dt: Duration) {
+        self.tick(dt);
+    }
+
+    fn tick(&mut self, dt: Duration) {
         self.blend_factor += dt.as_secs_f32() / crate::consts::WALK_TIME;
         if self.blend_factor >= 1.0 {
             self.blend_factor = 1.0;
