@@ -89,8 +89,10 @@ pub struct Shadow {
 
 impl Shadow {
     pub fn calculate(&mut self, origin: Vec2i, radius: u32, map: &impl OpacityMap) {
+        // FoV is always cleared so we just swap them
         self.fov.swap();
-        self.fow.swap();
+        // FoW is continued from the previous state, so we'll copy it
+        self.fow.b = self.fow.a.clone();
         self.blend_factor = 0.0;
         rlbox::rl::fow::update_fov_fow(&mut self.fov.a, &mut self.fow.a, Some(radius), origin, map);
     }
