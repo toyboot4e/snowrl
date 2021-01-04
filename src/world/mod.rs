@@ -39,6 +39,7 @@ pub struct WorldContext {
     pub input: xdl::Input,
     pub vi: VInput,
     pub dt: Duration,
+    pub frame_count: u64,
 }
 
 impl WorldContext {
@@ -52,6 +53,7 @@ impl WorldContext {
             input: xdl::Input::new(),
             vi: VInput::new(),
             dt: Duration::new(0, 0),
+            frame_count: 0,
         }
     }
 
@@ -60,6 +62,7 @@ impl WorldContext {
     }
 
     pub fn update(&mut self) {
+        self.frame_count += 1;
         // FIXME: use real dt
         self.dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
 
@@ -98,7 +101,13 @@ impl Shadow {
         // `self.blend_factor` is `tick`ed later in this frame
         self.blend_factor = 0.0;
 
-        rlbox::rl::fow::update_fov_fow(&mut self.fov.a, &mut self.fow.a, Some(radius), origin, map);
+        rlbox::rl::fow::calculate_fov_fow(
+            &mut self.fov.a,
+            &mut self.fow.a,
+            Some(radius),
+            origin,
+            map,
+        );
     }
 
     /// Call it every frame to animate FoV

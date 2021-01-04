@@ -66,11 +66,13 @@ impl ActorImage {
             self.anim_state.set_pattern(dir, true);
         }
 
+        // update interpolation value
         if pos != self.state.a.pos {
             self.dt = 0.0;
-        } else {
-            self.dt = f32::min(self.dt + dt.as_secs_f32(), crate::consts::WALK_TIME);
         }
+
+        // FIXME: animate smoothly
+        self.dt = f32::min(self.dt + dt.as_secs_f32(), crate::consts::WALK_TIME);
 
         let next_snap = ActorSnapshot { dir, pos };
         if next_snap != self.state.a {
@@ -78,6 +80,7 @@ impl ActorImage {
             self.state.a = next_snap;
         }
 
+        // update animation frame
         self.anim_state.tick(dt);
     }
 
@@ -86,7 +89,7 @@ impl ActorImage {
         let pos_curr = self.align(self.state.a.pos, tiled);
 
         let factor = self.dt / crate::consts::WALK_TIME;
-        let pos = pos_prev + (pos_curr - pos_prev) * factor;
+        let pos = pos_prev * (1.0 - factor) + pos_curr * factor;
 
         draw.sprite(self.sprite()).dst_pos_px(pos);
     }

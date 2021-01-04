@@ -111,7 +111,7 @@ fn game_loop() -> Gen {
                 };
 
                 match cmd.run(&mut ccx) {
-                    CommandResult::Continue => {
+                    CommandResult::GotoNextFrame => {
                         // wait for next frame
                         yield TickResult::ProcessingCommand;
                         break;
@@ -164,7 +164,7 @@ pub struct CommandContext<'a, 'b> {
 #[derive(Debug)]
 pub enum CommandResult {
     /// Interactive actions can take multiple frames returning this varient
-    Continue,
+    GotoNextFrame,
     Finish,
     // TODO: chain multiple commands
     Chain(Box<dyn Command>),

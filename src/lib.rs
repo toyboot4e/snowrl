@@ -77,13 +77,13 @@ struct SnowRlImpl {
     game_loop: GameLoop,
     anims: AnimPlayer,
     state: GameState,
-    frame_count: u64,
+    current_frame_count: u64,
     last_frame_on_tick: u64,
 }
 
 impl SnowRlImpl {
     pub fn new() -> Self {
-        let file = snow2d::asset::path("map/tmx/rl_start.tmx");
+        let file = snow2d::asset::path("map/tmx/title.tmx");
 
         let mut wcx = WorldContext::new();
         let world = World::from_tiled_file(&mut wcx, &file).unwrap();
@@ -95,7 +95,7 @@ impl SnowRlImpl {
             game_loop,
             anims: AnimPlayer::new(),
             state: GameState::Tick,
-            frame_count: 0,
+            current_frame_count: 0,
             last_frame_on_tick: 0,
         }
     }
@@ -103,19 +103,23 @@ impl SnowRlImpl {
 
 impl rokol::app::RApp for SnowRlImpl {
     fn event(&mut self, ev: &ra::Event) {
-        self.frame_count = ev.frame_count;
-
         self.wcx.event(ev);
         self.world.event(&mut self.wcx, ev);
     }
 
     fn frame(&mut self) {
+        self.current_frame_count += 1;
+        // log::trace!("----- {} frame", self.current_frame_count);
+
+        // update the internal game state
         self.wcx.update();
+        self.update_scene();
+
+        // update view states
+        self.world.update_images(&mut self.wcx);
         self.world.shadow.update(self.wcx.dt);
 
-        self.update_scene();
-        self.world.update_images(&mut self.wcx);
-
+        // finally render them all
         self.wcx.render();
         self.world.render(&mut self.wcx);
 
@@ -143,8 +147,8 @@ impl SnowRlImpl {
                     switch_state(self, next_state);
                     continue;
                 }
-                UpdateResult::SwitchNextFrame(state) => {
-                    self.state = state;
+                UpdateResult::SwitchNextFrame(next_state) => {
+                    switch_state(self, next_state);
                     break;
                 }
             }
@@ -169,18 +173,20 @@ impl SnowRlImpl {
             match res {
                 TickResult::TakeTurn(actor) => {
                     if actor.0 == 0 {
-                        let is_on_same_frame = self.last_frame_on_tick == self.frame_count;
-                        self.last_frame_on_tick = self.frame_count;
+                        // NOTE: if we handle "change direction" animation, it can results in an
+                        // infinite loop:
+                        // run batched walk animation if it's player's turn
+                        if self.anims.any_batch() {
+                            return UpdateResult::SwitchInThisFrame(GameState::Anim);
+                        }
+
+                        let is_on_same_frame = self.last_frame_on_tick == self.current_frame_count;
+                        self.last_frame_on_tick = self.current_frame_count;
                         if is_on_same_frame {
                             // another player turn after all actors taking turns.
                             // maybe all actions didn't take any frame.
                             // force waiting for a frame to ensure we don't enter inifinite loop:
                             return UpdateResult::GotoNextFrame;
-                        }
-
-                        // run batched walk animation if it's player's turn
-                        if self.anims.any_batch() {
-                            return UpdateResult::SwitchInThisFrame(GameState::Anim);
                         }
                     }
 
@@ -201,9 +207,9 @@ impl SnowRlImpl {
 
                         self.anims.enqueue_boxed(anim);
 
-                        // run non-batched animation
+                        // run not-batched animation
                         // (batch walk animations as much as possible)
-                        if !self.anims.should_batch_top_anim() {
+                        if self.anims.any_anim_to_run_now() {
                             return UpdateResult::SwitchInThisFrame(GameState::Anim);
                         }
                     }

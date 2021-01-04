@@ -30,14 +30,14 @@ impl AnimPlayer {
         }
     }
 
-    /// If the animation should be batched or not
-    pub fn should_batch_top_anim(&self) -> bool {
-        self.is_top_walk
+    pub fn any_anim_to_run_now(&self) -> bool {
+        // more than one animation or the only animation never batches other animation
+        self.anims.len() > 1 || !self.is_top_walk
     }
 
     /// If we have animations to batch or not (actually empty or not)
     pub fn any_batch(&self) -> bool {
-        !self.anims.is_empty()
+        !self.anims.is_empty() && self.is_top_walk
     }
 
     /// Add animation boxing it
@@ -152,6 +152,9 @@ impl Anim for Wait {
         }
     }
 }
+
+// TODO: MoveAnimBatch (both walk and change dir)
+
 /// Walk animation is currently run automatically, so we just wait for it to finish
 #[derive(Debug, Clone)]
 pub struct WalkAnim {
@@ -200,7 +203,8 @@ impl Anim for WalkAnim {
 
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
         self.dt += ucx.dt;
-        if self.dt.as_secs_f32() >= (crate::consts::WALK_TIME - crate::consts::HALF_FRAME) {
+
+        if self.dt.as_secs_f32() >= crate::consts::WALK_TIME {
             AnimResult::Finish
         } else {
             AnimResult::GotoNextFrame

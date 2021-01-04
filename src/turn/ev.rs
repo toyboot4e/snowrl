@@ -208,13 +208,13 @@ impl GenAnim for PlayerTurn {}
 
 impl Command for PlayerTurn {
     fn run(&self, ccx: &mut CommandContext) -> CommandResult {
-        if let Some(dir) = ccx.wcx.vi.dir.to_dir8() {
+        if let Some(dir) = ccx.wcx.vi.dir.dir8_down() {
             CommandResult::chain(PlayerWalk {
                 actor: self.actor,
                 dir,
             })
         } else {
-            CommandResult::Continue
+            CommandResult::GotoNextFrame
         }
     }
 }
