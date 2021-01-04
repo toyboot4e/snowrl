@@ -122,7 +122,6 @@ pub enum AnimResult {
 
 #[derive(Debug)]
 pub struct AnimUpdateContext<'a, 'b> {
-    pub dt: Duration,
     pub world: &'a mut World,
     pub wcx: &'b mut WorldContext,
 }
@@ -202,7 +201,7 @@ impl Anim for WalkAnim {
     }
 
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
-        self.dt += ucx.dt;
+        self.dt += ucx.wcx.dt;
 
         if self.dt.as_secs_f32() >= crate::consts::WALK_TIME {
             AnimResult::Finish

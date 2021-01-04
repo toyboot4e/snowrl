@@ -61,8 +61,8 @@ impl std::fmt::Debug for GameLoop {
     }
 }
 
-impl GameLoop {
-    pub fn new() -> GameLoop {
+impl Default for GameLoop {
+    fn default() -> Self {
         Self {
             gen: self::game_loop(),
             tcx: TickContext {
@@ -71,7 +71,9 @@ impl GameLoop {
             },
         }
     }
+}
 
+impl GameLoop {
     /// Ticks the game for "one step"
     pub fn tick(&mut self, world: &mut World, wcx: &mut WorldContext) -> TickResult {
         // set cheat borrows here (for the generators)

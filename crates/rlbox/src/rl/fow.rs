@@ -62,7 +62,7 @@ impl FowData {
     }
 }
 
-pub fn update_fov_fow<'a, 'b>(
+pub fn calculate_fov_fow<'a, 'b>(
     fov: &'a mut FovData,
     fow: &'b mut FowData,
     r: Option<u32>,
