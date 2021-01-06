@@ -6,7 +6,7 @@ use snow2d::{
 };
 
 use crate::{
-    fsm::{GameState, Global, StateUpdateResult},
+    fsm::{render::WorldRenderFlag, GameState, Global, StateUpdateResult},
     turn::{
         anim::{AnimResult, AnimUpdateContext},
         tick::{AnimContext, GameLoop, TickResult},
@@ -79,6 +79,11 @@ impl GameState for Roguelike {
             }
         }
     }
+
+    fn render(&mut self, gl: &mut Global) {
+        let flags = WorldRenderFlag::ALL;
+        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
+    }
 }
 
 /// Roguelike game animation state
@@ -105,6 +110,11 @@ impl GameState for Animation {
         };
 
         gl.anims.on_start(&mut ucx);
+    }
+
+    fn render(&mut self, gl: &mut Global) {
+        let flags = WorldRenderFlag::ALL;
+        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
     }
 }
 
@@ -159,6 +169,11 @@ impl Default for Title {
 impl GameState for Title {
     fn update(&mut self, _gl: &mut Global) -> StateUpdateResult {
         StateUpdateResult::GotoNextFrame
+    }
+
+    fn render(&mut self, gl: &mut Global) {
+        let flags = WorldRenderFlag::ALL;
+        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
     }
 
     fn on_enter(&mut self, _gl: &mut Global) {

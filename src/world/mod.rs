@@ -12,11 +12,7 @@ use {
     },
 };
 
-use snow2d::{
-    asset,
-    gfx::{batcher::draw::*, Color},
-    PassConfig, Snow2d,
-};
+use snow2d::{asset, gfx::Color, Snow2d};
 
 use rlbox::rl::{
     self,
@@ -28,11 +24,7 @@ use rlbox::rl::{
 
 use crate::utils::Double;
 
-use self::{
-    actor::*,
-    render::{FovRenderer, SnowRenderer},
-    vi::VInput,
-};
+use self::{actor::*, vi::VInput};
 
 /// Powers the game [`World`]
 #[derive(Debug)]
@@ -42,8 +34,6 @@ pub struct WorldContext {
     pub soloud: soloud::Soloud,
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
-    pub fov_render: FovRenderer,
-    pub snow_render: SnowRenderer,
     pub input: xdl::Input,
     pub vi: VInput,
     pub dt: Duration,
@@ -52,15 +42,13 @@ pub struct WorldContext {
     pub start_time: Instant,
 }
 
-impl WorldContext {
-    pub fn new() -> Self {
+impl Default for WorldContext {
+    fn default() -> Self {
         Self {
             rdr: unsafe { Snow2d::new() },
-            // TODO: do not unwrap
+            // TODO: do not unwrap and make a dummy
             soloud: soloud::Soloud::default().unwrap(),
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
-            fov_render: FovRenderer::default(),
-            snow_render: SnowRenderer::default(),
             input: xdl::Input::new(),
             vi: VInput::new(),
             dt: Duration::new(0, 0),
@@ -68,7 +56,9 @@ impl WorldContext {
             start_time: Instant::now(),
         }
     }
+}
 
+impl WorldContext {
     pub fn event(&mut self, ev: &rokol::app::Event) {
         self.input.event(ev);
     }
@@ -225,47 +215,10 @@ impl World {
         })
     }
 
-    pub fn event(&mut self, _wcx: &mut WorldContext, _ev: &rokol::app::Event) {}
-
-    pub fn update_images(&mut self, wcx: &mut WorldContext) {
+    pub fn update(&mut self, wcx: &mut WorldContext) {
         for e in &mut self.entities {
             e.img.update(wcx.dt, e.pos, e.dir);
         }
-    }
-
-    pub fn render(&mut self, wcx: &mut WorldContext) {
-        let mut screen = wcx.rdr.screen(PassConfig {
-            pa: &wcx.pa_blue,
-            tfm: None,
-            pip: None,
-        });
-
-        self::render::render_tiled(&mut screen, self);
-        self.render_actors(&mut screen);
-
-        drop(screen);
-
-        wcx.snow_render.render();
-
-        wcx.fov_render.render_ofs(&mut wcx.rdr, self);
-        wcx.fov_render.blend_to_screen(&mut wcx.rdr);
-
-        unsafe {
-            // update fontbook GPU texture
-            // TODO: it may not work on the first frame
-            wcx.rdr.fontbook.update_image();
-        }
-    }
-
-    fn render_actors(&mut self, draw: &mut impl DrawApi) {
-        // TODO: y sort + culling
-        for e in &self.entities {
-            e.img.render(draw, &self.map.tiled);
-        }
-    }
-
-    pub fn on_end_frame(&mut self, _wcx: &mut WorldContext) {
-        //
     }
 }
 

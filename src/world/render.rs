@@ -150,11 +150,16 @@ impl FovRenderer {
             pip: None,
         });
 
-        screen
-            .sprite(self.shadows[0].tex())
-            .dst_size_px(ra::size_scaled());
+        self.blend_to_target(&mut screen);
 
         drop(screen);
+    }
+
+    /// Writes shadow to the screen frame buffer
+    pub fn blend_to_target(&self, target: &mut impl DrawApi) {
+        target
+            .sprite(self.shadows[0].tex())
+            .dst_size_px(ra::size_scaled());
     }
 }
 

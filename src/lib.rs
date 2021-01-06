@@ -17,6 +17,7 @@ pub mod world;
 use rokol::{app as ra, gfx as rg};
 
 use crate::{
+    fsm::render::WorldRenderer,
     turn::anim::AnimPlayer,
     world::{World, WorldContext},
 };
@@ -67,17 +68,21 @@ struct SnowRlImpl {
 impl SnowRlImpl {
     pub fn new() -> Self {
         let mut gl = {
-            let wcx = WorldContext::new();
+            let wcx = WorldContext::default();
+
             let world = {
                 // let file = snow2d::asset::path("map/tmx/title.tmx");
                 let file = snow2d::asset::path("map/tmx/rl_start.tmx");
 
+                // TODO: extract entity spawning code here
                 World::from_tiled_file(&file).unwrap()
             };
+
             fsm::Global {
                 world,
                 wcx,
-                anims: AnimPlayer::new(),
+                world_render: WorldRenderer::default(),
+                anims: AnimPlayer::default(),
             }
         };
 
@@ -87,7 +92,7 @@ impl SnowRlImpl {
             fsm.insert_default::<fsm::states::Animation>();
             fsm.insert_default::<fsm::states::Title>();
             fsm.push::<fsm::states::Roguelike>(&mut gl);
-            fsm.push::<fsm::states::Title>(&mut gl);
+            // fsm.push::<fsm::states::Title>(&mut gl);
             fsm
         };
 
@@ -97,25 +102,17 @@ impl SnowRlImpl {
 
 impl rokol::app::RApp for SnowRlImpl {
     fn event(&mut self, ev: &ra::Event) {
-        self.gl.wcx.event(ev);
-        self.gl.world.event(&mut self.gl.wcx, ev);
+        self.gl.event(ev);
     }
 
     fn frame(&mut self) {
-        // update the internal game state
-        self.gl.wcx.update();
+        self.gl.pre_update();
         self.fsm.update(&mut self.gl);
+        self.gl.post_update();
 
-        // update view states
-        self.gl.world.update_images(&mut self.gl.wcx);
-        self.gl.world.shadow.update(self.gl.wcx.dt);
+        self.fsm.render(&mut self.gl);
 
-        // finally render them all
-        self.gl.wcx.render();
-        self.gl.world.render(&mut self.gl.wcx);
-
-        self.gl.wcx.on_end_frame();
-        self.gl.world.on_end_frame(&mut self.gl.wcx);
+        self.gl.on_end_frame();
 
         rg::commit();
     }

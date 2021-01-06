@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::gfx::tex::Texture2dDrop;
+// use crate::gfx::tex::Texture2dDrop;
 
 /// Get asset path relative to `assets` directory
 pub fn path(path: impl AsRef<Path>) -> PathBuf {

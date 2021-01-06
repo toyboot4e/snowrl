@@ -1,7 +1,12 @@
-//! State
+/*!
+
+Stack-based finite state machine and a scheduler of renderers
+
+*/
 
 // TODO: use result
 
+pub mod render;
 pub mod states;
 
 use std::{any::TypeId, collections::HashMap};
@@ -9,23 +14,53 @@ use std::{any::TypeId, collections::HashMap};
 use rokol::app as ra;
 
 use crate::{
+    fsm::render::WorldRenderer,
     turn::anim::AnimPlayer,
     world::{World, WorldContext},
 };
 
-/// Shared data among [`GameState`]s
+/// Game data shared by more than one [`GameState`] or renderer
 #[derive(Debug)]
 pub struct Global {
     pub world: World,
+    // TODO: rename it to global context
     pub wcx: WorldContext,
-    // Roguelike animation
+    pub world_render: WorldRenderer,
+    // Roguelike game animations
     pub anims: AnimPlayer,
 }
+
+impl Global {
+    pub fn event(&mut self, ev: &ra::Event) {
+        self.wcx.event(ev);
+    }
+
+    /// Called before updating the game state
+    pub fn pre_update(&mut self) {
+        self.wcx.update();
+        self.world.update(&mut self.wcx);
+    }
+
+    /// Called after updating the game state
+    pub fn post_update(&mut self) {
+        self.world.shadow.update(self.wcx.dt);
+    }
+
+    pub fn on_end_frame(&mut self) {
+        self.wcx.on_end_frame();
+    }
+}
+
+// /// Dynamic scheduler of the fixed set of renderers
+// #[derive(Debug)]
+// pub struct RenderFlow {
+//     pub flags: RendererFlag,
+// }
 
 pub trait GameState: std::fmt::Debug {
     fn event(&mut self, _ev: &ra::Event, _gl: &mut Global) {}
     fn update(&mut self, _gl: &mut Global) -> StateUpdateResult;
-    fn render(&mut self, _gl: &mut Global) {}
+    fn render(&mut self, _gl: &mut Global);
     fn on_enter(&mut self, _gl: &mut Global) {}
     fn on_exit(&mut self, _gl: &mut Global) {}
     // TODO: use proper name
@@ -74,6 +109,12 @@ impl Fsm {
                 }
             }
         }
+    }
+
+    pub fn render(&mut self, gl: &mut Global) {
+        let id = self.stack.last().unwrap();
+        let state = self.states.get_mut(id).unwrap();
+        state.render(gl);
     }
 }
 

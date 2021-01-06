@@ -22,14 +22,16 @@ pub struct AnimPlayer {
     is_top_walk: bool,
 }
 
-impl AnimPlayer {
-    pub fn new() -> Self {
+impl Default for AnimPlayer {
+    fn default() -> Self {
         Self {
             anims: VecDeque::with_capacity(10),
             is_top_walk: false,
         }
     }
+}
 
+impl AnimPlayer {
     pub fn any_anim_to_run_now(&self) -> bool {
         // more than one animation or the only animation never batches other animation
         self.anims.len() > 1 || !self.is_top_walk
