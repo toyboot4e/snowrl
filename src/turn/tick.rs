@@ -2,6 +2,14 @@
 
 Turn-based game loop implemented with generator in unstable Rust
 
+# Borrow rules
+
+It _seems_ like a [generator] holds the value passed to it when they `resume` and we basically have
+to use `Rc<RefCell<T>>` for our game data. However, it is uncomfortable and I'm using a pointer to
+cheat the borrow rules ([`crate::utils::Cheat`]).
+
+[gemerator]: (https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html)
+
 */
 
 use std::{

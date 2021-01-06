@@ -6,7 +6,10 @@ pub mod vi;
 
 use {
     rokol::gfx as rg,
-    std::{path::Path, time::Duration},
+    std::{
+        path::Path,
+        time::{Duration, Instant},
+    },
 };
 
 use snow2d::{
@@ -25,7 +28,11 @@ use rlbox::rl::{
 
 use crate::utils::Double;
 
-use self::{actor::*, render::FovRenderer, vi::VInput};
+use self::{
+    actor::*,
+    render::{FovRenderer, SnowRenderer},
+    vi::VInput,
+};
 
 /// Powers the game [`World`]
 #[derive(Debug)]
@@ -36,10 +43,13 @@ pub struct WorldContext {
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
     pub fov_render: FovRenderer,
+    pub snow_render: SnowRenderer,
     pub input: xdl::Input,
     pub vi: VInput,
     pub dt: Duration,
     pub frame_count: u64,
+    /// When the game started
+    pub start_time: Instant,
 }
 
 impl WorldContext {
@@ -49,11 +59,13 @@ impl WorldContext {
             // TODO: do not unwrap
             soloud: soloud::Soloud::default().unwrap(),
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
-            fov_render: FovRenderer::new(),
+            fov_render: FovRenderer::default(),
+            snow_render: SnowRenderer::default(),
             input: xdl::Input::new(),
             vi: VInput::new(),
             dt: Duration::new(0, 0),
             frame_count: 0,
+            start_time: Instant::now(),
         }
     }
 
@@ -135,7 +147,7 @@ pub struct World {
 
 /// Lifecycle
 impl World {
-    pub fn from_tiled_file(wcx: &mut WorldContext, path: &Path) -> anyhow::Result<Self> {
+    pub fn from_tiled_file(path: &Path) -> anyhow::Result<Self> {
         let map = TiledRlMap::from_tiled_path(path)?;
 
         let mut shadow = Shadow {
@@ -152,14 +164,25 @@ impl World {
 
         let mut entities = Vec::with_capacity(20);
 
+        // TODO: use asset loader to make use of cache
+        let img = {
+            let pos = Vec2i::new(20, 16);
+            let dir = Dir8::S;
+            ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?
+        };
+
         entities.push({
-            let pos = Vec2i::new(14, 12);
+            let pos = Vec2i::new(20, 16);
             let dir = Dir8::S;
 
             let player = Player {
                 pos,
-                dir: Dir8::N,
-                img: ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?,
+                dir,
+                img: {
+                    let mut img = img.clone();
+                    img.force_set(pos, dir);
+                    img
+                },
             };
 
             shadow.calculate(player.pos, crate::consts::FOV_R, &map.rlmap);
@@ -168,22 +191,30 @@ impl World {
         });
 
         entities.push({
-            let pos = Vec2i::new(20, 15);
+            let pos = Vec2i::new(14, 12);
             let dir = Dir8::S;
             Player {
                 pos,
                 dir,
-                img: ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?,
+                img: {
+                    let mut img = img.clone();
+                    img.force_set(pos, dir);
+                    img
+                },
             }
         });
 
         entities.push({
-            let pos = Vec2i::new(20, 18);
+            let pos = Vec2i::new(25, 18);
             let dir = Dir8::S;
             Player {
                 pos,
                 dir,
-                img: ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?,
+                img: {
+                    let mut img = img.clone();
+                    img.force_set(pos, dir);
+                    img
+                },
             }
         });
 
@@ -213,6 +244,8 @@ impl World {
         self.render_actors(&mut screen);
 
         drop(screen);
+
+        wcx.snow_render.render();
 
         wcx.fov_render.render_ofs(&mut wcx.rdr, self);
         wcx.fov_render.blend_to_screen(&mut wcx.rdr);

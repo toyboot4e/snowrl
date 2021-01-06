@@ -47,23 +47,33 @@ impl ActorImage {
         pos: Vec2i,
         dir: Dir8,
     ) -> snow2d::gfx::tex::Result<Self> {
-        let tex = Texture2dDrop::from_path(path)?;
-        let tex = tex.into_shared();
-        let anim = rlbox::render::actor::gen_anim4(&tex, crate::consts::ACTOR_FPS);
+        let anim = rlbox::render::actor::gen_anim4(
+            &Texture2dDrop::from_path(path)?.into_shared(),
+            crate::consts::ACTOR_FPS,
+        );
+        let mut anim_state = FrameAnimState::new(anim, dir);
+        anim_state.set_pattern(dir, false);
 
         let data = ActorSnapshot { pos, dir };
 
         Ok(Self {
-            anim_state: FrameAnimState::new(anim, dir),
+            anim_state,
             state: Double { a: data, b: data },
             dt: Default::default(),
         })
     }
 
+    pub fn force_set(&mut self, pos: Vec2i, dir: Dir8) {
+        let next_snap = ActorSnapshot { dir, pos };
+        self.state.a = next_snap;
+        self.state.b = next_snap;
+        self.anim_state.set_pattern(dir, true);
+    }
+
     /// Call after updating actors
     pub fn update(&mut self, dt: Duration, pos: Vec2i, dir: Dir8) {
         if dir != self.state.a.dir {
-            self.anim_state.set_pattern(dir, true);
+            self.anim_state.set_pattern(dir, false);
         }
 
         // update interpolation value

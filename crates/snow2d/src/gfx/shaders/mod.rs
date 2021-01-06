@@ -58,12 +58,14 @@ pub fn tex_1() -> rokol::gfx::Shader {
 
         desc.vs.uniform_blocks[0] = {
             let mut block = rg::ShaderUniformBlockDesc::default();
-            block.size = std::mem::size_of::<glam::Mat4>() as i32;
+
             block.uniforms[0] = rg::ShaderUniformDesc {
                 type_: rg::UniformType::Mat4 as u32,
                 name: c_str!("transform").as_ptr() as *const _,
                 ..Default::default()
             };
+            block.size += std::mem::size_of::<glam::Mat4>() as i32;
+
             block
         };
     })
@@ -82,26 +84,82 @@ pub fn gauss() -> rokol::gfx::Shader {
 
         desc.vs.uniform_blocks[0] = {
             let mut block = rg::ShaderUniformBlockDesc::default();
-            block.size = std::mem::size_of::<glam::Mat4>() as i32;
 
             block.uniforms[0] = rg::ShaderUniformDesc {
                 type_: rg::UniformType::Mat4 as u32,
                 name: c_str!("transform").as_ptr() as *const _,
                 ..Default::default()
             };
+            block.size += std::mem::size_of::<glam::Mat4>() as i32;
 
             block
         };
 
         desc.vs.uniform_blocks[1] = {
             let mut block = rg::ShaderUniformBlockDesc::default();
-            block.size = std::mem::size_of::<f32>() as i32;
 
             block.uniforms[0] = rg::ShaderUniformDesc {
                 type_: rg::UniformType::Float as u32,
                 name: c_str!("is_horizontal").as_ptr() as *const _,
                 ..Default::default()
             };
+            block.size += std::mem::size_of::<f32>() as i32;
+
+            block
+        };
+    })
+}
+
+pub fn snow() -> rokol::gfx::Shader {
+    gen(&def_shd!("snow"), |desc| {
+        desc.vs.uniform_blocks[0] = {
+            let mut block = rg::ShaderUniformBlockDesc::default();
+
+            block.uniforms[0] = rg::ShaderUniformDesc {
+                type_: rg::UniformType::Mat4 as u32,
+                name: c_str!("transform").as_ptr() as *const _,
+                ..Default::default()
+            };
+            block.size += std::mem::size_of::<glam::Mat4>() as i32;
+
+            block
+        };
+
+        desc.fs.uniform_blocks[0] = {
+            let mut block = rg::ShaderUniformBlockDesc::default();
+
+            block.uniforms[0] = rg::ShaderUniformDesc {
+                type_: rg::UniformType::Float2 as u32,
+                name: c_str!("iResolution").as_ptr() as *const _,
+                ..Default::default()
+            };
+            block.size += std::mem::size_of::<[f32; 2]>() as i32;
+
+            block
+        };
+
+        desc.fs.uniform_blocks[1] = {
+            let mut block = rg::ShaderUniformBlockDesc::default();
+
+            block.uniforms[0] = rg::ShaderUniformDesc {
+                type_: rg::UniformType::Float as u32,
+                name: c_str!("iTime").as_ptr() as *const _,
+                ..Default::default()
+            };
+            block.size += std::mem::size_of::<f32>() as i32;
+
+            block
+        };
+
+        desc.fs.uniform_blocks[2] = {
+            let mut block = rg::ShaderUniformBlockDesc::default();
+
+            block.uniforms[0] = rg::ShaderUniformDesc {
+                type_: rg::UniformType::Float2 as u32,
+                name: c_str!("iMouse").as_ptr() as *const _,
+                ..Default::default()
+            };
+            block.size += std::mem::size_of::<[f32; 2]>() as i32;
 
             block
         };

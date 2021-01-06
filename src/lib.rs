@@ -9,7 +9,7 @@ Snow the roguelike game
 
 pub use {rlbox, rokol, snow2d};
 
-pub mod state;
+pub mod fsm;
 pub mod turn;
 pub mod utils;
 pub mod world;
@@ -17,10 +17,7 @@ pub mod world;
 use rokol::{app as ra, gfx as rg};
 
 use crate::{
-    turn::{
-        anim::{AnimPlayer, AnimResult, AnimUpdateContext},
-        tick::{AnimContext, GameLoop, TickResult},
-    },
+    turn::anim::AnimPlayer,
     world::{World, WorldContext},
 };
 
@@ -43,6 +40,8 @@ impl SnowRl {
 impl rokol::app::RApp for SnowRl {
     fn init(&mut self) {
         rg::setup(&mut rokol::glue::app_desc());
+        // FIXME: it takes too long to load textures. maybe firt show window and then
+        // load resources
         self.x = Some(SnowRlImpl::new());
     }
 
@@ -61,32 +60,36 @@ impl rokol::app::RApp for SnowRl {
 
 #[derive(Debug)]
 struct SnowRlImpl {
-    gl: state::Global,
-    fsm: state::Fsm,
+    gl: fsm::Global,
+    fsm: fsm::Fsm,
 }
 
 impl SnowRlImpl {
     pub fn new() -> Self {
-        let file = snow2d::asset::path("map/tmx/title.tmx");
+        let mut gl = {
+            let wcx = WorldContext::new();
+            let world = {
+                // let file = snow2d::asset::path("map/tmx/title.tmx");
+                let file = snow2d::asset::path("map/tmx/rl_start.tmx");
 
-        let mut wcx = WorldContext::new();
-        let world = World::from_tiled_file(&mut wcx, &file).unwrap();
-
-        let mut gl = state::Global {
-            world,
-            wcx,
-            anims: AnimPlayer::new(),
+                World::from_tiled_file(&file).unwrap()
+            };
+            fsm::Global {
+                world,
+                wcx,
+                anims: AnimPlayer::new(),
+            }
         };
 
         let fsm = {
-            let mut fsm = state::Fsm::new();
-            fsm.insert_default::<state::Roguelike>();
-            fsm.insert_default::<state::Animation>();
-            fsm.push::<state::Roguelike>(&mut gl);
+            let mut fsm = fsm::Fsm::new();
+            fsm.insert_default::<fsm::states::Roguelike>();
+            fsm.insert_default::<fsm::states::Animation>();
+            fsm.insert_default::<fsm::states::Title>();
+            fsm.push::<fsm::states::Roguelike>(&mut gl);
+            fsm.push::<fsm::states::Title>(&mut gl);
             fsm
         };
-
-        log::trace!("init FSM");
 
         Self { gl, fsm }
     }

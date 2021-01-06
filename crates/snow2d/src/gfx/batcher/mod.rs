@@ -1,9 +1,8 @@
 //! Batcher
 
 pub mod draw;
+pub mod mesh;
 pub mod vertex;
-
-mod mesh;
 
 use rokol::gfx as rg;
 
@@ -21,7 +20,7 @@ use crate::gfx::batcher::{
 /// 2-3
 /// ```
 ///
-/// TODO: cull mode (index should be opposite?)
+/// TODO: cull mode (indices should be in reverse?)
 ///
 /// Each index element has 16 bits length.
 macro_rules! gen_quad_indices {

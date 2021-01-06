@@ -105,6 +105,15 @@ pub struct SharedTexture2d {
     pub tex: Rc<Texture2dDrop>,
 }
 
+impl SharedTexture2d {
+    pub fn split(&self, uv_rect: impl Into<[f32; 4]>) -> SharedSubTexture2d {
+        SharedSubTexture2d {
+            shared: self.clone(),
+            uv_rect: uv_rect.into(),
+        }
+    }
+}
+
 /// [`SharedTexture2d`] with uv rectangle
 #[derive(Debug, Clone)]
 pub struct SharedSubTexture2d {

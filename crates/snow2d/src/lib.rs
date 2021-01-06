@@ -135,6 +135,7 @@ impl Snow2d {
             proj = proj * tfm;
         }
 
+        // FIXME: projection matrix should be set shaders by themselves
         unsafe {
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
         }
