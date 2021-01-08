@@ -106,6 +106,7 @@ pub struct SharedTexture2d {
 }
 
 impl SharedTexture2d {
+    /// uv_rect: [x, y, width, height]
     pub fn split(&self, uv_rect: impl Into<[f32; 4]>) -> SharedSubTexture2d {
         SharedSubTexture2d {
             shared: self.clone(),
@@ -118,7 +119,7 @@ impl SharedTexture2d {
 #[derive(Debug, Clone)]
 pub struct SharedSubTexture2d {
     pub shared: SharedTexture2d,
-    /// x, y, w, h
+    /// [x, y, width, height]
     pub uv_rect: [f32; 4],
 }
 
@@ -128,6 +129,7 @@ pub struct SpriteData {
     pub sub_tex: SharedSubTexture2d,
     pub rot: f32,
     pub origin: [f32; 2],
+    pub scale: [f32; 2],
 }
 
 // --------------------------------------------------------------------------------
@@ -268,7 +270,7 @@ impl OnSpritePush for SpriteData {
     fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
         builder
             .src_rect_px([0.0, 0.0, self.w(), self.h()])
-            .dst_size_px([self.w(), self.h()])
+            .dst_size_px([self.w() * self.scale[0], self.h() * self.scale[1]])
             .uv_rect(self.sub_tex.uv_rect)
             .rot(self.rot)
             .origin(self.origin);

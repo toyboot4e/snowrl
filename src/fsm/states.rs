@@ -1,9 +1,19 @@
 use std::any::TypeId;
 
+use rokol::gfx::{self as rg};
+
 use snow2d::{
     asset,
-    gfx::tex::{SpriteData, Texture2dDrop},
+    gfx::{
+        batcher::draw::*,
+        geom2d::*,
+        tex::{SpriteData, Texture2dDrop},
+        Color,
+    },
+    PassConfig, Snow2d,
 };
+
+use rlbox::rl::grid2d::*;
 
 use crate::{
     fsm::{render::WorldRenderFlag, GameState, Global, StateUpdateResult},
@@ -122,58 +132,162 @@ impl GameState for Animation {
 #[derive(Debug)]
 pub struct Title {
     title: SpriteData,
+    // TODO: impl selections
     choices: [SpriteData; 3],
+    cursor: usize,
 }
 
 impl Default for Title {
     fn default() -> Self {
         Self {
             title: SpriteData {
-                sub_tex: Texture2dDrop::from_path(asset::path("img/title/title.png"))
+                sub_tex: Texture2dDrop::from_path(asset::path("img/title/snowrl.png"))
                     .unwrap()
                     .into_shared()
                     .split([0.0, 0.0, 1.0, 1.0]),
                 rot: 0.0,
                 origin: [0.0, 0.0],
+                scale: [0.5, 0.5],
             },
             choices: {
                 let tex = Texture2dDrop::from_path(asset::path("img/title/choices.png"))
                     .unwrap()
                     .into_shared();
 
+                let scale = [0.5, 0.5];
+                let origin = [0.0, 0.0];
+                let rot = 0.0;
+
                 let unit = 1.0 / 3.0;
 
                 // FIXME: slow, so use async. Which is slow, CPU part or GPU part?
                 [
                     SpriteData {
-                        sub_tex: tex.split([0.0, 0.0 * unit, 1.0, unit]),
-                        rot: 0.0,
-                        origin: [0.0, 0.0],
+                        sub_tex: tex.split([0.0, unit * 0.0, 1.0, unit]),
+                        rot,
+                        origin,
+                        scale,
                     },
                     SpriteData {
-                        sub_tex: tex.split([0.0, 1.0 * unit, 1.0, unit]),
-                        rot: 0.0,
-                        origin: [0.0, 0.0],
+                        sub_tex: tex.split([0.0, unit * 1.0, 1.0, unit]),
+                        rot,
+                        origin,
+                        scale,
                     },
                     SpriteData {
-                        sub_tex: tex.split([0.0, 2.0 * unit, 1.0, unit]),
-                        rot: 0.0,
-                        origin: [0.0, 0.0],
+                        sub_tex: tex.split([0.0, unit * 2.0, 1.0, unit]),
+                        rot,
+                        origin,
+                        scale,
                     },
                 ]
             },
+            cursor: 0,
         }
     }
 }
 
+impl Title {
+    const SELECTED: Color = Color {
+        r: 24,
+        g: 160,
+        b: 120,
+        a: 255,
+    };
+
+    const UNSELECTED: Color = Color {
+        r: 85,
+        g: 40,
+        b: 40,
+        a: 255,
+    };
+
+    const SHADOW_SELECTED: Color = Color {
+        r: 32,
+        g: 32,
+        b: 32,
+        a: 255,
+    };
+
+    const SHADOW_UNSELECTED: Color = Color {
+        r: 16,
+        g: 16,
+        b: 16,
+        a: 255,
+    };
+}
+
 impl GameState for Title {
-    fn update(&mut self, _gl: &mut Global) -> StateUpdateResult {
-        StateUpdateResult::GotoNextFrame
+    fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
+        if let Some(dir) = gl.wcx.vi.dir.dir4_pressed() {
+            match dir.y_sign() {
+                Sign::Pos => {
+                    self.cursor += self.choices.len() - 1;
+                    self.cursor %= self.choices.len();
+                }
+                Sign::Neg => {
+                    self.cursor += 1;
+                    self.cursor %= self.choices.len();
+                }
+                Sign::Neutral => {}
+            }
+        }
+
+        if gl.wcx.vi.select.is_pressed() {
+            StateUpdateResult::PopAndRun
+        } else {
+            // TODO: fade out
+            StateUpdateResult::GotoNextFrame
+        }
     }
 
     fn render(&mut self, gl: &mut Global) {
         let flags = WorldRenderFlag::ALL;
         gl.world_render.render(&gl.world, &mut gl.wcx, flags);
+
+        let mut screen = gl.wcx.rdr.screen(PassConfig {
+            pa: &rg::PassAction::NONE,
+            tfm: None,
+            pip: None,
+        });
+
+        screen.sprite(&self.title).dst_pos_px([400.0, 32.0]);
+
+        let pos = {
+            let pos = Vec2f::new(100.0, 340.0);
+            let delta_y = 100.0;
+            [
+                pos,
+                pos + Vec2f::new(100.0, delta_y),
+                pos + Vec2f::new(320.0, delta_y * 2.0),
+            ]
+        };
+
+        for i in 0..3 {
+            let color = if i == self.cursor {
+                Self::SHADOW_SELECTED
+            } else {
+                Self::SHADOW_UNSELECTED
+            };
+
+            // shadow
+            screen
+                .sprite(&self.choices[i])
+                .dst_pos_px(pos[i] + Vec2f::new(8.0, 6.0))
+                .color(color);
+
+            let color = if i == self.cursor {
+                Self::SELECTED
+            } else {
+                Self::UNSELECTED
+            };
+
+            // logo
+            screen
+                .sprite(&self.choices[i])
+                .dst_pos_px(pos[i])
+                .color(color);
+        }
     }
 
     fn on_enter(&mut self, _gl: &mut Global) {

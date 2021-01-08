@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use xdl::{vi::*, Key};
+use xdl::{vi::*, Input, Key};
 
 /// Collection of virtual inputs
 #[derive(Debug, Clone)]
@@ -14,14 +14,14 @@ pub struct VInput {
 impl VInput {
     // TODO: use serde for configuration
     pub fn new() -> Self {
-        let repeat = KeyRepeat::Repeat {
-            first: Duration::from_nanos(1_000_000_000 / 60 * 6),
-            multi: Duration::from_nanos(1_000_000_000 / 60 * 4),
+        let dir_repeat = KeyRepeat::Repeat {
+            first: Duration::from_nanos(1_000_000_000 / 60 * 8),
+            multi: Duration::from_nanos(1_000_000_000 / 60 * 6),
         };
 
         Self {
             dir: AxisDirButton::new(
-                repeat,
+                dir_repeat,
                 // x
                 [
                     // x positive
@@ -45,7 +45,17 @@ impl VInput {
                     },
                 ],
             ),
-            select: Button::new(InputBundle { keys: vec![Key::Z] }, KeyRepeat::None),
+            select: Button::new(
+                InputBundle {
+                    keys: vec![Key::Enter],
+                },
+                KeyRepeat::None,
+            ),
         }
+    }
+
+    pub fn update(&mut self, input: &Input, dt: Duration) {
+        self.dir.update(input, dt);
+        self.select.update(input, dt);
     }
 }

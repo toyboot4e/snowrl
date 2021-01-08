@@ -131,6 +131,7 @@ pub struct AnimUpdateContext<'a, 'b> {
 pub trait Anim: fmt::Debug + Downcast {
     fn on_start(&mut self, _ucx: &mut AnimUpdateContext) {}
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult;
+    // TODO: render animation
 }
 
 impl_downcast!(Anim);

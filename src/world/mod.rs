@@ -36,6 +36,7 @@ pub struct WorldContext {
     pa_blue: rg::PassAction,
     pub input: xdl::Input,
     pub vi: VInput,
+    /// Delta time from last frame
     pub dt: Duration,
     pub frame_count: u64,
     /// When the game started
@@ -65,11 +66,11 @@ impl WorldContext {
 
     pub fn update(&mut self) {
         self.frame_count += 1;
+
         // FIXME: use real dt
         self.dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
 
-        // input
-        self.vi.dir.update(&self.input, self.dt);
+        self.vi.update(&self.input, self.dt);
     }
 
     pub fn render(&mut self) {

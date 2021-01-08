@@ -52,6 +52,7 @@ pub fn gen_anim4_with(
                             },
                             rot: 0.0,
                             origin: [0.5, 0.5],
+                            scale: [1.0, 1.0],
                         };
 
                         f(&mut sprite);

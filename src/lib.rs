@@ -10,6 +10,7 @@ Snow the roguelike game
 pub use {rlbox, rokol, snow2d};
 
 pub mod fsm;
+pub mod script;
 pub mod turn;
 pub mod utils;
 pub mod world;
@@ -92,7 +93,7 @@ impl SnowRlImpl {
             fsm.insert_default::<fsm::states::Animation>();
             fsm.insert_default::<fsm::states::Title>();
             fsm.push::<fsm::states::Roguelike>(&mut gl);
-            // fsm.push::<fsm::states::Title>(&mut gl);
+            fsm.push::<fsm::states::Title>(&mut gl);
             fsm
         };
 

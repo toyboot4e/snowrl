@@ -16,11 +16,10 @@ bitflags::bitflags! {
     pub struct WorldRenderFlag: u32 {
         const SHADOW = 1 << 0;
         const SNOW = 1 << 1;
-        const RL_ANIMS = 1 << 2;
         const ACTORS = 1 << 3;
         const MAP = 1 << 4;
         //
-        const ALL = Self::SHADOW.bits | Self::SNOW.bits | Self::RL_ANIMS.bits | Self::ACTORS.bits | Self::MAP.bits;
+        const ALL = Self::SHADOW.bits | Self::SNOW.bits |  Self::ACTORS.bits | Self::MAP.bits;
     }
 }
 

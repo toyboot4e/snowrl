@@ -109,6 +109,19 @@ pub trait QuadParamsBuilder {
         self
     }
 
+    // FIXME: /// Sets the size to the destination
+    // fn dst_size_norm(&mut self, ws: impl Into<[f32; 2]>) -> &mut Self {
+    //     let ws = ws.into();
+
+    //     let data = self.params();
+    //     let mut rect = data.dst_rect.inner().clone();
+    //     rect.w = ws[0];
+    //     rect.h = ws[1];
+    //     data.dst_rect = Scaled::Normalized(rect);
+
+    //     self
+    // }
+
     /// Sets origin position and size to the destination
     fn dst_rect_px(&mut self, xs: impl Into<Rect2f>) -> &mut Self {
         let rect = xs.into();
