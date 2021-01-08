@@ -79,6 +79,50 @@ impl WorldContext {
     }
 }
 
+/// The rougelike game world
+///
+/// Turn-based game state should be outside of this struct.
+#[derive(Debug)]
+pub struct World {
+    pub map: TiledRlMap,
+    pub shadow: Shadow,
+    pub entities: Vec<Player>,
+}
+
+/// Lifecycle
+impl World {
+    pub fn update(&mut self, wcx: &mut WorldContext) {
+        for e in &mut self.entities {
+            e.img.update(wcx.dt, e.pos, e.dir);
+        }
+    }
+}
+
+/// API
+impl World {
+    pub fn player(&self) -> &Player {
+        &self.entities[0]
+    }
+
+    pub fn player_mut(&mut self) -> &mut Player {
+        &mut self.entities[0]
+    }
+
+    pub fn is_blocked(&mut self, pos: Vec2i) -> bool {
+        if self.map.rlmap.is_blocked(pos) {
+            return true;
+        }
+
+        for e in &self.entities {
+            if e.pos == pos {
+                return true;
+            }
+        }
+
+        false
+    }
+}
+
 /// Shadow data suitable for visualization
 #[derive(Debug)]
 pub struct Shadow {
@@ -125,59 +169,4 @@ impl Shadow {
             self.blend_factor = 1.0;
         }
     }
-}
-
-/// The rougelike game world
-///
-/// Turn-based game state should be outside of this struct.
-#[derive(Debug)]
-pub struct World {
-    pub map: TiledRlMap,
-    pub shadow: Shadow,
-    pub entities: Vec<Player>,
-}
-
-/// Lifecycle
-impl World {
-    pub fn update(&mut self, wcx: &mut WorldContext) {
-        for e in &mut self.entities {
-            e.img.update(wcx.dt, e.pos, e.dir);
-        }
-    }
-}
-
-/// API
-impl World {
-    pub fn player(&self) -> &Player {
-        &self.entities[0]
-    }
-
-    pub fn player_mut(&mut self) -> &mut Player {
-        &mut self.entities[0]
-    }
-
-    pub fn is_blocked(&mut self, pos: Vec2i) -> bool {
-        if self.map.rlmap.is_blocked(pos) {
-            return true;
-        }
-
-        for e in &self.entities {
-            if e.pos == pos {
-                return true;
-            }
-        }
-
-        false
-    }
-}
-
-pub fn update_fov(fov: &mut impl FovWrite, pos: Vec2i, r: u32, map: &impl OpacityMap) {
-    rl::fov::refresh(
-        fov,
-        rl::fov::RefreshParams {
-            r,
-            origin: pos,
-            opa: map,
-        },
-    );
 }

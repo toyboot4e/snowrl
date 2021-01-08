@@ -92,12 +92,15 @@ impl SnowRlImpl {
         };
 
         let fsm = {
-            let mut fsm = fsm::Fsm::new();
+            let mut fsm = fsm::Fsm::default();
+
             fsm.insert_default::<fsm::states::Roguelike>();
             fsm.insert_default::<fsm::states::Animation>();
             fsm.insert_default::<fsm::states::Title>();
+
             fsm.push::<fsm::states::Roguelike>(&mut gl);
             fsm.push::<fsm::states::Title>(&mut gl);
+
             fsm
         };
 
@@ -143,29 +146,45 @@ fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {
     let path = snow2d::asset::path(crate::paths::map::tmx::RL_START);
     let map = TiledRlMap::from_tiled_path(&path)?;
 
-    let mut shadow = Shadow {
-        fov: Double {
-            a: FovData::new(crate::consts::FOV_R, 10),
-            b: FovData::new(crate::consts::FOV_R, 10),
+    let radius = [crate::consts::FOV_R, 10];
+    let map_size = map.rlmap.size;
+
+    let mut world = World {
+        map,
+        shadow: Shadow {
+            fov: Double {
+                a: FovData::new(radius[0], radius[1]),
+                b: FovData::new(radius[0], radius[1]),
+            },
+            fow: Double {
+                a: FowData::new(map_size),
+                b: FowData::new(map_size),
+            },
+            blend_factor: 0.0,
+            is_dirty: false,
         },
-        fow: Double {
-            a: FowData::new(map.rlmap.size),
-            b: FowData::new(map.rlmap.size),
-        },
-        blend_factor: 0.0,
-        is_dirty: false,
+        entities: Vec::with_capacity(20),
     };
 
-    let mut entities = Vec::with_capacity(20);
+    self::load_actors(&mut world)?;
 
-    // TODO: use asset loader to make use of cache
+    // just set FoV:
+    // shadow.calculate(player.pos, &map.rlmap);
+    // or animate initial FoV:
+    world.shadow.make_dirty();
+
+    Ok(world)
+}
+
+fn load_actors(w: &mut World) -> anyhow::Result<()> {
+    // TODO: use asset loader and make use of cache
     let img = {
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
         ActorImage::from_path(asset::path(crate::paths::IKA_CHAN), pos, dir)?
     };
 
-    entities.push({
+    w.entities.push({
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
 
@@ -182,7 +201,7 @@ fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {
         player
     });
 
-    entities.push({
+    w.entities.push({
         let pos = Vec2i::new(14, 12);
         let dir = Dir8::S;
         Player {
@@ -196,7 +215,7 @@ fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {
         }
     });
 
-    entities.push({
+    w.entities.push({
         let pos = Vec2i::new(25, 18);
         let dir = Dir8::S;
         Player {
@@ -210,14 +229,5 @@ fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {
         }
     });
 
-    // just set FoV
-    // shadow.calculate(player.pos, &map.rlmap);
-    // animate initial FoV
-    shadow.make_dirty();
-
-    Ok(World {
-        map,
-        shadow,
-        entities,
-    })
+    Ok(())
 }

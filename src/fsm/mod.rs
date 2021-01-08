@@ -83,14 +83,16 @@ pub struct Fsm {
     stack: Vec<TypeId>,
 }
 
-impl Fsm {
-    pub fn new() -> Self {
+impl Default for Fsm {
+    fn default() -> Self {
         Self {
             states: HashMap::with_capacity(10),
             stack: Vec::with_capacity(10),
         }
     }
+}
 
+impl Fsm {
     pub fn update(&mut self, gl: &mut Global) {
         loop {
             let id = self.stack.last().unwrap();
