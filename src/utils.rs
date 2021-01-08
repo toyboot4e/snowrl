@@ -1,5 +1,7 @@
 //! Utilities
 
+use std::time::Duration;
+
 /// Double buffer
 #[derive(Debug, Clone)]
 pub struct Double<T> {
@@ -9,7 +11,44 @@ pub struct Double<T> {
     pub b: T,
 }
 
+impl<T: Default> Default for Double<T> {
+    fn default() -> Self {
+        Self {
+            a: Default::default(),
+            b: Default::default(),
+        }
+    }
+}
+
 impl<T> Double<T> {
+    /// TODO: maybe improve efficiency
+    pub fn swap(&mut self) {
+        std::mem::swap(&mut self.a, &mut self.b);
+    }
+}
+
+/// Double buffer and interpolation value
+#[derive(Debug, Clone)]
+pub struct DoubleTrack<T> {
+    /// Front
+    pub a: T,
+    /// Back
+    pub b: T,
+    /// Interpolation value
+    pub dt: Duration,
+}
+
+impl<T: Default> Default for DoubleTrack<T> {
+    fn default() -> Self {
+        Self {
+            a: Default::default(),
+            b: Default::default(),
+            dt: Default::default(),
+        }
+    }
+}
+
+impl<T> DoubleTrack<T> {
     /// TODO: maybe improve efficiency
     pub fn swap(&mut self) {
         std::mem::swap(&mut self.a, &mut self.b);

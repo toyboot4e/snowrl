@@ -6,12 +6,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-// extern crate convert_case
+// `extern crate convert_case;` or `cargo add -B convert_case` (if `cargo_edit` is installed)
 use convert_case::{Case, Casing};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct AssetPrint {
     pub asset_root: PathBuf,
     pub buf: String,
@@ -27,7 +27,7 @@ impl AssetPrint {
 
     fn filter(item: &Path) -> bool {
         let name = item.file_name().unwrap().to_str().unwrap();
-        name.starts_with(".")
+        name.starts_with(".") || name.ends_with("tiled-project") || name.ends_with("tiled-session")
     }
 
     pub fn file(&mut self, item: &Path) {
@@ -74,11 +74,12 @@ impl AssetPrint {
 fn main() -> Result<()> {
     let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let asset_root = root.join("assets");
-    let dst = root.join("src/assets.rs");
-    // if you prefer to not commit `assets.rs`:
-    // let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap()).join("assets.rs");
+    let dst = root.join("src/paths.rs");
+    // if you prefer to not commit `paths.rs`:
+    //    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    //    let dst = out_dir.join("paths.rs");
     // and do this in your source file:
-    // include!(concat!(env!("OUT_DIR"), "/assets.rs"));
+    //     include!(concat!(env!("OUT_DIR"), "/paths.rs"));
 
     let mut ap = AssetPrint {
         asset_root: asset_root.clone(),

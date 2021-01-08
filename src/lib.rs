@@ -9,6 +9,8 @@ Snow the roguelike game
 
 pub use {rlbox, rokol, snow2d};
 
+pub mod paths;
+
 pub mod fsm;
 pub mod script;
 pub mod turn;
@@ -17,10 +19,19 @@ pub mod world;
 
 use rokol::{app as ra, gfx as rg};
 
+use {
+    rlbox::rl::{fov::FovData, fow::FowData, grid2d::*, rlmap::TiledRlMap},
+    snow2d::asset,
+};
+
 use crate::{
     fsm::render::WorldRenderer,
     turn::anim::AnimPlayer,
-    world::{World, WorldContext},
+    utils::Double,
+    world::{
+        actor::{ActorImage, Player},
+        Shadow, World, WorldContext,
+    },
 };
 
 pub fn run(app: rokol::Rokol) -> rokol::Result {
@@ -70,14 +81,7 @@ impl SnowRlImpl {
     pub fn new() -> Self {
         let mut gl = {
             let wcx = WorldContext::default();
-
-            let world = {
-                // let file = snow2d::asset::path("map/tmx/title.tmx");
-                let file = snow2d::asset::path("map/tmx/rl_start.tmx");
-
-                // TODO: extract entity spawning code here
-                World::from_tiled_file(&file).unwrap()
-            };
+            let world = self::init_world(&wcx).unwrap();
 
             fsm::Global {
                 world,
@@ -133,4 +137,87 @@ pub mod consts {
 
     /// Half frame in seconds (fixed timestep with 60 FPS)
     pub const HALF_FRAME: f32 = 1.0 / 120.0;
+}
+
+fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {
+    let path = snow2d::asset::path(crate::paths::map::tmx::RL_START);
+    let map = TiledRlMap::from_tiled_path(&path)?;
+
+    let mut shadow = Shadow {
+        fov: Double {
+            a: FovData::new(crate::consts::FOV_R, 10),
+            b: FovData::new(crate::consts::FOV_R, 10),
+        },
+        fow: Double {
+            a: FowData::new(map.rlmap.size),
+            b: FowData::new(map.rlmap.size),
+        },
+        blend_factor: 0.0,
+        is_dirty: false,
+    };
+
+    let mut entities = Vec::with_capacity(20);
+
+    // TODO: use asset loader to make use of cache
+    let img = {
+        let pos = Vec2i::new(20, 16);
+        let dir = Dir8::S;
+        ActorImage::from_path(asset::path(crate::paths::IKA_CHAN), pos, dir)?
+    };
+
+    entities.push({
+        let pos = Vec2i::new(20, 16);
+        let dir = Dir8::S;
+
+        let player = Player {
+            pos,
+            dir,
+            img: {
+                let mut img = img.clone();
+                img.force_set(pos, dir);
+                img
+            },
+        };
+
+        player
+    });
+
+    entities.push({
+        let pos = Vec2i::new(14, 12);
+        let dir = Dir8::S;
+        Player {
+            pos,
+            dir,
+            img: {
+                let mut img = img.clone();
+                img.force_set(pos, dir);
+                img
+            },
+        }
+    });
+
+    entities.push({
+        let pos = Vec2i::new(25, 18);
+        let dir = Dir8::S;
+        Player {
+            pos,
+            dir,
+            img: {
+                let mut img = img.clone();
+                img.force_set(pos, dir);
+                img
+            },
+        }
+    });
+
+    // just set FoV
+    // shadow.calculate(player.pos, &map.rlmap);
+    // animate initial FoV
+    shadow.make_dirty();
+
+    Ok(World {
+        map,
+        shadow,
+        entities,
+    })
 }

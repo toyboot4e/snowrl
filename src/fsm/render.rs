@@ -8,6 +8,7 @@ use {
 
 use crate::{
     fsm::Global,
+    utils::DoubleTrack,
     world::{render::*, World, WorldContext},
 };
 
@@ -28,6 +29,7 @@ pub struct WorldRenderer {
     pub fov_render: FovRenderer,
     pub snow_render: SnowRenderer,
     pa_blue: rg::PassAction,
+    actor_visibilities: Vec<DoubleTrack<bool>>,
 }
 
 impl Default for WorldRenderer {
@@ -36,6 +38,7 @@ impl Default for WorldRenderer {
             fov_render: FovRenderer::default(),
             snow_render: SnowRenderer::default(),
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
+            actor_visibilities: Default::default(),
         }
     }
 }
@@ -86,8 +89,11 @@ impl WorldRenderer {
 
     fn actors(screen: &mut impl DrawApi, world: &World) {
         // TODO: y sort + culling
+        // TODO: fade in / fade out actors
         for e in &world.entities {
-            e.img.render(screen, &world.map.tiled);
+            if world.shadow.fov.a.is_in_view(e.pos) {
+                e.img.render(screen, &world.map.tiled);
+            }
         }
     }
 

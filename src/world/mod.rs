@@ -6,13 +6,10 @@ pub mod vi;
 
 use {
     rokol::gfx as rg,
-    std::{
-        path::Path,
-        time::{Duration, Instant},
-    },
+    std::time::{Duration, Instant},
 };
 
-use snow2d::{asset, gfx::Color, Snow2d};
+use snow2d::{gfx::Color, Snow2d};
 
 use rlbox::rl::{
     self,
@@ -64,7 +61,7 @@ impl WorldContext {
         self.input.event(ev);
     }
 
-    pub fn update(&mut self) {
+    pub fn pre_update(&mut self) {
         self.frame_count += 1;
 
         // FIXME: use real dt
@@ -91,10 +88,15 @@ pub struct Shadow {
     pub fow: Double<FowData>,
     /// Used to render FoV
     pub blend_factor: f32,
+    pub is_dirty: bool,
 }
 
 impl Shadow {
-    pub fn calculate(&mut self, origin: Vec2i, radius: u32, map: &impl OpacityMap) {
+    pub fn make_dirty(&mut self) {
+        self.is_dirty = true;
+    }
+
+    pub fn calculate(&mut self, origin: Vec2i, map: &impl OpacityMap) {
         // FoV is always cleared so we just swap them
         self.fov.swap();
 
@@ -104,17 +106,16 @@ impl Shadow {
         // `self.blend_factor` is `tick`ed later in this frame
         self.blend_factor = 0.0;
 
-        rlbox::rl::fow::calculate_fov_fow(
-            &mut self.fov.a,
-            &mut self.fow.a,
-            Some(radius),
-            origin,
-            map,
-        );
+        rlbox::rl::fow::calculate_fov_fow(&mut self.fov.a, &mut self.fow.a, None, origin, map);
     }
 
     /// Call it every frame to animate FoV
-    pub fn update(&mut self, dt: Duration) {
+    pub fn post_update(&mut self, dt: Duration, map: &impl OpacityMap, player: &Player) {
+        if self.is_dirty {
+            self.calculate(player.pos, map);
+            self.is_dirty = false;
+        }
+
         self.tick(dt);
     }
 
@@ -138,84 +139,6 @@ pub struct World {
 
 /// Lifecycle
 impl World {
-    pub fn from_tiled_file(path: &Path) -> anyhow::Result<Self> {
-        let map = TiledRlMap::from_tiled_path(path)?;
-
-        let mut shadow = Shadow {
-            fov: Double {
-                a: FovData::new(crate::consts::FOV_R, 10),
-                b: FovData::new(crate::consts::FOV_R, 10),
-            },
-            fow: Double {
-                a: FowData::new(map.rlmap.size),
-                b: FowData::new(map.rlmap.size),
-            },
-            blend_factor: 0.0,
-        };
-
-        let mut entities = Vec::with_capacity(20);
-
-        // TODO: use asset loader to make use of cache
-        let img = {
-            let pos = Vec2i::new(20, 16);
-            let dir = Dir8::S;
-            ActorImage::from_path(asset::path("ika-chan.png"), pos, dir)?
-        };
-
-        entities.push({
-            let pos = Vec2i::new(20, 16);
-            let dir = Dir8::S;
-
-            let player = Player {
-                pos,
-                dir,
-                img: {
-                    let mut img = img.clone();
-                    img.force_set(pos, dir);
-                    img
-                },
-            };
-
-            shadow.calculate(player.pos, crate::consts::FOV_R, &map.rlmap);
-
-            player
-        });
-
-        entities.push({
-            let pos = Vec2i::new(14, 12);
-            let dir = Dir8::S;
-            Player {
-                pos,
-                dir,
-                img: {
-                    let mut img = img.clone();
-                    img.force_set(pos, dir);
-                    img
-                },
-            }
-        });
-
-        entities.push({
-            let pos = Vec2i::new(25, 18);
-            let dir = Dir8::S;
-            Player {
-                pos,
-                dir,
-                img: {
-                    let mut img = img.clone();
-                    img.force_set(pos, dir);
-                    img
-                },
-            }
-        });
-
-        Ok(Self {
-            map,
-            shadow,
-            entities,
-        })
-    }
-
     pub fn update(&mut self, wcx: &mut WorldContext) {
         for e in &mut self.entities {
             e.img.update(wcx.dt, e.pos, e.dir);

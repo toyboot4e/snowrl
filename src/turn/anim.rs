@@ -193,14 +193,8 @@ impl Anim for WalkAnim {
             return;
         }
 
-        // FIXME: do it in proper place
-        // update Player FoV
-        let pos = ucx.world.entities[0].pos;
-        let radius = ucx.world.shadow.fov.a.radius;
-
-        ucx.world
-            .shadow
-            .calculate(pos, radius, &ucx.world.map.rlmap);
+        // update Player FoV in this frame
+        ucx.world.shadow.make_dirty();
     }
 
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {

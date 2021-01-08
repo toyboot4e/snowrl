@@ -35,15 +35,17 @@ impl Global {
         self.wcx.event(ev);
     }
 
-    /// Called before updating the game state
+    /// Called before updating the FSM (game state)
     pub fn pre_update(&mut self) {
-        self.wcx.update();
+        self.wcx.pre_update();
         self.world.update(&mut self.wcx);
     }
 
-    /// Called after updating the game state
+    /// Called after updating the FSM (game state)
     pub fn post_update(&mut self) {
-        self.world.shadow.update(self.wcx.dt);
+        self.world
+            .shadow
+            .post_update(self.wcx.dt, &self.world.map.rlmap, &self.world.entities[0]);
     }
 
     pub fn on_end_frame(&mut self) {

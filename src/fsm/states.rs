@@ -1,6 +1,6 @@
 use std::any::TypeId;
 
-use rokol::gfx::{self as rg};
+use rokol::gfx as rg;
 
 use snow2d::{
     asset,
@@ -10,7 +10,7 @@ use snow2d::{
         tex::{SpriteData, Texture2dDrop},
         Color,
     },
-    PassConfig, Snow2d,
+    PassConfig,
 };
 
 use rlbox::rl::grid2d::*;
@@ -141,7 +141,7 @@ impl Default for Title {
     fn default() -> Self {
         Self {
             title: SpriteData {
-                sub_tex: Texture2dDrop::from_path(asset::path("img/title/snowrl.png"))
+                sub_tex: Texture2dDrop::from_path(asset::path(crate::paths::img::title::SNOWRL))
                     .unwrap()
                     .into_shared()
                     .split([0.0, 0.0, 1.0, 1.0]),
@@ -150,7 +150,7 @@ impl Default for Title {
                 scale: [0.5, 0.5],
             },
             choices: {
-                let tex = Texture2dDrop::from_path(asset::path("img/title/choices.png"))
+                let tex = Texture2dDrop::from_path(asset::path(crate::paths::img::title::CHOICES))
                     .unwrap()
                     .into_shared();
 
