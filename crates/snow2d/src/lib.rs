@@ -21,7 +21,7 @@ use crate::gfx::{
     batcher::{
         draw::*,
         vertex::{QuadData, VertexData},
-        Batch,
+        Batch, BatchData,
     },
     geom2d::*,
     tex::RenderTexture,
@@ -102,7 +102,7 @@ impl Snow2d {
         });
 
         Self {
-            batch: Batch::new(),
+            batch: Batch::default(),
             fontbook: {
                 let book = FontBook::new(128, 128);
 
@@ -168,7 +168,7 @@ impl Snow2d {
     }
 
     fn end_pass(&mut self) {
-        self.batch.flush();
+        self.batch.data.flush();
         rg::end_pass();
     }
 }
@@ -184,26 +184,30 @@ impl<'a> Drop for Pass<'a> {
     }
 }
 
-impl<'a> DrawApi for Pass<'a> {
-    fn _next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData {
-        let ix = self.snow.batch.next_quad_ix(img);
-        &mut self.snow.batch.mesh.verts[ix]
+impl<'a> QuadIter for Pass<'a> {
+    fn peek_quad_mut(&mut self, img: rg::Image) -> &mut QuadData {
+        self.snow.batch.data.peek_quad_mut(img)
     }
 
-    fn _next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_> {
-        let target = {
-            let ix = self.snow.batch.next_quad_ix(tex.img());
-            &mut self.snow.batch.mesh.verts[ix]
-        };
+    fn next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData {
+        self.snow.batch.data.next_quad_mut(img)
+    }
+}
 
-        QuadPush {
-            params: &mut self.snow.batch.params,
-            target,
-        }
+impl<'a> DrawApi for Pass<'a> {
+    type Q = BatchData;
+
+    /// Starts a [`QuadParamsBuilder`] setting source/destination size and uv values
+    fn sprite<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush<Self::Q, S>
+    where
+        Self: Sized,
+    {
+        self.snow.batch.sprite(sprite)
     }
 }
 
 impl<'a> Pass<'a> {
+    /// TODO: add it to DrawApi
     pub fn text(&mut self, pos: impl Into<Vec2f>, text: &str) {
         // use non-premultipiled alpha blending
 
@@ -227,7 +231,7 @@ impl<'a> Pass<'a> {
 
         let mut iter = self.snow.fontbook.text_iter(text).unwrap();
         while let Some(quad) = iter.next() {
-            let q = self._next_quad_mut(img);
+            let q = self.next_quad_mut(img);
 
             q[0].uv = [quad.s0, quad.t0];
             q[1].uv = [quad.s1, quad.t0];
@@ -247,6 +251,6 @@ impl<'a> Pass<'a> {
         }
 
         // we should update the image because we might have changed it
-        self.snow.batch.force_set_img(self.snow.fontbook.img());
+        self.snow.batch.data.force_set_img(self.snow.fontbook.img());
     }
 }

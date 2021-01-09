@@ -132,6 +132,11 @@ pub struct SpriteData {
     pub scale: [f32; 2],
 }
 
+#[derive(Debug, Clone)]
+pub struct NiceSliceSprite {
+    pub sprite: SpriteData,
+}
+
 // --------------------------------------------------------------------------------
 // Trait implementations
 

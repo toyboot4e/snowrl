@@ -6,7 +6,7 @@ use rokol::gfx as rg;
 
 use crate::gfx::{
     batcher::{
-        draw::{QuadParams, Texture2d},
+        draw::{DrawApi, DrawApiData, QuadIter, QuadParams, Texture2d},
         vertex::QuadData,
     },
     geom2d::*,
@@ -51,8 +51,15 @@ pub trait OnSpritePush {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder);
 
     #[inline]
-    fn push_quad(quad: &mut QuadPush<'_>, tex: &CheatTexture2d, flips: Flips) {
-        quad.params.write_to_quad(&mut quad.target, tex, flips);
+    fn push_quad<Q: QuadIter>(draw: &mut DrawApiData<Q>, tex: &CheatTexture2d, flips: Flips) {
+        draw.params
+            .write_to_quad(draw.quad_iter.next_quad_mut(tex.img), tex, flips);
+    }
+}
+
+impl QuadParamsBuilder for QuadParams {
+    fn params(&mut self) -> &mut QuadParams {
+        self
     }
 }
 
@@ -158,41 +165,30 @@ pub trait QuadParamsBuilder {
 // --------------------------------------------------------------------------------
 // [`QuadParamsBuilder`] impls
 
-#[derive(Debug)]
-pub struct QuadPush<'a> {
-    pub params: &'a mut QuadParams,
-    pub target: &'a mut QuadData,
-}
-
-impl<'a> QuadParamsBuilder for QuadPush<'a> {
-    fn params(&mut self) -> &mut QuadParams {
-        &mut self.params
-    }
-}
-
 /// Primary interface to push sprite
 #[derive(Debug)]
-pub struct SpritePush<'a, T: OnSpritePush> {
-    quad: QuadPush<'a>,
+pub struct SpritePush<'a, 'b, Q: QuadIter, T: OnSpritePush> {
+    draw: DrawApiData<'a, 'b, Q>,
     tex: CheatTexture2d,
     flips: Flips,
     _phantom: PhantomData<T>,
 }
 
 /// Push sprite to batch data when it goes out of scope
-impl<'a, T: OnSpritePush> Drop for SpritePush<'a, T> {
+impl<'a, 'b, Q: QuadIter, T: OnSpritePush> Drop for SpritePush<'a, 'b, Q, T> {
     fn drop(&mut self) {
-        T::push_quad(&mut self.quad, &self.tex, self.flips);
+        T::push_quad(&mut self.draw, &self.tex, self.flips);
     }
 }
 
-impl<'a, T: OnSpritePush> SpritePush<'a, T> {
-    pub fn new(mut quad: QuadPush<'a>, sprite: &T) -> Self {
-        quad.params.reset_to_defaults();
-        sprite.init_quad(&mut quad);
+impl<'a, 'b, Q: QuadIter, T: OnSpritePush> SpritePush<'a, 'b, Q, T> {
+    pub fn new(draw: DrawApiData<'a, 'b, Q>, sprite: &T) -> Self {
+        draw.params.reset_to_defaults();
+
+        sprite.init_quad(draw.params);
 
         Self {
-            quad,
+            draw,
             tex: sprite.to_cheat_texture(),
             flips: Flips::NONE,
             _phantom: Default::default(),
@@ -200,8 +196,8 @@ impl<'a, T: OnSpritePush> SpritePush<'a, T> {
     }
 }
 
-impl<'a, T: OnSpritePush> QuadParamsBuilder for SpritePush<'a, T> {
+impl<'a, 'b, Q: QuadIter, T: OnSpritePush> QuadParamsBuilder for SpritePush<'a, 'b, Q, T> {
     fn params(&mut self) -> &mut QuadParams {
-        &mut self.quad.params
+        &mut self.draw.params
     }
 }

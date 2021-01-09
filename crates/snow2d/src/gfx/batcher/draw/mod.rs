@@ -4,13 +4,18 @@ mod builder;
 mod params;
 
 pub use self::{
-    builder::{CheatTexture2d, OnSpritePush, QuadParamsBuilder, QuadPush, SpritePush},
+    builder::{CheatTexture2d, OnSpritePush, QuadParamsBuilder, SpritePush},
     params::{QuadParams, Texture2d},
 };
 
 use {once_cell::sync::OnceCell, rokol::gfx as rg};
 
-use crate::gfx::{batcher::vertex::QuadData, geom2d::*, tex::Texture2dDrop, Color};
+use crate::gfx::{
+    batcher::{vertex::QuadData, Batch},
+    geom2d::*,
+    tex::Texture2dDrop,
+    Color,
+};
 
 static WHITE_DOT: OnceCell<Texture2dDrop> = OnceCell::new();
 
@@ -20,26 +25,42 @@ pub(crate) fn init() {
     WHITE_DOT.set(tex).unwrap();
 }
 
-/// Quad-based rendering API
-pub trait DrawApi {
+pub trait QuadIter {
     /// Used for implementing the provided methods
-    fn _next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData;
+    fn peek_quad_mut(&mut self, img: rg::Image) -> &mut QuadData;
 
     /// Used for implementing the provided methods
-    fn _next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_>;
+    fn next_quad_mut(&mut self, img: rg::Image) -> &mut QuadData;
+}
+
+/// Internal binding for implementing quad-based rendering
+#[derive(Debug)]
+pub struct DrawApiData<'a, 'b, Q: QuadIter> {
+    pub quad_iter: &'a mut Q,
+    pub params: &'b mut QuadParams,
+}
+
+/// Quad-based rendering API on [`QuadIter`]
+pub trait DrawApi: QuadIter {
+    type Q: QuadIter;
+
+    /// Starts a [`QuadParamsBuilder`] setting source/destination size and uv values
+    fn sprite<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush<Self::Q, S>
+    where
+        Self: Sized;
 
     /// Used for implementing the provided methods
-    fn white_dot(&mut self) -> SpritePush<Texture2dDrop> {
+    fn white_dot(&mut self) -> SpritePush<Self::Q, Texture2dDrop>
+    where
+        Self: Sized,
+    {
         self.sprite(WHITE_DOT.get().unwrap())
     }
 
-    /// Starts a [`QuadParamsBuilder`] setting source/destination size and uv values
-    fn sprite<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush<S> {
-        // NOTE: the quad is initialized in this method
-        SpritePush::new(self._next_push_mut(sprite), sprite)
-    }
-
-    fn line(&mut self, p1: impl Into<Vec2f>, p2: impl Into<Vec2f>, color: Color) {
+    fn line(&mut self, p1: impl Into<Vec2f>, p2: impl Into<Vec2f>, color: Color)
+    where
+        Self: Sized,
+    {
         let p1 = p1.into();
         let p2 = p2.into();
 
@@ -53,7 +74,10 @@ pub trait DrawApi {
             .rot(rad);
     }
 
-    fn rect(&mut self, rect: impl Into<Rect2f>, color: Color) {
+    fn rect(&mut self, rect: impl Into<Rect2f>, color: Color)
+    where
+        Self: Sized,
+    {
         let rect = rect.into();
         let (p1, p2, p3, p4) = (
             rect.left_up(),
