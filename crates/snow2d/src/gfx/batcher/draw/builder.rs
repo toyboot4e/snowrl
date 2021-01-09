@@ -1,39 +1,10 @@
 //! Builder for [`QuadParams`]
 
-use std::marker::PhantomData;
-
-use rokol::gfx as rg;
-
 use crate::gfx::{
-    batcher::{
-        draw::{DrawApi, DrawApiData, QuadIter, QuadParams, Texture2d},
-        vertex::QuadData,
-    },
+    batcher::draw::{DrawApiData, QuadIter, QuadParams, Texture2d},
     geom2d::*,
     Color,
 };
-
-/// Internal utility for sprite batching
-#[derive(Debug, Clone)]
-pub struct CheatTexture2d {
-    pub img: rg::Image,
-    pub w: u32,
-    pub h: u32,
-}
-
-impl Texture2d for CheatTexture2d {
-    fn img(&self) -> rg::Image {
-        self.img
-    }
-
-    fn w(&self) -> f32 {
-        self.w as f32
-    }
-
-    fn h(&self) -> f32 {
-        self.h as f32
-    }
-}
 
 // TODO: remove `Scaled` enum (refer to uv_rect of sprite push)
 
@@ -41,20 +12,19 @@ impl Texture2d for CheatTexture2d {
 // traits
 
 /// What can be pushed onto [`QuadParamBuilder`] by [`SpritePush`]
-pub trait OnSpritePush {
-    /// Internal utility for sprite batching
-    fn to_cheat_texture(&self) -> CheatTexture2d;
-
+pub trait OnSpritePush: Texture2d {
     /// Initializes a quad when starting to build a quad
     ///
     /// Note that the quad is initialized to default value before this function is called.
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder);
 
     #[inline]
-    fn push_quad<Q: QuadIter>(&self, draw: &mut DrawApiData<Q>, flips: Flips) {
-        let tex = self.to_cheat_texture();
+    fn push_quad<Q: QuadIter>(&self, draw: &mut DrawApiData<Q>, flips: Flips)
+    where
+        Self: Sized,
+    {
         draw.params
-            .write_to_quad(draw.quad_iter.next_quad_mut(tex.img), &tex, flips);
+            .write_to_quad(draw.quad_iter.next_quad_mut(self.img()), self, flips);
     }
 }
 

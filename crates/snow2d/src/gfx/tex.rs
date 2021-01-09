@@ -9,9 +9,7 @@ use {
 };
 
 use crate::gfx::{
-    batcher::draw::{
-        CheatTexture2d, DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d,
-    },
+    batcher::draw::{DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d},
     geom2d::Flips,
 };
 
@@ -141,7 +139,7 @@ pub struct SpriteData {
 
 #[derive(Debug, Clone)]
 pub struct NineSliceSprite {
-    pub sprite: SpriteData,
+    pub tex: SharedTexture2d,
 }
 
 // --------------------------------------------------------------------------------
@@ -175,7 +173,7 @@ impl AsRef<Texture2dDrop> for SpriteData {
 
 impl AsRef<Texture2dDrop> for NineSliceSprite {
     fn as_ref(&self) -> &Texture2dDrop {
-        &self.sprite.sub_tex.shared.tex
+        &self.tex.tex
     }
 }
 
@@ -239,29 +237,21 @@ impl Texture2d for SpriteData {
 
 impl Texture2d for NineSliceSprite {
     fn img(&self) -> rg::Image {
-        self.sprite.img()
+        self.tex.img()
     }
 
     fn w(&self) -> f32 {
-        self.sprite.w()
+        self.tex.w()
     }
 
     fn h(&self) -> f32 {
-        self.sprite.h()
+        self.tex.h()
     }
 }
 
 // ----------------------------------------
 
 impl OnSpritePush for Texture2dDrop {
-    fn to_cheat_texture(&self) -> CheatTexture2d {
-        CheatTexture2d {
-            img: self.as_ref().img,
-            w: self.as_ref().w,
-            h: self.as_ref().h,
-        }
-    }
-
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
         builder
             .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
@@ -271,20 +261,12 @@ impl OnSpritePush for Texture2dDrop {
 }
 
 impl OnSpritePush for SharedTexture2d {
-    fn to_cheat_texture(&self) -> CheatTexture2d {
-        self.as_ref().to_cheat_texture()
-    }
-
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
         self.as_ref().init_quad(builder);
     }
 }
 
 impl OnSpritePush for SharedSubTexture2d {
-    fn to_cheat_texture(&self) -> CheatTexture2d {
-        self.as_ref().to_cheat_texture()
-    }
-
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
         builder
             .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
@@ -294,10 +276,6 @@ impl OnSpritePush for SharedSubTexture2d {
 }
 
 impl OnSpritePush for SpriteData {
-    fn to_cheat_texture(&self) -> CheatTexture2d {
-        self.as_ref().to_cheat_texture()
-    }
-
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
         builder
             .src_rect_px([0.0, 0.0, self.w(), self.h()])
@@ -309,20 +287,15 @@ impl OnSpritePush for SpriteData {
 }
 
 impl OnSpritePush for NineSliceSprite {
-    fn to_cheat_texture(&self) -> CheatTexture2d {
-        self.sprite.to_cheat_texture()
-    }
-
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
-        self.sprite.init_quad(builder);
+        self.tex.init_quad(builder);
     }
 
     #[inline]
     fn push_quad<Q: QuadIter>(&self, draw: &mut DrawApiData<Q>, flips: Flips) {
         // TODO: nince slice rendering
-        let tex = self.to_cheat_texture();
         draw.params
-            .write_to_quad(draw.quad_iter.next_quad_mut(tex.img), &tex, flips);
+            .write_to_quad(draw.quad_iter.next_quad_mut(self.img()), self, flips);
     }
 }
 

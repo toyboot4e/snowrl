@@ -4,18 +4,13 @@ mod builder;
 mod params;
 
 pub use self::{
-    builder::{CheatTexture2d, OnSpritePush, QuadParamsBuilder, SpritePush},
+    builder::{OnSpritePush, QuadParamsBuilder, SpritePush},
     params::{QuadParams, Texture2d},
 };
 
 use {once_cell::sync::OnceCell, rokol::gfx as rg};
 
-use crate::gfx::{
-    batcher::{vertex::QuadData, Batch},
-    geom2d::*,
-    tex::Texture2dDrop,
-    Color,
-};
+use crate::gfx::{batcher::vertex::QuadData, geom2d::*, tex::Texture2dDrop, Color};
 
 static WHITE_DOT: OnceCell<Texture2dDrop> = OnceCell::new();
 
