@@ -4,10 +4,10 @@ use {
         gfx::{batcher::draw::*, geom2d::*, Color},
         PassConfig, Snow2d,
     },
+    std::time::Duration,
 };
 
 use crate::{
-    fsm::Global,
     utils::DoubleTrack,
     world::{render::*, World, WorldContext},
 };
@@ -44,8 +44,8 @@ impl Default for WorldRenderer {
 }
 
 impl WorldRenderer {
-    pub fn update(&mut self, gl: &Global) {
-        //
+    pub fn post_update(&mut self, _dt: Duration) {
+        // TODO: fade in / fade out actors
     }
 
     /// Renders the world (maybe partially)
@@ -89,7 +89,6 @@ impl WorldRenderer {
 
     fn actors(screen: &mut impl DrawApi, world: &World) {
         // TODO: y sort + culling
-        // TODO: fade in / fade out actors
         for e in &world.entities {
             if world.shadow.fov.a.is_in_view(e.pos) {
                 e.img.render(screen, &world.map.tiled);

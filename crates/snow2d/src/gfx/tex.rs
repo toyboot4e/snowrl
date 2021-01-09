@@ -230,7 +230,7 @@ impl OnSpritePush for Texture2dDrop {
         }
     }
 
-    fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
+    fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
         builder
             .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
             .dst_size_px([self.as_ref().w(), self.as_ref().h()])
@@ -238,14 +238,13 @@ impl OnSpritePush for Texture2dDrop {
     }
 }
 
-// delegate to `Texture2dDrop`
 impl OnSpritePush for SharedTexture2d {
     fn to_cheat_texture(&self) -> CheatTexture2d {
         self.as_ref().to_cheat_texture()
     }
 
-    fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
-        self.as_ref().on_sprite_push(builder);
+    fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
+        self.as_ref().init_quad(builder);
     }
 }
 
@@ -254,7 +253,7 @@ impl OnSpritePush for SharedSubTexture2d {
         self.as_ref().to_cheat_texture()
     }
 
-    fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
+    fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
         builder
             .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
             .dst_size_px([self.w(), self.h()])
@@ -267,7 +266,7 @@ impl OnSpritePush for SpriteData {
         self.as_ref().to_cheat_texture()
     }
 
-    fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder) {
+    fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
         builder
             .src_rect_px([0.0, 0.0, self.w(), self.h()])
             .dst_size_px([self.w() * self.scale[0], self.h() * self.scale[1]])

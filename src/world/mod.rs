@@ -12,8 +12,7 @@ use {
 use snow2d::{gfx::Color, Snow2d};
 
 use rlbox::rl::{
-    self,
-    fov::{FovData, FovWrite, OpacityMap},
+    fov::{FovData, OpacityMap},
     fow::FowData,
     grid2d::*,
     rlmap::TiledRlMap,

@@ -29,12 +29,12 @@ pub trait DrawApi {
     fn _next_push_mut(&mut self, tex: &impl Texture2d) -> QuadPush<'_>;
 
     /// Used for implementing the provided methods
-    fn white_dot(&mut self) -> SpritePush {
+    fn white_dot(&mut self) -> SpritePush<Texture2dDrop> {
         self.sprite(WHITE_DOT.get().unwrap())
     }
 
     /// Starts a [`QuadParamsBuilder`] setting source/destination size and uv values
-    fn sprite<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush {
+    fn sprite<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush<S> {
         // NOTE: the quad is initialized in this method
         SpritePush::new(self._next_push_mut(sprite), sprite)
     }

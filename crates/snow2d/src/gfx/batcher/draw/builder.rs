@@ -1,5 +1,7 @@
 //! Builder for [`QuadParams`]
 
+use std::marker::PhantomData;
+
 use rokol::gfx as rg;
 
 use crate::gfx::{
@@ -33,34 +35,26 @@ impl Texture2d for CheatTexture2d {
     }
 }
 
+// TODO: remove `Scaled` enum (refer to uv_rect of sprite push)
+
 // --------------------------------------------------------------------------------
 // traits
 
-// Texture2d
-
-/// Modifies quad when start to build it
+/// What can be pushed onto [`QuadParamBuilder`] by [`SpritePush`]
 pub trait OnSpritePush {
     /// Internal utility for sprite batching
     fn to_cheat_texture(&self) -> CheatTexture2d;
-    /// Sets quad parameters. The quad is initialized before calling this method
-    fn on_sprite_push(&self, builder: &mut impl QuadParamsBuilder);
+
+    /// Initializes a quad when starting to build a quad
+    ///
+    /// Note that the quad is initialized to default value before this function is called.
+    fn init_quad(&self, builder: &mut impl QuadParamsBuilder);
+
+    #[inline]
+    fn push_quad(quad: &mut QuadPush<'_>, tex: &CheatTexture2d, flips: Flips) {
+        quad.params.write_to_quad(&mut quad.target, tex, flips);
+    }
 }
-
-// /// Texture with size data and region. Used by [`QuadParamsBuilder`]
-// pub trait SubTexture2d: Texture2d {
-//     /// [x, y, w, h]: Normalized rectangle that represents a regon in texture
-//     fn uv_rect(&self) -> [f32; 4];
-// }
-
-// /// Texture with size data, region and other geometry data. Used by [`QuadParamsBuilder`]
-// pub trait Sprite: SubTexture2d {
-//     /// Rotation in radian
-//     fn rot(&self) -> f32;
-//     fn scale(&self) -> [f32; 2];
-//     /// Normalized origin
-//     fn origin(&self) -> [f32; 2];
-//     fn color(&self) -> Color;
-// }
 
 /// Comes with default implementation
 pub trait QuadParamsBuilder {
@@ -178,35 +172,35 @@ impl<'a> QuadParamsBuilder for QuadPush<'a> {
 
 /// Primary interface to push sprite
 #[derive(Debug)]
-pub struct SpritePush<'a> {
+pub struct SpritePush<'a, T: OnSpritePush> {
     quad: QuadPush<'a>,
-    texture: CheatTexture2d,
+    tex: CheatTexture2d,
     flips: Flips,
+    _phantom: PhantomData<T>,
 }
 
 /// Push sprite to batch data when it goes out of scope
-impl<'a> Drop for SpritePush<'a> {
+impl<'a, T: OnSpritePush> Drop for SpritePush<'a, T> {
     fn drop(&mut self) {
-        self.quad
-            .params
-            .write_to_quad(&mut self.quad.target, &self.texture, self.flips);
+        T::push_quad(&mut self.quad, &self.tex, self.flips);
     }
 }
 
-impl<'a> SpritePush<'a> {
-    pub fn new(mut quad: QuadPush<'a>, sprite: &impl OnSpritePush) -> Self {
+impl<'a, T: OnSpritePush> SpritePush<'a, T> {
+    pub fn new(mut quad: QuadPush<'a>, sprite: &T) -> Self {
         quad.params.reset_to_defaults();
-        sprite.on_sprite_push(&mut quad);
+        sprite.init_quad(&mut quad);
 
         Self {
             quad,
-            texture: sprite.to_cheat_texture(),
+            tex: sprite.to_cheat_texture(),
             flips: Flips::NONE,
+            _phantom: Default::default(),
         }
     }
 }
 
-impl<'a> QuadParamsBuilder for SpritePush<'a> {
+impl<'a, T: OnSpritePush> QuadParamsBuilder for SpritePush<'a, T> {
     fn params(&mut self) -> &mut QuadParams {
         &mut self.quad.params
     }
