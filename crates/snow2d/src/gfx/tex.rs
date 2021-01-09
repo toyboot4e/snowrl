@@ -1,12 +1,19 @@
 //! 2D texture types
 
+// TODO: do not use composition
+
 use {
     image::GenericImageView,
     rokol::gfx::{self as rg, BakedResource},
     std::{path::Path, rc::Rc},
 };
 
-use crate::gfx::batcher::draw::{CheatTexture2d, OnSpritePush, QuadParamsBuilder, Texture2d};
+use crate::gfx::{
+    batcher::draw::{
+        CheatTexture2d, DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d,
+    },
+    geom2d::Flips,
+};
 
 pub type Result<T> = image::ImageResult<T>;
 
@@ -133,7 +140,7 @@ pub struct SpriteData {
 }
 
 #[derive(Debug, Clone)]
-pub struct NiceSliceSprite {
+pub struct NineSliceSprite {
     pub sprite: SpriteData,
 }
 
@@ -163,6 +170,12 @@ impl AsRef<Texture2dDrop> for SharedSubTexture2d {
 impl AsRef<Texture2dDrop> for SpriteData {
     fn as_ref(&self) -> &Texture2dDrop {
         &self.sub_tex.shared.tex
+    }
+}
+
+impl AsRef<Texture2dDrop> for NineSliceSprite {
+    fn as_ref(&self) -> &Texture2dDrop {
+        &self.sprite.sub_tex.shared.tex
     }
 }
 
@@ -224,6 +237,20 @@ impl Texture2d for SpriteData {
     }
 }
 
+impl Texture2d for NineSliceSprite {
+    fn img(&self) -> rg::Image {
+        self.sprite.img()
+    }
+
+    fn w(&self) -> f32 {
+        self.sprite.w()
+    }
+
+    fn h(&self) -> f32 {
+        self.sprite.h()
+    }
+}
+
 // ----------------------------------------
 
 impl OnSpritePush for Texture2dDrop {
@@ -278,6 +305,24 @@ impl OnSpritePush for SpriteData {
             .uv_rect(self.sub_tex.uv_rect)
             .rot(self.rot)
             .origin(self.origin);
+    }
+}
+
+impl OnSpritePush for NineSliceSprite {
+    fn to_cheat_texture(&self) -> CheatTexture2d {
+        self.sprite.to_cheat_texture()
+    }
+
+    fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
+        self.sprite.init_quad(builder);
+    }
+
+    #[inline]
+    fn push_quad<Q: QuadIter>(&self, draw: &mut DrawApiData<Q>, flips: Flips) {
+        // TODO: nince slice rendering
+        let tex = self.to_cheat_texture();
+        draw.params
+            .write_to_quad(draw.quad_iter.next_quad_mut(tex.img), &tex, flips);
     }
 }
 

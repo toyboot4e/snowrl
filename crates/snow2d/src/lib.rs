@@ -198,7 +198,10 @@ impl<'a> DrawApi for Pass<'a> {
     type Q = BatchData;
 
     /// Starts a [`QuadParamsBuilder`] setting source/destination size and uv values
-    fn sprite<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush<Self::Q, S>
+    fn sprite<'x, S: OnSpritePush + Texture2d>(
+        &mut self,
+        sprite: &'x S,
+    ) -> SpritePush<'_, '_, 'x, Self::Q, S>
     where
         Self: Sized,
     {

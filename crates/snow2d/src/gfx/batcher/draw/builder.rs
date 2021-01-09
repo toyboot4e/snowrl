@@ -51,9 +51,10 @@ pub trait OnSpritePush {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder);
 
     #[inline]
-    fn push_quad<Q: QuadIter>(draw: &mut DrawApiData<Q>, tex: &CheatTexture2d, flips: Flips) {
+    fn push_quad<Q: QuadIter>(&self, draw: &mut DrawApiData<Q>, flips: Flips) {
+        let tex = self.to_cheat_texture();
         draw.params
-            .write_to_quad(draw.quad_iter.next_quad_mut(tex.img), tex, flips);
+            .write_to_quad(draw.quad_iter.next_quad_mut(tex.img), &tex, flips);
     }
 }
 
@@ -167,36 +168,34 @@ pub trait QuadParamsBuilder {
 
 /// Primary interface to push sprite
 #[derive(Debug)]
-pub struct SpritePush<'a, 'b, Q: QuadIter, T: OnSpritePush> {
+pub struct SpritePush<'a, 'b, 'c, Q: QuadIter, T: OnSpritePush> {
     draw: DrawApiData<'a, 'b, Q>,
-    tex: CheatTexture2d,
+    sprite: &'c T,
     flips: Flips,
-    _phantom: PhantomData<T>,
 }
 
 /// Push sprite to batch data when it goes out of scope
-impl<'a, 'b, Q: QuadIter, T: OnSpritePush> Drop for SpritePush<'a, 'b, Q, T> {
+impl<'a, 'b, 'c, Q: QuadIter, T: OnSpritePush> Drop for SpritePush<'a, 'b, 'c, Q, T> {
     fn drop(&mut self) {
-        T::push_quad(&mut self.draw, &self.tex, self.flips);
+        self.sprite.push_quad(&mut self.draw, self.flips);
     }
 }
 
-impl<'a, 'b, Q: QuadIter, T: OnSpritePush> SpritePush<'a, 'b, Q, T> {
-    pub fn new(draw: DrawApiData<'a, 'b, Q>, sprite: &T) -> Self {
+impl<'a, 'b, 'c, Q: QuadIter, T: OnSpritePush> SpritePush<'a, 'b, 'c, Q, T> {
+    pub fn new(draw: DrawApiData<'a, 'b, Q>, sprite: &'c T) -> Self {
         draw.params.reset_to_defaults();
 
         sprite.init_quad(draw.params);
 
         Self {
             draw,
-            tex: sprite.to_cheat_texture(),
+            sprite,
             flips: Flips::NONE,
-            _phantom: Default::default(),
         }
     }
 }
 
-impl<'a, 'b, Q: QuadIter, T: OnSpritePush> QuadParamsBuilder for SpritePush<'a, 'b, Q, T> {
+impl<'a, 'b, 'c, Q: QuadIter, T: OnSpritePush> QuadParamsBuilder for SpritePush<'a, 'b, 'c, Q, T> {
     fn params(&mut self) -> &mut QuadParams {
         &mut self.draw.params
     }

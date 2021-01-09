@@ -64,7 +64,10 @@ impl QuadIter for Batch {
 impl DrawApi for Batch {
     type Q = BatchData;
 
-    fn sprite<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush<Self::Q, S>
+    fn sprite<'a, S: OnSpritePush + Texture2d>(
+        &mut self,
+        sprite: &'a S,
+    ) -> SpritePush<'_, '_, 'a, Self::Q, S>
     where
         Self: Sized,
     {

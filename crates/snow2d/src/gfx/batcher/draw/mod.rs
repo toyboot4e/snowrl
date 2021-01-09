@@ -45,7 +45,10 @@ pub trait DrawApi: QuadIter {
     type Q: QuadIter;
 
     /// Starts a [`QuadParamsBuilder`] setting source/destination size and uv values
-    fn sprite<S: OnSpritePush + Texture2d>(&mut self, sprite: &S) -> SpritePush<Self::Q, S>
+    fn sprite<'a, S: OnSpritePush + Texture2d>(
+        &mut self,
+        sprite: &'a S,
+    ) -> SpritePush<'_, '_, 'a, Self::Q, S>
     where
         Self: Sized;
 
