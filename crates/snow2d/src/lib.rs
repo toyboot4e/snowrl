@@ -64,12 +64,12 @@ pub struct PassConfig<'a> {
 #[derive(Debug)]
 pub struct Snow2d {
     /// Vertex/index buffer and images slots
-    pub batch: Batch,
-    pub fontbook: FontBook,
+    batch: Batch,
+    fontbook: FontBook,
     /// Default pipeline object for on-screen rendering
-    pub screen_pip: rg::Pipeline,
+    screen_pip: rg::Pipeline,
     /// Default pipeline object for off-screen rendering
-    pub ofs_pip: rg::Pipeline,
+    ofs_pip: rg::Pipeline,
 }
 
 impl Snow2d {
@@ -118,6 +118,12 @@ impl Snow2d {
             },
             screen_pip,
             ofs_pip,
+        }
+    }
+
+    pub fn post_update(&mut self) {
+        unsafe {
+            self.fontbook.update_image();
         }
     }
 

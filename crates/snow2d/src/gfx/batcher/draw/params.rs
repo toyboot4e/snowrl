@@ -16,9 +16,8 @@ pub trait Texture2d {
 /// Full-featured geometry parameters to push a quadliteral onto [`Batch`]
 ///
 /// [`Batch`]: crate::gfx::batcher::Batch
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct QuadParams {
-    // TODO: consider using two vectors per src/dest
     pub src_rect: Scaled<Rect2f>,
     pub dst_rect: Scaled<Rect2f>,
     /// Normalized origin
@@ -29,25 +28,11 @@ pub struct QuadParams {
     pub skew: Skew2f,
 }
 
-impl Default for QuadParams {
-    fn default() -> Self {
-        Self {
-            src_rect: Scaled::Normalized(Rect2f::unit()),
-            dst_rect: Scaled::Normalized(Rect2f::default()),
-            origin: Vec2f::default(),
-            color: Color::WHITE,
-            rot: 0.0,
-            flips: Flips::NONE,
-            skew: Skew2f::default(),
-        }
-    }
-}
-
 impl QuadParams {
     pub fn reset_to_defaults(&mut self) {
         // TODO: idionmatically?
-        self.src_rect = Scaled::Normalized(Rect2f::unit());
-        self.dst_rect = Scaled::Normalized(Rect2f::default());
+        self.src_rect = Default::default();
+        self.dst_rect = Default::default();
         self.origin = Vec2f::default();
         self.color = Color::WHITE;
         self.rot = 0.0;
@@ -112,9 +97,7 @@ impl QuadParams {
             },
         };
 
-        // TODO: round
-        // dst_rect.x = dst_rect.x.round();
-        // dst_rect.y = dst_rect.y.round();
+        // TODO: maybe round
 
         (src_rect, dst_rect)
     }

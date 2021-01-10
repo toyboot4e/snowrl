@@ -3,6 +3,7 @@
 use auto_ops::*;
 
 bitflags::bitflags! {
+    #[derive(Default)]
     pub struct Flips: u8 {
         /// Render the sprite as it is
         const NONE = 0;
@@ -14,7 +15,6 @@ bitflags::bitflags! {
     }
 }
 
-// TODO: refactor saceld/unscaled API
 #[derive(Debug, Clone)]
 pub enum Scaled<T> {
     Px(T),
@@ -27,6 +27,12 @@ impl<T> Scaled<T> {
             Scaled::Px(x) => x,
             Scaled::Normalized(x) => x,
         }
+    }
+}
+
+impl<T: Default> Default for Scaled<T> {
+    fn default() -> Self {
+        Self::Px(T::default())
     }
 }
 

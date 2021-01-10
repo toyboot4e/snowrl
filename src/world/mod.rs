@@ -1,4 +1,4 @@
-//! The game world, internals and GUI
+//! The game world, internals and the GUI
 
 pub mod actor;
 pub mod render;
@@ -67,6 +67,10 @@ impl WorldContext {
         self.dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
 
         self.vi.update(&self.input, self.dt);
+    }
+
+    pub fn post_update(&mut self) {
+        self.rdr.post_update();
     }
 
     pub fn render(&mut self) {

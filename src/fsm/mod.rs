@@ -43,9 +43,12 @@ impl Global {
 
     /// Called after updating the FSM (game state)
     pub fn post_update(&mut self) {
+        self.wcx.post_update();
+
         self.world
             .shadow
             .post_update(self.wcx.dt, &self.world.map.rlmap, &self.world.entities[0]);
+
         self.world_render.post_update(self.wcx.dt);
     }
 

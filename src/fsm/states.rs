@@ -7,7 +7,7 @@ use snow2d::{
     gfx::{
         batcher::draw::*,
         geom2d::*,
-        tex::{SpriteData, Texture2dDrop},
+        tex::{NineSliceSprite, SpriteData, Texture2dDrop},
         Color,
     },
     PassConfig,
@@ -17,6 +17,7 @@ use rlbox::rl::grid2d::*;
 
 use crate::{
     fsm::{render::WorldRenderFlag, GameState, Global, StateUpdateResult},
+    paths,
     turn::{
         anim::{AnimResult, AnimUpdateContext},
         tick::{AnimContext, GameLoop, TickResult},
@@ -135,13 +136,14 @@ pub struct Title {
     // TODO: impl selections
     choices: [SpriteData; 3],
     cursor: usize,
+    window: NineSliceSprite,
 }
 
 impl Default for Title {
     fn default() -> Self {
         Self {
             title: SpriteData {
-                sub_tex: Texture2dDrop::from_path(asset::path(crate::paths::img::title::SNOWRL))
+                sub_tex: Texture2dDrop::from_path(asset::path(paths::img::title::SNOWRL))
                     .unwrap()
                     .into_shared()
                     .split([0.0, 0.0, 1.0, 1.0]),
@@ -150,7 +152,7 @@ impl Default for Title {
                 scale: [0.5, 0.5],
             },
             choices: {
-                let tex = Texture2dDrop::from_path(asset::path(crate::paths::img::title::CHOICES))
+                let tex = Texture2dDrop::from_path(asset::path(paths::img::title::CHOICES))
                     .unwrap()
                     .into_shared();
 
@@ -183,6 +185,11 @@ impl Default for Title {
                 ]
             },
             cursor: 0,
+            window: NineSliceSprite {
+                tex: Texture2dDrop::from_path(asset::path(paths::img::sourve::A))
+                    .unwrap()
+                    .into_shared(),
+            },
         }
     }
 }
@@ -252,6 +259,13 @@ impl GameState for Title {
         });
 
         screen.sprite(&self.title).dst_pos_px([400.0, 32.0]);
+
+        screen
+            .sprite(&self.window)
+            .dst_pos_px([100.0, 100.0])
+            .dst_size_px([400.0, 200.0]);
+
+        screen.text([110.0, 130.0], "石焼き芋！　焼き芋〜〜");
 
         let pos = {
             let pos = Vec2f::new(100.0, 340.0);
