@@ -1,6 +1,10 @@
 //! WIP
 
-use std::path::{Path, PathBuf};
+use std::{
+    any::Any,
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 // use crate::gfx::tex::Texture2dDrop;
 
@@ -15,3 +19,12 @@ pub fn path(path: impl AsRef<Path>) -> PathBuf {
 // pub fn load_tex(path: impl AsRef<Path>) -> crate::gfx::tex::Result<Texture2dDrop> {
 //     Texture2dDrop::from_path(self::path(path))
 // }
+
+#[derive(Debug, Default)]
+pub struct AssetCache {
+    caches: HashMap<String, Box<dyn Any>>,
+}
+
+impl AssetCache {
+    //
+}

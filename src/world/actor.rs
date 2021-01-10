@@ -94,14 +94,27 @@ impl ActorImage {
         self.anim_state.tick(dt);
     }
 
-    pub fn render(&self, draw: &mut impl DrawApi, tiled: &tiled::Map) {
+    pub fn pos_screen(&self, tiled: &tiled::Map) -> Vec2f {
         let pos_prev = self.align(self.state.b.pos, tiled);
         let pos_curr = self.align(self.state.a.pos, tiled);
 
         let factor = self.dt / crate::consts::WALK_TIME;
-        let pos = pos_prev * (1.0 - factor) + pos_curr * factor;
+        pos_prev * (1.0 - factor) + pos_curr * factor
+    }
 
-        draw.sprite(self.sprite()).dst_pos_px(pos);
+    pub fn render<'a, 'b, D: DrawApi>(
+        &'a self,
+        draw: &'b mut D,
+        tiled: &tiled::Map,
+    ) -> impl QuadParamsBuilder + 'a
+    where
+        'b: 'a,
+    {
+        let pos = self.pos_screen(tiled);
+
+        let mut x = draw.sprite(self.sprite());
+        x.dst_pos_px(pos);
+        x
     }
 
     /// Align the bottom-center of an actor to the bottom-center of a cell

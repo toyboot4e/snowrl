@@ -44,8 +44,12 @@ impl Default for WorldRenderer {
 }
 
 impl WorldRenderer {
-    pub fn post_update(&mut self, _dt: Duration) {
-        // TODO: fade in / fade out actors
+    pub fn post_update(&mut self, world: &World, dt: Duration) {
+        // resize to ensure capacity
+        if world.entities.len() > self.actor_visibilities.len() {
+            self.actor_visibilities
+                .resize(world.entities.len() + 5, Default::default());
+        }
     }
 
     /// Renders the world (maybe partially)
@@ -62,7 +66,7 @@ impl WorldRenderer {
             }
 
             if flags.contains(WorldRenderFlag::ACTORS) {
-                Self::actors(&mut screen, &world);
+                self.actors(&mut screen, &world, wcx.dt);
             }
         }
 
@@ -87,12 +91,39 @@ impl WorldRenderer {
         );
     }
 
-    fn actors(screen: &mut impl DrawApi, world: &World) {
+    fn actors(&mut self, screen: &mut impl DrawApi, world: &World, dt: Duration) {
+        // FIXME: separate update and render
         // TODO: y sort + culling
-        for e in &world.entities {
-            if world.shadow.fov.a.is_in_view(e.pos) {
-                e.img.render(screen, &world.map.tiled);
+        for (i, e) in world.entities.iter().enumerate() {
+            let x = &mut self.actor_visibilities[i];
+
+            let is_visible = world.shadow.fov.a.is_in_view(e.pos);
+            if is_visible != x.a {
+                x.b = x.a;
+                x.a = is_visible;
+                x.t = Default::default();
             }
+
+            let max = crate::consts::WALK_TIME;
+
+            x.t += dt.as_secs_f32() / max;
+            if x.t > 1.0 {
+                x.t = 1.0;
+            }
+
+            fn b2f(b: bool) -> f32 {
+                if b {
+                    255.0
+                } else {
+                    0.0
+                }
+            }
+
+            let alpha = b2f(x.a) * x.t + b2f(x.b) * (1.0 - x.t);
+
+            e.img
+                .render(screen, &world.map.tiled)
+                .color(Color::WHITE.with_alpha(alpha as u8));
         }
     }
 

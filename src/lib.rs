@@ -53,8 +53,6 @@ impl SnowRl {
 impl rokol::app::RApp for SnowRl {
     fn init(&mut self) {
         rg::setup(&mut rokol::glue::app_desc());
-        // FIXME: it takes too long to load textures. maybe firt show window and then
-        // load resources
         self.x = Some(SnowRlImpl::new());
     }
 

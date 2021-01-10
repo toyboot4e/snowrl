@@ -49,7 +49,7 @@ impl Global {
             .shadow
             .post_update(self.wcx.dt, &self.world.map.rlmap, &self.world.entities[0]);
 
-        self.world_render.post_update(self.wcx.dt);
+        self.world_render.post_update(&self.world, self.wcx.dt);
     }
 
     pub fn on_end_frame(&mut self) {

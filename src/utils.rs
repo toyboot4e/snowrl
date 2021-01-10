@@ -35,7 +35,7 @@ pub struct DoubleTrack<T> {
     /// Back
     pub b: T,
     /// Interpolation value
-    pub dt: Duration,
+    pub t: f32,
 }
 
 impl<T: Default> Default for DoubleTrack<T> {
@@ -43,7 +43,7 @@ impl<T: Default> Default for DoubleTrack<T> {
         Self {
             a: Default::default(),
             b: Default::default(),
-            dt: Default::default(),
+            t: Default::default(),
         }
     }
 }
