@@ -60,6 +60,16 @@ pub struct PassConfig<'a> {
     pub pip: Option<rg::Pipeline>,
 }
 
+impl<'a> Default for PassConfig<'a> {
+    fn default() -> Self {
+        Self {
+            pa: &rg::PassAction::NONE,
+            tfm: None,
+            pip: None,
+        }
+    }
+}
+
 /// The 2D renderer
 #[derive(Debug)]
 pub struct Snow2d {

@@ -6,19 +6,19 @@ pub mod vi;
 
 use {
     rokol::gfx as rg,
+    snow2d::{gfx::Color, Snow2d},
     std::time::{Duration, Instant},
 };
 
-use snow2d::{gfx::Color, Snow2d};
-
-use rlbox::rl::{
-    fov::{FovData, OpacityMap},
-    fow::FowData,
-    grid2d::*,
-    rlmap::TiledRlMap,
+use rlbox::{
+    rl::{
+        fov::{FovData, OpacityMap},
+        fow::FowData,
+        grid2d::*,
+        rlmap::TiledRlMap,
+    },
+    utils::Double,
 };
-
-use crate::utils::Double;
 
 use self::{actor::*, vi::VInput};
 
@@ -89,7 +89,7 @@ impl WorldContext {
 pub struct World {
     pub map: TiledRlMap,
     pub shadow: Shadow,
-    pub entities: Vec<Player>,
+    pub entities: Vec<Actor>,
 }
 
 /// Lifecycle
@@ -103,11 +103,11 @@ impl World {
 
 /// API
 impl World {
-    pub fn player(&self) -> &Player {
+    pub fn player(&self) -> &Actor {
         &self.entities[0]
     }
 
-    pub fn player_mut(&mut self) -> &mut Player {
+    pub fn player_mut(&mut self) -> &mut Actor {
         &mut self.entities[0]
     }
 
@@ -157,7 +157,7 @@ impl Shadow {
     }
 
     /// Call it every frame to animate FoV
-    pub fn post_update(&mut self, dt: Duration, map: &impl OpacityMap, player: &Player) {
+    pub fn post_update(&mut self, dt: Duration, map: &impl OpacityMap, player: &Actor) {
         if self.is_dirty {
             self.calculate(player.pos, map);
             self.is_dirty = false;

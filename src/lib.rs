@@ -14,24 +14,23 @@ pub mod paths;
 pub mod fsm;
 pub mod script;
 pub mod turn;
-pub mod utils;
 pub mod world;
 
 use rokol::{app as ra, gfx as rg};
 
 use {
-    rlbox::rl::{fov::FovData, fow::FowData, grid2d::*, rlmap::TiledRlMap},
+    rlbox::{
+        render::actor::ActorImage,
+        rl::{fov::FovData, fow::FowData, grid2d::*, rlmap::TiledRlMap},
+        utils::Double,
+    },
     snow2d::asset,
 };
 
 use crate::{
     fsm::render::WorldRenderer,
     turn::anim::AnimPlayer,
-    utils::Double,
-    world::{
-        actor::{ActorImage, Player},
-        Shadow, World, WorldContext,
-    },
+    world::{actor::Actor, Shadow, World, WorldContext},
 };
 
 pub fn run(app: rokol::Rokol) -> rokol::Result {
@@ -95,6 +94,7 @@ impl SnowRlImpl {
             fsm.insert_default::<fsm::states::Roguelike>();
             fsm.insert_default::<fsm::states::Animation>();
             fsm.insert_default::<fsm::states::Title>();
+            fsm.insert_default::<fsm::states::PlayScript>();
 
             fsm.push::<fsm::states::Roguelike>(&mut gl);
             fsm.push::<fsm::states::Title>(&mut gl);
@@ -127,6 +127,9 @@ impl rokol::app::RApp for SnowRlImpl {
 pub mod consts {
     //! Magic values (should be removed)
 
+    /// Temporary way to identify player
+    pub const PLAYER: usize = 0;
+
     /// FPS of character graphics animation
     pub const ACTOR_FPS: f32 = 4.0;
 
@@ -138,6 +141,12 @@ pub mod consts {
 
     /// Half frame in seconds (fixed timestep with 60 FPS)
     pub const HALF_FRAME: f32 = 1.0 / 120.0;
+
+    /// Key repeat duration for virtual directionaly key
+    pub const REPEAT_FIRST_FRAMES: u64 = 8;
+
+    /// Key repeat duration for virtual directionaly key
+    pub const REPEAT_MULTI_FRAMES: u64 = 6;
 }
 
 fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {
@@ -179,14 +188,21 @@ fn load_actors(w: &mut World) -> anyhow::Result<()> {
     let img = {
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
-        ActorImage::from_path(asset::path(crate::paths::IKA_CHAN), pos, dir)?
+
+        ActorImage::from_path(
+            asset::path(crate::paths::IKA_CHAN),
+            crate::consts::ACTOR_FPS,
+            crate::consts::WALK_TIME,
+            pos,
+            dir,
+        )?
     };
 
     w.entities.push({
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
 
-        let player = Player {
+        let player = Actor {
             pos,
             dir,
             img: {
@@ -202,7 +218,7 @@ fn load_actors(w: &mut World) -> anyhow::Result<()> {
     w.entities.push({
         let pos = Vec2i::new(14, 12);
         let dir = Dir8::S;
-        Player {
+        Actor {
             pos,
             dir,
             img: {
@@ -216,7 +232,7 @@ fn load_actors(w: &mut World) -> anyhow::Result<()> {
     w.entities.push({
         let pos = Vec2i::new(25, 18);
         let dir = Dir8::S;
-        Player {
+        Actor {
             pos,
             dir,
             img: {

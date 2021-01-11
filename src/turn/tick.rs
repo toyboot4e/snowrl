@@ -19,9 +19,12 @@ use std::{
     rc::Rc,
 };
 
+use downcast_rs::{impl_downcast, Downcast};
+
+use rlbox::utils::Cheat;
+
 use crate::{
     turn::{anim::Anim, ev},
-    utils::Cheat,
     world::{World, WorldContext},
 };
 
@@ -41,16 +44,16 @@ struct TickContext {
 
 // do we actually need it?
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ActorIndex(pub usize);
+pub struct ActorIx(pub usize);
 
 #[derive(Debug)]
 pub enum TickResult {
     /// Yielded when an actor takes turn
-    TakeTurn(ActorIndex),
-    /// Yielded when a new command is emitted
-    Command(Rc<dyn Command>),
+    TakeTurn(ActorIx),
+    /// Yielded when a new [`Event`] is emitted
+    Event(Rc<dyn Event>),
     /// Yielded when processing a command takes greater than or equal to one frame
-    ProcessingCommand,
+    ProcessingEvent,
 }
 
 /// Roguelike game loop
@@ -98,42 +101,42 @@ impl GameLoop {
 /// Internal game loop implemented as a generator
 fn game_loop() -> Gen {
     Box::new(|mut tcx: TickContext| {
-        // TODO: separate TickState so that it can be observed
         let mut actor_ix = 0;
 
         loop {
-            // TODO: do not hard code entity actions
-            let actor = ActorIndex(actor_ix);
+            let actor = ActorIx(actor_ix);
             yield TickResult::TakeTurn(actor);
 
-            let mut cmd: Rc<dyn Command> = match actor.0 {
-                0 => Rc::new(ev::PlayerTurn { actor }),
+            // TODO: do not hard code entity actions
+            let mut ev: Rc<dyn Event> = match actor.0 {
+                crate::consts::PLAYER => Rc::new(ev::PlayerTurn { actor }),
                 _ => Rc::new(ev::RandomWalk { actor }),
             };
 
             // process command
-            loop {
-                yield TickResult::Command(cmd.clone());
+            yield TickResult::Event(ev.clone());
 
-                let mut ccx = CommandContext {
+            loop {
+                let mut ecx = EventContext {
                     world: &mut tcx.world,
                     wcx: &mut tcx.wcx,
                 };
 
-                match cmd.run(&mut ccx) {
-                    CommandResult::GotoNextFrame => {
+                match ev.run(&mut ecx) {
+                    EventResult::GotoNextFrame => {
                         // wait for next frame
-                        yield TickResult::ProcessingCommand;
-                        break;
+                        yield TickResult::ProcessingEvent;
+                        continue;
                     }
-                    CommandResult::Finish => {
+                    EventResult::Finish => {
                         // go to next actor
                         actor_ix += 1;
                         actor_ix %= tcx.world.entities.len();
                         break;
                     }
-                    CommandResult::Chain(new_cmd) => {
-                        cmd = new_cmd.into();
+                    EventResult::Chain(new_ev) => {
+                        ev = new_ev.into();
+                        yield TickResult::Event(ev.clone());
                         continue;
                     }
                 }
@@ -144,7 +147,7 @@ fn game_loop() -> Gen {
     })
 }
 
-// ----------------------------------------
+// --------------------------------------------------------------------------------
 // Animation
 
 /// Context for making animation
@@ -160,54 +163,53 @@ pub trait GenAnim {
     }
 }
 
-// ----------------------------------------
-// Command
+// --------------------------------------------------------------------------------
+// Event
 
-/// Context for any command to process
+/// Context for event handling, both internals ang GUI
 #[derive(Debug)]
-pub struct CommandContext<'a, 'b> {
+pub struct EventContext<'a, 'b> {
     pub world: &'a mut World,
     pub wcx: &'b mut WorldContext,
 }
 
-/// Return value of command processing
+/// Return value of event handling
 #[derive(Debug)]
-pub enum CommandResult {
+pub enum EventResult {
     /// Interactive actions can take multiple frames returning this varient
     GotoNextFrame,
     Finish,
-    // TODO: chain multiple commands
-    Chain(Box<dyn Command>),
+    Chain(Box<dyn Event>),
 }
 
-impl CommandResult {
-    pub fn chain<T: Command + 'static>(cmd: T) -> Self {
-        Self::Chain(Box::new(cmd))
+impl EventResult {
+    pub fn chain<T: Event + 'static>(ev: T) -> Self {
+        Self::Chain(Box::new(ev))
     }
 }
 
-/// Special event that can run itself
-///
 /// TODO: prefer chain-of-responsibility pattern
-pub trait Command: fmt::Debug + GenAnim {
-    fn run(&self, ccx: &mut CommandContext) -> CommandResult;
+pub trait Event: fmt::Debug + Downcast + GenAnim {
+    fn run(&self, ecx: &mut EventContext) -> EventResult;
 }
+
+impl_downcast!(Event);
 
 // TODO: do we need them? or `get_mut` might make sense
 // `impl Trait for Box<dyn trait>`
 
 impl<T: GenAnim + ?Sized> GenAnim for Box<T> {}
 
-impl<T: Command + ?Sized> Command for Box<T> {
-    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
-        (**self).run(ccx)
+impl<T: Event + ?Sized> Event for Box<T> {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        (**self).run(ecx)
     }
 }
 
 impl<T: GenAnim + ?Sized> GenAnim for Rc<T> {}
 
-impl<T: Command + ?Sized> Command for Rc<T> {
-    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
-        (**self).run(ccx)
+impl<T: Event + ?Sized> Event for Rc<T> {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        (**self).run(ecx)
     }
 }

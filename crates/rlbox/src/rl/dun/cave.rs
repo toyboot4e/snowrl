@@ -8,7 +8,7 @@ use {
     std::{io, io::prelude::*},
 };
 
-use crate::utils::Double;
+use crate::utils::DoubleSwap;
 
 /// Cellilar automata
 pub fn ca_gen_cave(size: [usize; 2], prob_init_floor: usize, n_steps: usize) -> Vec<bool> {
@@ -22,7 +22,7 @@ pub fn ca_gen_cave(size: [usize; 2], prob_init_floor: usize, n_steps: usize) -> 
 
 pub struct CaveMap {
     /// Floor if it's true, wall if it's false. Indexed as [x + y * width]
-    bufs: Double<Vec<bool>>,
+    bufs: DoubleSwap<Vec<bool>>,
     /// Width, height
     size: [usize; 2],
 }
@@ -95,7 +95,7 @@ impl CaveGenAdvance {
         }
 
         let b = cells.clone();
-        let bufs = Double::new(cells, b);
+        let bufs = DoubleSwap::new(cells, b);
 
         Self {
             map: CaveMap { bufs, size },

@@ -141,6 +141,18 @@ impl From<&[i32; 2]> for Vec2i {
     }
 }
 
+impl From<Dir4> for Vec2i {
+    fn from(x: Dir4) -> Self {
+        Self::new(x.x_sign().to_i32(), x.y_sign().to_i32())
+    }
+}
+
+impl From<Dir8> for Vec2i {
+    fn from(x: Dir8) -> Self {
+        Self::new(x.x_sign().to_i32(), x.y_sign().to_i32())
+    }
+}
+
 /// Point in pixels
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Vec2u {

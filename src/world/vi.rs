@@ -15,8 +15,8 @@ impl VInput {
     // TODO: use serde for configuration
     pub fn new() -> Self {
         let dir_repeat = KeyRepeat::Repeat {
-            first: Duration::from_nanos(1_000_000_000 / 60 * 8),
-            multi: Duration::from_nanos(1_000_000_000 / 60 * 6),
+            first: Duration::from_nanos(1_000_000_000 / 60 * crate::consts::REPEAT_FIRST_FRAMES),
+            multi: Duration::from_nanos(1_000_000_000 / 60 * crate::consts::REPEAT_MULTI_FRAMES),
         };
 
         Self {

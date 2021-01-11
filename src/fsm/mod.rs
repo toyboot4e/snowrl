@@ -9,9 +9,10 @@ Stack-based finite state machine and a scheduler of renderers
 pub mod render;
 pub mod states;
 
-use std::{any::TypeId, collections::HashMap};
-
-use rokol::app as ra;
+use {
+    rokol::app as ra,
+    std::{any::TypeId, collections::HashMap},
+};
 
 use crate::{
     fsm::render::WorldRenderer,
@@ -26,8 +27,9 @@ pub struct Global {
     // TODO: rename it to global context
     pub wcx: WorldContext,
     pub world_render: WorldRenderer,
-    // Roguelike game animations
+    /// Roguelike game animations (TODO: remove it. use event to pass animation object)
     pub anims: AnimPlayer,
+    // TODO: add AssetCache
 }
 
 impl Global {
@@ -57,16 +59,16 @@ impl Global {
     }
 }
 
-// /// Dynamic scheduler of the fixed set of renderers
-// #[derive(Debug)]
-// pub struct RenderFlow {
-//     pub flags: RendererFlag,
-// }
-
 pub trait GameState: std::fmt::Debug {
     fn event(&mut self, _ev: &ra::Event, _gl: &mut Global) {}
     fn update(&mut self, _gl: &mut Global) -> StateUpdateResult;
-    fn render(&mut self, _gl: &mut Global);
+
+    fn render(&mut self, gl: &mut Global) {
+        use crate::fsm::render::WorldRenderFlag;
+        let flags = WorldRenderFlag::ALL;
+        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
+    }
+
     fn on_enter(&mut self, _gl: &mut Global) {}
     fn on_exit(&mut self, _gl: &mut Global) {}
     // TODO: use proper name
@@ -77,6 +79,7 @@ pub trait GameState: std::fmt::Debug {
 pub enum StateUpdateResult {
     GotoNextFrame,
     PushAndRun(TypeId),
+    PushAndRunNextFrame(TypeId),
     PopAndRun,
 }
 
@@ -110,6 +113,10 @@ impl Fsm {
                 StateUpdateResult::PushAndRun(next_state) => {
                     self.push_id(next_state, gl);
                     continue;
+                }
+                StateUpdateResult::PushAndRunNextFrame(next_state) => {
+                    self.push_id(next_state, gl);
+                    break;
                 }
                 StateUpdateResult::PopAndRun => {
                     self.pop(gl);

@@ -1,4 +1,5 @@
 use {
+    rlbox::utils::DoubleTrack,
     rokol::{app as ra, gfx as rg},
     snow2d::{
         gfx::{batcher::draw::*, geom2d::*, Color},
@@ -7,10 +8,7 @@ use {
     std::time::Duration,
 };
 
-use crate::{
-    utils::DoubleTrack,
-    world::{render::*, World, WorldContext},
-};
+use crate::world::{render::*, World, WorldContext};
 
 bitflags::bitflags! {
     /// Fixed set of renderers
@@ -44,7 +42,7 @@ impl Default for WorldRenderer {
 }
 
 impl WorldRenderer {
-    pub fn post_update(&mut self, world: &World, dt: Duration) {
+    pub fn post_update(&mut self, world: &World, _dt: Duration) {
         // resize to ensure capacity
         if world.entities.len() > self.actor_visibilities.len() {
             self.actor_visibilities

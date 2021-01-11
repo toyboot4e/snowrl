@@ -9,13 +9,11 @@ e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
 
 */
 
-use rlbox::rl::grid2d::*;
-
-use xdl::Key;
+use {rlbox::rl::grid2d::*, xdl::Key};
 
 use crate::turn::{
     anim::{self, Anim},
-    tick::{ActorIndex, AnimContext, Command, CommandContext, CommandResult, GenAnim},
+    tick::{ActorIx, AnimContext, Event, EventContext, EventResult, GenAnim},
 };
 
 /// Some action resulted in a non-turn consuming action
@@ -25,12 +23,12 @@ use crate::turn::{
 /// FIXME: unintentional side effects
 #[derive(Debug)]
 pub struct NotConsumeTurn {
-    pub actor: ActorIndex,
+    pub actor: ActorIx,
 }
 
 impl GenAnim for NotConsumeTurn {
     fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
-        if self.actor.0 == 0 {
+        if self.actor.0 == crate::consts::PLAYER {
             // wait for one frame so that we won't enter inifinite loop
             Some(Box::new(anim::Wait { frames: 1 }))
         } else {
@@ -39,13 +37,13 @@ impl GenAnim for NotConsumeTurn {
     }
 }
 
-impl Command for NotConsumeTurn {
-    fn run(&self, _ccx: &mut CommandContext) -> CommandResult {
-        if self.actor.0 == 0 {
+impl Event for NotConsumeTurn {
+    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+        if self.actor.0 == crate::consts::PLAYER {
             // TODO: require one frame wait
-            CommandResult::chain(PlayerTurn { actor: self.actor })
+            EventResult::chain(PlayerTurn { actor: self.actor })
         } else {
-            CommandResult::Finish
+            EventResult::Finish
         }
     }
 }
@@ -58,7 +56,7 @@ impl Command for NotConsumeTurn {
 
 #[derive(Debug)]
 pub struct ChangeDir {
-    pub actor: ActorIndex,
+    pub actor: ActorIx,
     pub dir: Dir8,
 }
 
@@ -69,12 +67,12 @@ impl GenAnim for ChangeDir {
     }
 }
 
-impl Command for ChangeDir {
-    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
-        let actor = &mut ccx.world.entities[self.actor.0];
+impl Event for ChangeDir {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        let actor = &mut ecx.world.entities[self.actor.0];
         actor.dir = self.dir;
 
-        CommandResult::chain(NotConsumeTurn { actor: self.actor })
+        EventResult::chain(NotConsumeTurn { actor: self.actor })
     }
 }
 
@@ -88,7 +86,7 @@ pub enum MoveContext {
 /// Change in actor's position and direction
 #[derive(Debug)]
 pub struct Move {
-    pub actor: ActorIndex,
+    pub actor: ActorIx,
     pub mcx: MoveContext,
     pub from_pos: Vec2i,
     pub from_dir: Dir8,
@@ -102,15 +100,15 @@ impl GenAnim for Move {
     }
 }
 
-impl Command for Move {
-    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
-        if !ccx.world.is_blocked(self.to_pos) {
-            let actor = &mut ccx.world.entities[self.actor.0];
+impl Event for Move {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        if !ecx.world.is_blocked(self.to_pos) {
+            let actor = &mut ecx.world.entities[self.actor.0];
             actor.dir = self.to_dir;
             actor.pos = self.to_pos;
-            CommandResult::Finish
+            EventResult::Finish
         } else {
-            CommandResult::chain(ChangeDir {
+            EventResult::chain(ChangeDir {
                 actor: self.actor,
                 dir: self.to_dir,
             })
@@ -121,52 +119,48 @@ impl Command for Move {
 // --------------------------------------------------------------------------------
 // Higher-level commands
 
-/// Attack in direction
+// /// TODO: Attack in direction
+// #[derive(Debug)]
+// pub struct Attack {
+//     pub actor: ActorIx,
+//     pub dir: Dir8,
+// }
+
+// impl GenAnim for Attack {}
+
+// --------------------------------------------------------------------------------
+// Interactive commands
+
 #[derive(Debug)]
-pub struct Attack {
-    pub actor: ActorIndex,
-    pub dir: Dir8,
+pub struct Talk {
+    pub from: ActorIx,
+    pub to: ActorIx,
 }
 
-impl GenAnim for Attack {}
+impl GenAnim for Talk {}
 
-#[derive(Debug)]
-pub struct RandomWalk {
-    pub actor: ActorIndex,
-}
-
-impl GenAnim for RandomWalk {}
-
-impl Command for RandomWalk {
-    fn run(&self, _ccx: &mut CommandContext) -> CommandResult {
-        let dir = {
-            use rand::Rng;
-            let mut rng = rand::thread_rng();
-            Dir8::CLOCKWISE[rng.gen_range(0..8)]
-        };
-
-        CommandResult::chain(PlayerWalk {
-            actor: self.actor,
-            dir,
-        })
+impl Event for Talk {
+    /// [`Talk`] event should be handled exterally by GUI
+    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+        EventResult::Finish
     }
 }
 
 // --------------------------------------------------------------------------------
-// Player control
+// Player commands
 
 /// Walk or change direction and chain [`PlayerTurn`]
 #[derive(Debug)]
 pub struct PlayerWalk {
-    pub actor: ActorIndex,
+    pub actor: ActorIx,
     pub dir: Dir8,
 }
 
 impl GenAnim for PlayerWalk {}
 
-impl Command for PlayerWalk {
-    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
-        let CommandContext { world, wcx } = ccx;
+impl Event for PlayerWalk {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        let EventContext { world, wcx } = ecx;
 
         let actor = &mut world.entities[self.actor.0];
         let pos = actor.pos + Vec2i::from(self.dir.signs_i32());
@@ -178,15 +172,14 @@ impl Command for PlayerWalk {
             .is_any_key_down(&[Key::LeftShift, Key::RightShift]);
 
         if is_rotate_only || world.is_blocked(pos) {
-            // TODO: change direction without consuming turn
-            CommandResult::chain(ChangeDir {
+            EventResult::chain(ChangeDir {
                 actor: self.actor,
                 dir: self.dir,
             })
         } else {
             let actor = &world.entities[self.actor.0];
 
-            CommandResult::chain(Move {
+            EventResult::chain(Move {
                 actor: self.actor,
                 mcx: MoveContext::Walk,
                 from_pos: actor.pos,
@@ -198,23 +191,90 @@ impl Command for PlayerWalk {
     }
 }
 
+// TODO: impl Interact delegating the process to FSM
+#[derive(Debug)]
+pub struct Interact {
+    pub actor: ActorIx,
+    pub dir: Dir8,
+}
+
+impl GenAnim for Interact {}
+
+impl Event for Interact {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        let actor = &ecx.world.entities[self.actor.0];
+        let pos = actor.pos + Vec2i::from(self.dir);
+
+        if let Some(target) = ecx
+            .world
+            .entities
+            .iter()
+            .enumerate()
+            .find(|(_i, e)| e.pos == pos)
+            .map(|(i, _e)| i)
+        {
+            EventResult::chain(Talk {
+                from: self.actor,
+                to: ActorIx(target),
+            })
+        } else {
+            EventResult::chain(NotConsumeTurn { actor: self.actor })
+        }
+    }
+}
+
+// --------------------------------------------------------------------------------
+// Entity control
+
 /// Interactive command for player input
 #[derive(Debug)]
 pub struct PlayerTurn {
-    pub actor: ActorIndex,
+    pub actor: ActorIx,
 }
 
 impl GenAnim for PlayerTurn {}
 
-impl Command for PlayerTurn {
-    fn run(&self, ccx: &mut CommandContext) -> CommandResult {
-        if let Some(dir) = ccx.wcx.vi.dir.dir8_down() {
-            CommandResult::chain(PlayerWalk {
+impl Event for PlayerTurn {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        let vi = &mut ecx.wcx.vi;
+
+        if vi.select.is_pressed() {
+            let dir = ecx.world.entities[self.actor.0].dir;
+
+            return EventResult::chain(Interact {
                 actor: self.actor,
                 dir,
-            })
-        } else {
-            CommandResult::GotoNextFrame
+            });
         }
+        if let Some(dir) = vi.dir.dir8_down() {
+            return EventResult::chain(PlayerWalk {
+                actor: self.actor,
+                dir,
+            });
+        }
+
+        EventResult::GotoNextFrame
+    }
+}
+
+#[derive(Debug)]
+pub struct RandomWalk {
+    pub actor: ActorIx,
+}
+
+impl GenAnim for RandomWalk {}
+
+impl Event for RandomWalk {
+    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+        let dir = {
+            use rand::Rng;
+            let mut rng = rand::thread_rng();
+            Dir8::CLOCKWISE[rng.gen_range(0..8)]
+        };
+
+        EventResult::chain(PlayerWalk {
+            actor: self.actor,
+            dir,
+        })
     }
 }

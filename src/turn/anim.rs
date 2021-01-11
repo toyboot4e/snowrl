@@ -11,7 +11,7 @@ use downcast_rs::{impl_downcast, Downcast};
 use std::{collections::VecDeque, fmt, time::Duration};
 
 use crate::{
-    turn::tick::ActorIndex,
+    turn::tick::ActorIx,
     world::{World, WorldContext},
 };
 
@@ -162,11 +162,11 @@ impl Anim for Wait {
 pub struct WalkAnim {
     pub dt: Duration,
     /// Batch walk animations
-    pub actors: Vec<ActorIndex>,
+    pub actors: Vec<ActorIx>,
 }
 
 impl WalkAnim {
-    pub fn new(actor: ActorIndex) -> Self {
+    pub fn new(actor: ActorIx) -> Self {
         Self {
             dt: Duration::new(0, 0),
             actors: {

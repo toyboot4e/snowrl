@@ -1,6 +1,4 @@
-use std::any::TypeId;
-
-use rokol::gfx as rg;
+use {rokol::gfx as rg, std::any::TypeId};
 
 use snow2d::{
     asset,
@@ -20,6 +18,7 @@ use crate::{
     paths,
     turn::{
         anim::{AnimResult, AnimUpdateContext},
+        ev,
         tick::{AnimContext, GameLoop, TickResult},
     },
 };
@@ -34,6 +33,9 @@ pub struct Roguelike {
 
 impl GameState for Roguelike {
     fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
+        if gl.wcx.vi.select.is_pressed() {
+            log::trace!("ENTER");
+        }
         loop {
             let res = self.game_loop.tick(&mut gl.world, &mut gl.wcx);
             // log::trace!("{:?}", res);
@@ -48,30 +50,26 @@ impl GameState for Roguelike {
                             return StateUpdateResult::PushAndRun(TypeId::of::<Animation>());
                         }
 
-                        let is_on_same_frame = self.last_frame_on_tick == self.current_frame_count;
-                        self.last_frame_on_tick = self.current_frame_count;
-                        if is_on_same_frame {
+                        if self.last_frame_on_tick == self.current_frame_count {
                             // another player turn after all actors taking turns.
                             // maybe all actions didn't take any frame.
                             // force waiting for a frame to ensure we don't enter inifinite loop:
+                            log::trace!("avoid loop");
                             return StateUpdateResult::GotoNextFrame;
                         }
+
+                        self.last_frame_on_tick = self.current_frame_count;
                     }
 
                     continue;
                 }
-                TickResult::Command(cmd) => {
-                    // log::trace!("command: {:?}", cmd);
-
-                    // try to create animation
-                    let mut acx = AnimContext {
+                TickResult::Event(ev) => {
+                    // play animations if any
+                    if let Some(anim) = ev.gen_anim(&mut AnimContext {
                         world: &mut gl.world,
                         wcx: &mut gl.wcx,
-                    };
-
-                    // play animations if any
-                    if let Some(anim) = cmd.gen_anim(&mut acx) {
-                        // log::trace!("command animation: {:?}", anim);
+                    }) {
+                        // log::trace!("event animation: {:?}", anim);
 
                         gl.anims.enqueue_boxed(anim);
 
@@ -82,9 +80,18 @@ impl GameState for Roguelike {
                         }
                     }
 
+                    // handle delegated event
+                    // FIXME: don't use downcast to handle events
+                    let any = (*ev).as_any();
+
+                    if let Some(_talk) = any.downcast_ref::<ev::Talk>() {
+                        // TODO: push with parameter using global variable
+                        return StateUpdateResult::PushAndRunNextFrame(TypeId::of::<PlayScript>());
+                    }
+
                     continue;
                 }
-                TickResult::ProcessingCommand => {
+                TickResult::ProcessingEvent => {
                     return StateUpdateResult::GotoNextFrame;
                 }
             }
@@ -98,6 +105,8 @@ impl GameState for Roguelike {
 }
 
 /// Roguelike game animation state
+///
+/// TODO: Animation should have the anmation queue and handle PushAnim event (if possible)
 #[derive(Debug, Default)]
 pub struct Animation {}
 
@@ -132,17 +141,16 @@ impl GameState for Animation {
 /// Title screen
 #[derive(Debug)]
 pub struct Title {
-    title: SpriteData,
+    logo: SpriteData,
     // TODO: impl selections
     choices: [SpriteData; 3],
     cursor: usize,
-    window: NineSliceSprite,
 }
 
 impl Default for Title {
     fn default() -> Self {
         Self {
-            title: SpriteData {
+            logo: SpriteData {
                 sub_tex: Texture2dDrop::from_path(asset::path(paths::img::title::SNOWRL))
                     .unwrap()
                     .into_shared()
@@ -185,11 +193,6 @@ impl Default for Title {
                 ]
             },
             cursor: 0,
-            window: NineSliceSprite {
-                tex: Texture2dDrop::from_path(asset::path(paths::img::sourve::A))
-                    .unwrap()
-                    .into_shared(),
-            },
         }
     }
 }
@@ -258,15 +261,10 @@ impl GameState for Title {
             pip: None,
         });
 
-        screen.sprite(&self.title).dst_pos_px([400.0, 32.0]);
+        // title logo
+        screen.sprite(&self.logo).dst_pos_px([400.0, 32.0]);
 
-        screen
-            .sprite(&self.window)
-            .dst_pos_px([100.0, 100.0])
-            .dst_size_px([400.0, 200.0]);
-
-        screen.text([110.0, 130.0], "石焼き芋！　焼き芋〜〜");
-
+        // choices (TODO: animate selection transition)
         let pos = {
             let pos = Vec2f::new(100.0, 340.0);
             let delta_y = 100.0;
@@ -311,5 +309,47 @@ impl GameState for Title {
         // };
 
         // gl.anims.on_start(&mut ucx);
+    }
+}
+
+#[derive(Debug)]
+pub struct PlayScript {
+    window: NineSliceSprite,
+}
+
+impl Default for PlayScript {
+    fn default() -> Self {
+        Self {
+            window: NineSliceSprite {
+                tex: Texture2dDrop::from_path(asset::path(paths::img::sourve::A))
+                    .unwrap()
+                    .into_shared(),
+            },
+        }
+    }
+}
+
+impl GameState for PlayScript {
+    fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
+        if gl.wcx.vi.select.is_pressed() {
+            // Exit on enter
+            StateUpdateResult::PopAndRun
+        } else {
+            StateUpdateResult::GotoNextFrame
+        }
+    }
+
+    fn render(&mut self, gl: &mut Global) {
+        let flags = WorldRenderFlag::ALL;
+        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
+
+        let mut screen = gl.wcx.rdr.screen(Default::default());
+
+        screen
+            .sprite(&self.window)
+            .dst_pos_px([100.0, 100.0])
+            .dst_size_px([400.0, 200.0]);
+
+        screen.text([110.0, 130.0], "石焼き芋！　焼き芋〜〜");
     }
 }
