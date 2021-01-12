@@ -25,6 +25,7 @@ use self::{actor::*, vi::VInput};
 /// Powers the game [`World`]
 #[derive(Debug)]
 pub struct WorldContext {
+    window_title: String,
     /// 2D renderer
     pub rdr: Snow2d,
     pub soloud: soloud::Soloud,
@@ -39,9 +40,10 @@ pub struct WorldContext {
     pub start_time: Instant,
 }
 
-impl Default for WorldContext {
-    fn default() -> Self {
+impl WorldContext {
+    pub fn new(title: String) -> Self {
         Self {
+            window_title: title,
             rdr: unsafe { Snow2d::new() },
             // TODO: do not unwrap and make a dummy
             soloud: soloud::Soloud::default().unwrap(),
@@ -53,9 +55,7 @@ impl Default for WorldContext {
             start_time: Instant::now(),
         }
     }
-}
 
-impl WorldContext {
     pub fn event(&mut self, ev: &rokol::app::Event) {
         self.input.event(ev);
     }

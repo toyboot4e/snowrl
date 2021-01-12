@@ -10,7 +10,7 @@ use {
 
 use crate::gfx::{
     batcher::draw::{DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d},
-    geom2d::{Flips, Scaled},
+    geom2d::{Flips, Scaled, Vec2f},
 };
 
 pub type Result<T> = image::ImageResult<T>;
@@ -300,12 +300,12 @@ impl OnSpritePush for NineSliceSprite {
 
         let ws = {
             let w = self.tex.w() / 3.0;
-            [0.0, w, dst_size[0] - 2.0 * w, w]
+            [w, dst_size[0] - 2.0 * w, w]
         };
 
         let hs = {
             let h = self.tex.h() / 3.0;
-            [0.0, h, dst_size[1] - 2.0 * h, h]
+            [h, dst_size[1] - 2.0 * h, h]
         };
 
         for i in 0..9 {
@@ -314,10 +314,15 @@ impl OnSpritePush for NineSliceSprite {
 
             let uv = [ix as f32 / 3.0, iy as f32 / 3.0, 1.0 / 3.0, 1.0 / 3.0];
 
+            let pos = Vec2f::new(
+                dst_pos[0] + ws.iter().take(ix).sum::<f32>(),
+                dst_pos[1] + hs.iter().take(iy).sum::<f32>(),
+            );
+
             draw.params
                 .uv_rect(uv)
-                .dst_pos_px([dst_pos[0] + ws[ix], dst_pos[1] + hs[iy]])
-                .dst_size_px([ws[ix + 1], hs[iy + 1]]);
+                .dst_pos_px(pos)
+                .dst_size_px([ws[ix], hs[iy]]);
 
             draw.params.write_to_quad(
                 draw.quad_iter.next_quad_mut(self.tex.img()),

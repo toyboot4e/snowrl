@@ -133,7 +133,7 @@ impl Snow2d {
 
     pub fn post_update(&mut self) {
         unsafe {
-            self.fontbook.update_image();
+            self.fontbook.maybe_update_image();
         }
     }
 
@@ -226,22 +226,29 @@ impl<'a> DrawApi for Pass<'a> {
 }
 
 impl<'a> Pass<'a> {
+    pub fn fontbook(&mut self) -> &mut FontBook {
+        &mut self.snow.fontbook
+    }
+
     /// TODO: add it to DrawApi
     pub fn text(&mut self, pos: impl Into<Vec2f>, text: &str) {
         // use non-premultipiled alpha blending
 
-        // FIXME: fontstash should handle newline.. but not. why?
+        // FIXME: fontstash _should_ handle newline.. but not. why?
         // self.render_text_line(text, pos.into());
 
-        let pos = pos.into();
-        let nl_space = 20.0 + 2.0;
+        // we have to draw text line by line
+        let fontsize = 20.0; // really?
+        let nl_space = 2.0;
 
+        let pos = pos.into();
+        let nl_offset = fontsize + nl_space;
         for (i, line) in text.lines().enumerate() {
-            let pos = pos + Vec2f::new(0.0, nl_space * i as f32);
+            let pos = pos + Vec2f::new(0.0, nl_offset * i as f32);
             self.render_text_line(pos, line);
         }
 
-        // dcx.flush();
+        // TODO: ensure flushing?
     }
 
     #[inline]

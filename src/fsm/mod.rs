@@ -16,6 +16,7 @@ use {
 
 use crate::{
     fsm::render::WorldRenderer,
+    script::ScriptRef,
     turn::anim::AnimPlayer,
     world::{World, WorldContext},
 };
@@ -29,6 +30,7 @@ pub struct Global {
     pub world_render: WorldRenderer,
     /// Roguelike game animations (TODO: remove it. use event to pass animation object)
     pub anims: AnimPlayer,
+    pub script_to_play: Option<ScriptRef>,
     // TODO: add AssetCache
 }
 
@@ -59,6 +61,7 @@ impl Global {
     }
 }
 
+/// TODO: consider parameter on push and pass using downcast
 pub trait GameState: std::fmt::Debug {
     fn event(&mut self, _ev: &ra::Event, _gl: &mut Global) {}
     fn update(&mut self, _gl: &mut Global) -> StateUpdateResult;

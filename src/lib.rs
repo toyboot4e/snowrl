@@ -34,25 +34,25 @@ use crate::{
 };
 
 pub fn run(app: rokol::Rokol) -> rokol::Result {
-    app.run(&mut SnowRl::new())
+    app.run(&mut SnowRl {
+        x: None,
+        default_window_title: app.title.clone(),
+    })
 }
 
 pub struct SnowRl {
     /// Use `Option` for lazy initialization
     x: Option<SnowRlImpl>,
+    default_window_title: String,
 }
 
-impl SnowRl {
-    pub fn new() -> Self {
-        Self { x: None }
-    }
-}
-
-/// Delay the initialization
+/// `sokol_app.h` provides with a 60 FPS game loop!
 impl rokol::app::RApp for SnowRl {
     fn init(&mut self) {
         rg::setup(&mut rokol::glue::app_desc());
-        self.x = Some(SnowRlImpl::new());
+        // Now we have access to `rokol::gfx`!
+        // So we can initialize the actual game:
+        self.x = Some(SnowRlImpl::new(self.default_window_title.clone()));
     }
 
     fn event(&mut self, ev: &ra::Event) {
@@ -68,6 +68,10 @@ impl rokol::app::RApp for SnowRl {
     }
 }
 
+/// Runs a [`Fsm`] with some [`Global`] data
+///
+/// [`Fsm`] fsm::Fsm
+/// [`Global`] fsm::Global
 #[derive(Debug)]
 struct SnowRlImpl {
     gl: fsm::Global,
@@ -75,9 +79,9 @@ struct SnowRlImpl {
 }
 
 impl SnowRlImpl {
-    pub fn new() -> Self {
+    pub fn new(title: String) -> Self {
         let mut gl = {
-            let wcx = WorldContext::default();
+            let wcx = WorldContext::new(title);
             let world = self::init_world(&wcx).unwrap();
 
             fsm::Global {
@@ -85,6 +89,7 @@ impl SnowRlImpl {
                 wcx,
                 world_render: WorldRenderer::default(),
                 anims: AnimPlayer::default(),
+                script_to_play: None,
             }
         };
 
@@ -147,6 +152,9 @@ pub mod consts {
 
     /// Key repeat duration for virtual directionaly key
     pub const REPEAT_MULTI_FRAMES: u64 = 6;
+
+    /// [x, y]
+    pub const MESSAGE_PAD_EACH: [f32; 2] = [12.0, 8.0];
 }
 
 fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {

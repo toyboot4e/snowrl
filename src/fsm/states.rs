@@ -16,6 +16,7 @@ use rlbox::rl::grid2d::*;
 use crate::{
     fsm::{render::WorldRenderFlag, GameState, Global, StateUpdateResult},
     paths,
+    script::ScriptRef,
     turn::{
         anim::{AnimResult, AnimUpdateContext},
         ev,
@@ -84,8 +85,12 @@ impl GameState for Roguelike {
                     // FIXME: don't use downcast to handle events
                     let any = (*ev).as_any();
 
-                    if let Some(_talk) = any.downcast_ref::<ev::Talk>() {
-                        // TODO: push with parameter using global variable
+                    if let Some(talk) = any.downcast_ref::<ev::Talk>() {
+                        gl.script_to_play = Some(ScriptRef::Interact {
+                            from: talk.from,
+                            to: talk.to,
+                        });
+
                         return StateUpdateResult::PushAndRunNextFrame(TypeId::of::<PlayScript>());
                     }
 
@@ -330,6 +335,14 @@ impl Default for PlayScript {
 }
 
 impl GameState for PlayScript {
+    fn on_enter(&mut self, gl: &mut Global) {
+        assert!(gl.script_to_play.is_some());
+    }
+
+    fn on_exit(&mut self, gl: &mut Global) {
+        gl.script_to_play = None;
+    }
+
     fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
         if gl.wcx.vi.select.is_pressed() {
             // Exit on enter
@@ -343,13 +356,19 @@ impl GameState for PlayScript {
         let flags = WorldRenderFlag::ALL;
         gl.world_render.render(&gl.world, &mut gl.wcx, flags);
 
+        let pos = Vec2f::new(80.0, 80.0);
+
         let mut screen = gl.wcx.rdr.screen(Default::default());
 
-        screen
-            .sprite(&self.window)
-            .dst_pos_px([100.0, 100.0])
-            .dst_size_px([400.0, 200.0]);
+        let text = "石焼き芋！　焼き芋〜〜\n二行目のテキストです。あいうえお、かきくけこ。";
 
-        screen.text([110.0, 130.0], "石焼き芋！　焼き芋〜〜");
+        let mut bounds = screen.fontbook().text_bounds(pos, text);
+        bounds[0] -= crate::consts::MESSAGE_PAD_EACH[0];
+        bounds[1] -= crate::consts::MESSAGE_PAD_EACH[1];
+        bounds[2] += crate::consts::MESSAGE_PAD_EACH[0] * 2.0;
+        bounds[3] += crate::consts::MESSAGE_PAD_EACH[1] * 2.0;
+
+        screen.sprite(&self.window).dst_rect_px(bounds);
+        screen.text(pos, text);
     }
 }
