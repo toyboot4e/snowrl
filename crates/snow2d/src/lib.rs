@@ -74,8 +74,8 @@ impl<'a> Default for PassConfig<'a> {
 #[derive(Debug)]
 pub struct Snow2d {
     /// Vertex/index buffer and images slots
-    batch: Batch,
-    fontbook: FontBook,
+    pub batch: Batch,
+    pub fontbook: FontBook,
     /// Default pipeline object for on-screen rendering
     screen_pip: rg::Pipeline,
     /// Default pipeline object for off-screen rendering
@@ -113,19 +113,7 @@ impl Snow2d {
 
         Self {
             batch: Batch::default(),
-            fontbook: {
-                let book = FontBook::new(128, 128);
-
-                // FIXME: font path
-                let font = include_bytes!("mplus-1p-regular.ttf");
-
-                let ix = book.stash().add_font_mem("mplus-1p-regular", font).unwrap();
-                book.stash().set_font(ix);
-
-                // TODO: high DPI?
-                book.stash().set_size(22.0);
-                book
-            },
+            fontbook: FontBook::new(256, 256),
             screen_pip,
             ofs_pip,
         }
@@ -230,8 +218,10 @@ impl<'a> Pass<'a> {
         &mut self.snow.fontbook
     }
 
-    /// TODO: add it to DrawApi
-    pub fn text(&mut self, pos: impl Into<Vec2f>, text: &str) {
+    /// Renders multiple lines of text
+    ///
+    /// TODO: maybe add it to DrawApi
+    pub fn txt(&mut self, pos: impl Into<Vec2f>, text: &str) {
         // use non-premultipiled alpha blending
 
         // FIXME: fontstash _should_ handle newline.. but not. why?
@@ -251,6 +241,7 @@ impl<'a> Pass<'a> {
         // TODO: ensure flushing?
     }
 
+    /// Renders one line of text
     #[inline]
     fn render_text_line(&mut self, pos: Vec2f, text: &str) {
         let img = self.snow.fontbook.img();

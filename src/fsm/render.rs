@@ -1,3 +1,5 @@
+//! Screen renderers
+
 use {
     rlbox::utils::DoubleTrack,
     rokol::{app as ra, gfx as rg},
@@ -87,6 +89,14 @@ impl WorldRenderer {
             &world.map.idmap,
             bounds.clone(),
         );
+
+        // FIXME: can't draw rects
+        // rlbox::render::tiled::render_rects_on_non_blocking_cells(
+        //     screen,
+        //     &world.map.tiled,
+        //     &world.map.rlmap.blocks,
+        //     &bounds, // FIXME: copy
+        // );
     }
 
     fn actors(&mut self, screen: &mut impl DrawApi, world: &World, dt: Duration) {

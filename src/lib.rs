@@ -192,7 +192,8 @@ fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {
 }
 
 fn load_actors(w: &mut World) -> anyhow::Result<()> {
-    // TODO: use asset loader and make use of cache
+    // player
+
     let img = {
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
@@ -222,6 +223,21 @@ fn load_actors(w: &mut World) -> anyhow::Result<()> {
 
         player
     });
+
+    // non-player characters
+
+    let img = {
+        let pos = Vec2i::new(20, 16);
+        let dir = Dir8::S;
+
+        ActorImage::from_path(
+            asset::path(crate::paths::img::pochi::WHAT),
+            crate::consts::ACTOR_FPS,
+            crate::consts::WALK_TIME,
+            pos,
+            dir,
+        )?
+    };
 
     w.entities.push({
         let pos = Vec2i::new(14, 12);

@@ -5,7 +5,10 @@ pub mod render;
 pub mod vi;
 
 use {
-    rokol::gfx as rg,
+    rokol::{
+        fons::{Align, FontConfig},
+        gfx as rg,
+    },
     snow2d::{gfx::Color, Snow2d},
     std::time::{Duration, Instant},
 };
@@ -28,6 +31,8 @@ pub struct WorldContext {
     window_title: String,
     /// 2D renderer
     pub rdr: Snow2d,
+    /// Default font configuration
+    pub font_cfg: FontConfig,
     pub soloud: soloud::Soloud,
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
@@ -42,9 +47,31 @@ pub struct WorldContext {
 
 impl WorldContext {
     pub fn new(title: String) -> Self {
+        let mut snow = unsafe { Snow2d::new() };
+
+        // store default font
+        let font_cfg = FontConfig {
+            font: {
+                // FIXME: font path
+                let font = include_bytes!("../../assets_embeded/mplus-1p-regular.ttf");
+                let ix = snow
+                    .fontbook
+                    .stash()
+                    .add_font_mem("mplus-1p-regular", font)
+                    .unwrap();
+                snow.fontbook.stash().set_align(Align::TOP | Align::LEFT);
+                ix
+            },
+            // FIXME: hard-coded parameters
+            fontsize: 22.0,
+            line_spacing: 4.0,
+        };
+        snow.fontbook.apply_cfg(&font_cfg);
+
         Self {
             window_title: title,
-            rdr: unsafe { Snow2d::new() },
+            rdr: snow,
+            font_cfg,
             // TODO: do not unwrap and make a dummy
             soloud: soloud::Soloud::default().unwrap(),
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),

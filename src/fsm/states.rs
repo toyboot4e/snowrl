@@ -1,13 +1,10 @@
+//! Stack-based game states
+
 use {rokol::gfx as rg, std::any::TypeId};
 
 use snow2d::{
     asset,
-    gfx::{
-        batcher::draw::*,
-        geom2d::*,
-        tex::{NineSliceSprite, SpriteData, Texture2dDrop},
-        Color,
-    },
+    gfx::{batcher::draw::*, geom2d::*, tex::*, Color},
     PassConfig,
 };
 
@@ -16,7 +13,7 @@ use rlbox::rl::grid2d::*;
 use crate::{
     fsm::{render::WorldRenderFlag, GameState, Global, StateUpdateResult},
     paths,
-    script::ScriptRef,
+    script::{self, ScriptRef},
     turn::{
         anim::{AnimResult, AnimUpdateContext},
         ev,
@@ -317,9 +314,11 @@ impl GameState for Title {
     }
 }
 
+/// Just plays hard-coded script (for now)
 #[derive(Debug)]
 pub struct PlayScript {
     window: NineSliceSprite,
+    baloon: SpriteData,
 }
 
 impl Default for PlayScript {
@@ -329,6 +328,15 @@ impl Default for PlayScript {
                 tex: Texture2dDrop::from_path(asset::path(paths::img::sourve::A))
                     .unwrap()
                     .into_shared(),
+            },
+            baloon: SpriteData {
+                sub_tex: Texture2dDrop::from_path(asset::path(paths::img::sourve::BALOON))
+                    .unwrap()
+                    .into_shared()
+                    .split([0.0, 0.0, 0.5, 0.5]),
+                // REMARK:
+                origin: [0.5, 0.0],
+                ..Default::default()
             },
         }
     }
@@ -356,19 +364,31 @@ impl GameState for PlayScript {
         let flags = WorldRenderFlag::ALL;
         gl.world_render.render(&gl.world, &mut gl.wcx, flags);
 
-        let pos = Vec2f::new(80.0, 80.0);
+        // we assume interact script (for now)
+        let script = gl.script_to_play.as_ref().unwrap();
+        let (from, to) = match script {
+            ScriptRef::Interact { from, to } => (from.clone(), to.clone()),
+        };
+
+        // let actor = &gl.world.entities[to.0];
+
+        // let mut pos = actor.img.pos_screen(&gl.world.map.tiled);
+        // pos.y -= gl.world.map.tiled.tile_height as f32;
 
         let mut screen = gl.wcx.rdr.screen(Default::default());
 
-        let text = "石焼き芋！　焼き芋〜〜\n二行目のテキストです。あいうえお、かきくけこ。";
+        let txt = "石焼き芋！　焼き芋〜〜\n二行目のテキストです。あいうえお、かきくけこ。\n\n4 行目です！";
 
-        let mut bounds = screen.fontbook().text_bounds(pos, text);
-        bounds[0] -= crate::consts::MESSAGE_PAD_EACH[0];
-        bounds[1] -= crate::consts::MESSAGE_PAD_EACH[1];
-        bounds[2] += crate::consts::MESSAGE_PAD_EACH[0] * 2.0;
-        bounds[3] += crate::consts::MESSAGE_PAD_EACH[1] * 2.0;
+        let talk = script::Talk { txt, from, to };
+        let layout = talk.layout(screen.fontbook(), &gl.wcx.font_cfg, &gl.world);
 
-        screen.sprite(&self.window).dst_rect_px(bounds);
-        screen.text(pos, text);
+        screen
+            .sprite(&self.window)
+            .dst_rect_px(layout.win_rect_center);
+
+        screen.txt(layout.txt, txt);
+
+        // baloon
+        screen.sprite(&self.baloon).dst_pos_px(layout.baloon_center);
     }
 }

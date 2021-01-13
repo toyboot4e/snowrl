@@ -246,6 +246,7 @@ impl Event for PlayerTurn {
                 dir,
             });
         }
+
         if let Some(dir) = vi.dir.dir8_down() {
             return EventResult::chain(PlayerWalk {
                 actor: self.actor,

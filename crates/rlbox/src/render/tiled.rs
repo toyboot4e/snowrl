@@ -240,79 +240,10 @@ fn render_shadow_cell(
 }
 
 // --------------------------------------------------------------------------------
-// Higher level
-
-/// Renders a tiled map in a bounds in world coordinates, considering fog of war
-pub fn render_tiled_consider_fow(
-    draw: &mut impl DrawApi,
-    tiled: &tiled::Map,
-    idmap: &GidTextureMap,
-    px_bounds: &Rect2f,
-    fow: &FowData,
-) {
-    let grid_bounds = self::grid_bounds_from_pixel_bounds(tiled, &px_bounds);
-    let (ys, xs) = self::visible_cells_from_grid_bounds(&grid_bounds);
-
-    for layer in tiled.layers.iter().filter(|l| l.visible) {
-        render_tiled_layer_consider_fow(
-            draw,
-            tiled,
-            layer,
-            idmap,
-            px_bounds.left_up(),
-            ys,
-            xs,
-            fow,
-        );
-    }
-}
-
-// TODO: refactor
-fn render_tiled_layer_consider_fow(
-    draw: &mut impl DrawApi,
-    tiled: &tiled::Map,
-    layer: &tiled::Layer,
-    idmap: &GidTextureMap,
-    offset: Vec2f,
-    ys: [u32; 2],
-    xs: [u32; 2],
-    fow: &FowData,
-) {
-    let tile_size = Vec2u::new(tiled.tile_width, tiled.tile_height);
-    let tiles = match layer.tiles {
-        LayerData::Finite(ref f) => f,
-        LayerData::Infinite(_) => unimplemented!("tiled map infinite layer"),
-    };
-
-    for y in ys[0]..ys[1] {
-        for x in xs[0]..xs[1] {
-            if fow.is_visible([x as usize, y as usize].into()) {
-                continue;
-            }
-
-            let tile = tiles[y as usize][x as usize];
-
-            let texture = match idmap.gid_to_tile(tile.gid) {
-                Some(t) => t,
-                None => continue,
-            };
-
-            draw.sprite(&texture).dst_rect_px([
-                (
-                    (x as i32 * tile_size.x as i32 - offset.x as i32) as f32,
-                    (y as i32 * tile_size.y as i32 - offset.y as i32) as f32,
-                ),
-                (tile_size.x as f32, tile_size.y as f32),
-            ]);
-        }
-    }
-}
-
-// --------------------------------------------------------------------------------
 // Debug rendering
 
 /// Renders rectangles to non-blocking cells
-pub fn render_grids_on_non_blocking_cells(
+pub fn render_rects_on_non_blocking_cells(
     draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     blocks: &[bool],
@@ -320,6 +251,7 @@ pub fn render_grids_on_non_blocking_cells(
 ) {
     let grid_size = Vec2u::new(tiled.width, tiled.height);
     let tile_size = Vec2u::new(tiled.tile_width, tiled.tile_height);
+    let rect_size = Vec2f::new(tile_size.x as f32 - 4.0, tile_size.y as f32 - 4.0);
 
     let (ys, xs) = self::visible_cells_from_px_bounds(px_bounds, tiled);
     for y in ys[0]..ys[1] {
@@ -335,7 +267,7 @@ pub fn render_grids_on_non_blocking_cells(
             );
 
             draw.rect(
-                [pos + Vec2f::new(2.0, 2.0), (28.0, 28.0).into()],
+                [pos + Vec2f::new(2.0, 2.0), rect_size],
                 Color::WHITE.with_alpha(127),
             );
         }

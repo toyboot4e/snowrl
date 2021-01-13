@@ -14,63 +14,118 @@ use crate::{
     utils::DoubleSwap,
 };
 
-/// Generates character walking animation from 4x3 character image
+/// Generate character walking animation with some heuristic
+pub fn gen_anim_auto(
+    texture: &SharedTexture2d,
+    fps: f32,
+) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
+    if texture.w() >= texture.h() {
+        self::gen_anim8(texture, fps)
+    } else {
+        self::gen_anim4(texture, fps)
+    }
+}
+
+/// Generates character walking animation from 3x4 character image
 pub fn gen_anim4(
     texture: &SharedTexture2d,
     fps: f32,
 ) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
-    self::gen_anim4_with(texture, fps, |_sprite| {})
+    self::gen_dir_anim_with(
+        texture,
+        fps,
+        &DIR_4_ANIM_PATTERN,
+        |ix| {
+            let row = ix / 3;
+            let col = ix % 3;
+            // x, y, w, h
+            [col as f32 / 3.0, row as f32 / 4.0, 1.0 / 3.0, 1.0 / 4.0]
+        },
+        |_sprite| {},
+    )
 }
 
-/// Generates character walking animation from 4x3 character image, letting user modify the sprite
-pub fn gen_anim4_with(
+/// Generates character walking animation from 6x4 character image
+pub fn gen_anim8(
     texture: &SharedTexture2d,
     fps: f32,
+) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
+    self::gen_dir_anim_with(
+        texture,
+        fps,
+        &DIR_8_ANIM_PATTERN,
+        |ix| {
+            let row = ix / 6;
+            let col = ix % 6;
+            // x, y, w, h
+            [col as f32 / 6.0, row as f32 / 4.0, 1.0 / 6.0, 1.0 / 4.0]
+        },
+        |_sprite| {},
+    )
+}
+
+pub type DirAnimPattern = [(Dir8, [usize; 3]); 8];
+
+const DIR_4_ANIM_PATTERN: DirAnimPattern = [
+    (Dir8::E, [6, 7, 8]),
+    (Dir8::W, [3, 4, 5]),
+    (Dir8::S, [0, 1, 2]),
+    (Dir8::SE, [0, 1, 2]),
+    (Dir8::SW, [0, 1, 2]),
+    (Dir8::N, [9, 10, 11]),
+    (Dir8::NE, [9, 10, 11]),
+    (Dir8::NW, [9, 10, 11]),
+];
+
+const DIR_8_ANIM_PATTERN: DirAnimPattern = [
+    (Dir8::E, [12, 13, 14]),
+    (Dir8::W, [6, 7, 8]),
+    (Dir8::S, [0, 1, 2]),
+    (Dir8::SE, [9, 10, 11]),
+    (Dir8::SW, [3, 4, 5]),
+    (Dir8::N, [18, 19, 20]),
+    (Dir8::NE, [21, 22, 23]),
+    (Dir8::NW, [15, 16, 17]),
+];
+
+fn gen_dir_anim_with(
+    texture: &SharedTexture2d,
+    fps: f32,
+    patterns: &DirAnimPattern,
+    gen_uv_rect: impl Fn(usize) -> [f32; 4],
     mut f: impl FnMut(&mut SpriteData),
 ) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
-    [
-        (Dir8::E, [6, 7, 8]),
-        (Dir8::W, [3, 4, 5]),
-        (Dir8::S, [0, 1, 2]),
-        (Dir8::SE, [0, 1, 2]),
-        (Dir8::SW, [0, 1, 2]),
-        (Dir8::N, [9, 10, 11]),
-        (Dir8::NE, [9, 10, 11]),
-        (Dir8::NW, [9, 10, 11]),
-    ]
-    .iter()
-    .map(|(dir, ixs)| {
-        (
-            dir.clone(),
-            FrameAnimPattern::new(
-                ixs.iter()
-                    .map(|ix| {
-                        let row = ix / 3;
-                        let col = ix % 3;
-                        let uv_pos = [col as f32 / 3.0, row as f32 / 4.0];
-                        let uv_size = [1.0 / 3.0, 1.0 / 4.0];
+    patterns
+        .iter()
+        .map(|(dir, indices)| {
+            (
+                dir.clone(),
+                FrameAnimPattern::new(
+                    indices
+                        .iter()
+                        .map(|ix| {
+                            let mut sprite = SpriteData {
+                                sub_tex: SharedSubTexture2d {
+                                    shared: texture.clone(),
+                                    uv_rect: gen_uv_rect(*ix),
+                                },
+                                rot: 0.0,
+                                // specify the center position of the image to place it
+                                origin: [0.5, 0.5],
+                                scale: [1.0, 1.0],
+                            };
 
-                        let mut sprite = SpriteData {
-                            sub_tex: SharedSubTexture2d {
-                                shared: texture.clone(),
-                                uv_rect: [uv_pos[0], uv_pos[1], uv_size[0], uv_size[1]],
-                            },
-                            rot: 0.0,
-                            origin: [0.5, 0.5],
-                            scale: [1.0, 1.0],
-                        };
+                            f(&mut sprite);
 
-                        f(&mut sprite);
-
-                        sprite
-                    })
-                    .collect::<Vec<_>>(),
-                fps,
-                LoopMode::PingPong,
-            ),
-        )
-    })
-    .collect()
+                            sprite
+                        })
+                        .collect::<Vec<_>>(),
+                    fps,
+                    LoopMode::PingPong,
+                ),
+            )
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone)]
@@ -97,14 +152,14 @@ impl ActorImage {
         pos: Vec2i,
         dir: Dir8,
     ) -> snow2d::gfx::tex::Result<Self> {
-        let anim = self::gen_anim4(&Texture2dDrop::from_path(path)?.into_shared(), anim_fps);
-        let mut anim_state = FrameAnimState::new(anim, dir);
-        anim_state.set_pattern(dir, false);
+        let tex = Texture2dDrop::from_path(path)?.into_shared();
+        println!("{}, {}", tex.w(), tex.h());
+        let anim = self::gen_anim_auto(&tex, anim_fps);
 
         let data = ActorSnapshot { pos, dir };
 
         Ok(Self {
-            anim_state,
+            anim_state: FrameAnimState::new(anim, dir),
             walk_secs,
             state: DoubleSwap::new(data, data),
             dt: Default::default(),

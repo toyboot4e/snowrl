@@ -39,17 +39,17 @@ pub trait QuadParamsBuilder {
     /// Mainly for default implementations, but can be used to modify [`QuadParams`] manually
     fn params(&mut self) -> &mut QuadParams;
 
-    /// Set source rectangle in normalized coordinates
+    /// Set source rectangle in normalized coordinates ([x, y, w, h])
     ///
-    /// Specify [x, y] and [w, h].
+    /// You might want to specify destination size, too.
     fn uv_rect(&mut self, rect: impl Into<Rect2f>) -> &mut Self {
         self.params().src_rect = Scaled::Normalized(rect.into());
         self
     }
 
-    /// Set the source rectangle in normalized pixels
+    /// Set the source rectangle in normalized pixels ([x, y, w, h])
     ///
-    /// Specify [x, y] and [w, h].
+    /// You might want to specify destination size, too.
     fn src_rect_px(&mut self, rect: impl Into<Rect2f>) -> &mut Self {
         self.params().src_rect = Scaled::Px(rect.into());
         self

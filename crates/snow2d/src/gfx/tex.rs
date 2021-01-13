@@ -137,6 +137,27 @@ pub struct SpriteData {
     pub scale: [f32; 2],
 }
 
+impl Default for SpriteData {
+    fn default() -> Self {
+        Self {
+            sub_tex: SharedSubTexture2d {
+                shared: SharedTexture2d {
+                    tex: Rc::new(Texture2dDrop {
+                        img: rg::Image::default(),
+                        w: 0,
+                        h: 0,
+                    }),
+                },
+                uv_rect: Default::default(),
+            },
+            rot: 0.0,
+            // left-up corner
+            origin: [0.0, 0.0],
+            scale: [1.0, 1.0],
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct NineSliceSprite {
     pub tex: SharedTexture2d,
