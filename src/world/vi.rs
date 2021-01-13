@@ -7,12 +7,16 @@ use xdl::{vi::*, Input, Key};
 /// Collection of virtual inputs
 #[derive(Debug, Clone)]
 pub struct VInput {
+    /// Diractional input
     pub dir: AxisDirButton,
+    /// Enter
     pub select: Button,
+    /// Change direction without changin position
+    pub turn: Button,
 }
 
 impl VInput {
-    // TODO: use serde for configuration
+    /// TODO: use serde
     pub fn new() -> Self {
         let dir_repeat = KeyRepeat::Repeat {
             first: Duration::from_nanos(1_000_000_000 / 60 * crate::consts::REPEAT_FIRST_FRAMES),
@@ -51,11 +55,18 @@ impl VInput {
                 },
                 KeyRepeat::None,
             ),
+            turn: Button::new(
+                InputBundle {
+                    keys: vec![Key::LeftShift, Key::RightShift],
+                },
+                KeyRepeat::None,
+            ),
         }
     }
 
     pub fn update(&mut self, input: &Input, dt: Duration) {
         self.dir.update(input, dt);
         self.select.update(input, dt);
+        self.turn.update(input, dt);
     }
 }

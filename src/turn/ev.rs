@@ -9,7 +9,7 @@ e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
 
 */
 
-use {rlbox::rl::grid2d::*, xdl::Key};
+use rlbox::rl::grid2d::*;
 
 use crate::turn::{
     anim::{self, Anim},
@@ -166,10 +166,7 @@ impl Event for PlayerWalk {
         let pos = actor.pos + Vec2i::from(self.dir.signs_i32());
         drop(actor);
 
-        let is_rotate_only = wcx
-            .input
-            .kbd
-            .is_any_key_down(&[Key::LeftShift, Key::RightShift]);
+        let is_rotate_only = wcx.vi.turn.is_down();
 
         if is_rotate_only || world.is_blocked(pos) {
             EventResult::chain(ChangeDir {
@@ -234,11 +231,38 @@ pub struct PlayerTurn {
 
 impl GenAnim for PlayerTurn {}
 
+impl PlayerTurn {
+    /// Find he only actor that is at an adjacent cell to the controlled actor
+    fn find_only_neighbor(&self, ecx: &EventContext) -> Option<Dir8> {
+        let mut res = Option::<Dir8>::None;
+
+        let origin = ecx.world.entities[self.actor.0].pos;
+        for e in &ecx.world.entities {
+            let dvec = e.pos - origin;
+            if dvec.len_king() != 1 {
+                continue;
+            }
+
+            if res.is_some() {
+                return None;
+            }
+
+            res = Dir8::from_signs([Sign::from_i32(dvec.x), Sign::from_i32(dvec.y)]);
+        }
+
+        res
+    }
+}
+
 impl Event for PlayerTurn {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let vi = &mut ecx.wcx.vi;
+        let (select, turn, dir) = (
+            ecx.wcx.vi.select.is_pressed(),
+            ecx.wcx.vi.turn.is_pressed(),
+            ecx.wcx.vi.dir.dir8_down(),
+        );
 
-        if vi.select.is_pressed() {
+        if select {
             let dir = ecx.world.entities[self.actor.0].dir;
 
             return EventResult::chain(Interact {
@@ -247,7 +271,16 @@ impl Event for PlayerTurn {
             });
         }
 
-        if let Some(dir) = vi.dir.dir8_down() {
+        if turn {
+            if let Some(dir) = self.find_only_neighbor(ecx) {
+                return EventResult::chain(ChangeDir {
+                    actor: self.actor,
+                    dir,
+                });
+            }
+        }
+
+        if let Some(dir) = dir {
             return EventResult::chain(PlayerWalk {
                 actor: self.actor,
                 dir,

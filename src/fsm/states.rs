@@ -31,9 +31,6 @@ pub struct Roguelike {
 
 impl GameState for Roguelike {
     fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
-        if gl.wcx.vi.select.is_pressed() {
-            log::trace!("ENTER");
-        }
         loop {
             let res = self.game_loop.tick(&mut gl.world, &mut gl.wcx);
             // log::trace!("{:?}", res);

@@ -100,6 +100,20 @@ impl Vec2i {
         Self { x, y }
     }
 
+    pub fn from_dir4(d: Dir4) -> Self {
+        Self {
+            x: d.x_sign().to_i32(),
+            y: d.y_sign().to_i32(),
+        }
+    }
+
+    pub fn from_dir8(d: Dir8) -> Self {
+        Self {
+            x: d.x_sign().to_i32(),
+            y: d.y_sign().to_i32(),
+        }
+    }
+
     pub fn len_rock(&self) -> u32 {
         (self.x.abs() + self.y.abs()) as u32
     }
