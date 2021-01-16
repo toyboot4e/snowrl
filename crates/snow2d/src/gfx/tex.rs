@@ -1,4 +1,8 @@
-//! 2D texture types
+/*!
+
+2D texture types
+
+*/
 
 // TODO: do not use composition
 
@@ -16,6 +20,7 @@ use crate::{
     },
 };
 
+/// Image loading result
 pub type Result<T> = image::ImageResult<T>;
 
 fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
@@ -58,7 +63,7 @@ fn target_desc(w: u32, h: u32) -> rg::ImageDesc {
     }
 }
 
-/// Frees GPU image on drop
+/// [`AssetItem`]. Frees GPU image on drop
 #[derive(Debug, Default)]
 pub struct Texture2dDrop {
     img: rg::Image,
@@ -107,6 +112,7 @@ impl AssetItem for Texture2dDrop {
     type Loader = TextureLoader;
 }
 
+/// [`AssetLoader`] for [`Texture2dDrop`]
 #[derive(Debug)]
 pub struct TextureLoader;
 
@@ -118,7 +124,7 @@ impl AssetLoader for TextureLoader {
     }
 }
 
-/// UV rect only reference counted sub texture
+/// UV-rect-only texture
 #[derive(Debug, Clone)]
 pub struct SharedSubTexture2d {
     pub tex: Asset<Texture2dDrop>,
@@ -126,7 +132,7 @@ pub struct SharedSubTexture2d {
     pub uv_rect: [f32; 4],
 }
 
-/// Full-featured reference counted sub texture
+/// Full-featured texture
 #[derive(Debug, Clone)]
 pub struct SpriteData {
     pub tex: Asset<Texture2dDrop>,

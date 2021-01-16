@@ -9,9 +9,10 @@ use {
         fons::{Align, FontConfig},
         gfx as rg,
     },
-    snow2d::{asset::AssetCacheAny, gfx::Color, Snow2d},
     std::time::{Duration, Instant},
 };
+
+use snow2d::{asset::AssetCacheAny, gfx::Color, input::Input, Snow2d};
 
 use rlbox::{
     rl::{
@@ -37,7 +38,7 @@ pub struct WorldContext {
     pub assets: AssetCacheAny,
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
-    pub input: xdl::Input,
+    pub input: Input,
     /// Delta time from last frame
     pub dt: Duration,
     pub frame_count: u64,
@@ -76,7 +77,7 @@ impl WorldContext {
             font_cfg,
             assets: AssetCacheAny::new(),
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
-            input: xdl::Input::new(),
+            input: Input::new(),
             dt: Duration::new(0, 0),
             frame_count: 0,
             start_time: Instant::now(),

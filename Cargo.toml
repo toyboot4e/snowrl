@@ -24,7 +24,6 @@ members = [
 
 [dependencies]
 rokol = { path = "crates/rokol", features = ["glcore33"] }
-xdl = { path = "crates/xdl", features = ["use-rokol"] }
 snow2d = { path = "crates/snow2d" }
 rlbox = { path = "crates/rlbox" }
 

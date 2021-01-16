@@ -1,6 +1,6 @@
 /*!
 
-Reference-counted asset pointer and asset cache
+Asset cache and reference-counted asset references
 
 TODO: async loading and dynamic loading
 
@@ -100,7 +100,7 @@ pub struct AssetCacheT<T: AssetItem> {
 }
 
 #[derive(Debug)]
-pub struct AssetCacheEntry<T: AssetItem> {
+struct AssetCacheEntry<T: AssetItem> {
     id: AssetId,
     path: PathBuf,
     item: Asset<T>,
@@ -133,15 +133,14 @@ impl<T: AssetItem> AssetCacheT<T> {
     }
 
     fn load_new_sync(&mut self, id: AssetId) -> Result<Asset<T>> {
+        let path = self::path(&id.identity);
+
         let asset = Asset {
             item: {
-                let path = self::path(&id.identity);
                 let item = self.loader.load(&path)?;
                 Some(Arc::new(Mutex::new(item)))
             },
         };
-
-        let path = self::path(&id.identity);
 
         let entry = AssetCacheEntry {
             id,
@@ -154,6 +153,7 @@ impl<T: AssetItem> AssetCacheT<T> {
     }
 }
 
+/// Cache of any [`AssetItem`] type, a bundle of [`AssetCacheT`]s
 #[derive(Debug)]
 pub struct AssetCacheAny {
     caches: HashMap<TypeId, Box<dyn Any>>,

@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use xdl::{vi::*, Input, Key};
+use snow2d::input::{vi::*, Input, Key};
 
 /// Collection of virtual inputs
 #[derive(Debug, Clone)]

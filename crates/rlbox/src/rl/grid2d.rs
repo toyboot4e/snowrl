@@ -2,7 +2,7 @@
 
 use auto_ops::*;
 
-pub use xdl::axis::{Dir4, Dir8, Sign};
+pub use snow2d::input::axis::{Dir4, Dir8, Sign};
 
 // --------------------------------------------------------------------------------
 // Space

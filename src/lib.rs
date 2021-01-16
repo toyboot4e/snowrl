@@ -7,6 +7,7 @@ Snow the roguelike game
 // use generator (unstable Rust)
 #![feature(generators, generator_trait)]
 
+// re-export mainly dependent crates
 pub use {rlbox, rokol, snow2d};
 
 pub mod paths;
