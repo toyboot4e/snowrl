@@ -6,7 +6,7 @@ pub mod vertex;
 use rokol::gfx as rg;
 
 use crate::gfx::{
-    batcher::{
+    batch::{
         mesh::DynamicMesh,
         vertex::{QuadData, N_QUADS},
     },

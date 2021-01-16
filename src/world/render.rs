@@ -7,7 +7,7 @@ use {
         gfx::{self as rg, BakedResource},
     },
     snow2d::gfx::{
-        batcher::{mesh::DynamicMesh, vertex::VertexData},
+        batch::{mesh::DynamicMesh, vertex::VertexData},
         draw::*,
         geom2d::*,
         tex::RenderTexture,

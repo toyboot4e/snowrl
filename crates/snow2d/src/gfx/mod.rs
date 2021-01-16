@@ -8,7 +8,7 @@ Same as OpenGL or school math (left-handed and column-major).
 
 */
 
-pub mod batcher;
+pub mod batch;
 pub mod draw;
 pub mod geom2d;
 pub mod shaders;
@@ -21,7 +21,7 @@ use rokol::{
 };
 
 use self::{
-    batcher::{
+    batch::{
         vertex::{QuadData, VertexData},
         Batch, BatchData,
     },

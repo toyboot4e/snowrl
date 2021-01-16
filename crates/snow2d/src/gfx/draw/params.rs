@@ -2,7 +2,7 @@
 
 use rokol::gfx as rg;
 
-use crate::gfx::{batcher::vertex::QuadData, geom2d::*, Color};
+use crate::gfx::{batch::vertex::QuadData, geom2d::*, Color};
 
 /// Texture with size data. Used by [`QuadParams`]
 pub trait Texture2d {
@@ -13,7 +13,7 @@ pub trait Texture2d {
 
 /// Full-featured geometry parameters to push a quadliteral onto [`Batch`]
 ///
-/// [`Batch`]: crate::gfx::batcher::Batch
+/// [`Batch`]: crate::gfx::batch::Batch
 #[derive(Debug, Clone, Default)]
 pub struct QuadParams {
     pub src_rect: Scaled<Rect2f>,
@@ -40,7 +40,7 @@ impl QuadParams {
 
     /// Be sure to flush [`Batch`] before running if it's saturated.
     ///
-    /// [`Batch`]: crate::gfx::batcher::Batch
+    /// [`Batch`]: crate::gfx::batch::Batch
     pub fn write_to_quad(&self, quad: &mut QuadData, texture: &impl Texture2d, flips: Flips) {
         let (src_rect, dst_rect) = self.geometry_normalized(texture);
 

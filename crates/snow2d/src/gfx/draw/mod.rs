@@ -10,7 +10,7 @@ pub use self::{
 
 use {once_cell::sync::OnceCell, rokol::gfx as rg};
 
-use crate::gfx::{batcher::vertex::QuadData, geom2d::*, tex::Texture2dDrop, Color};
+use crate::gfx::{batch::vertex::QuadData, geom2d::*, tex::Texture2dDrop, Color};
 
 static WHITE_DOT: OnceCell<Texture2dDrop> = OnceCell::new();
 
