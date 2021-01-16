@@ -1,15 +1,16 @@
 //! Batcher
 
-pub mod draw;
 pub mod mesh;
 pub mod vertex;
 
 use rokol::gfx as rg;
 
-use crate::gfx::batcher::{
+use crate::gfx::{
+    batcher::{
+        mesh::DynamicMesh,
+        vertex::{QuadData, N_QUADS},
+    },
     draw::*,
-    mesh::DynamicMesh,
-    vertex::{QuadData, N_QUADS},
 };
 
 /// Creates index buffer for quadliterals

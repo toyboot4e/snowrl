@@ -15,7 +15,7 @@ use {
 use crate::{
     asset::{self, Asset, AssetItem, AssetLoader},
     gfx::{
-        batcher::draw::{DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d},
+        draw::{DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d},
         geom2d::{Flips, Scaled, Vec2f},
     },
 };

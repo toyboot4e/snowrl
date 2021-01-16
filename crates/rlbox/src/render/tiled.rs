@@ -1,7 +1,7 @@
 //! Tiled map rendering
 
 use {
-    snow2d::gfx::{batcher::draw::*, geom2d::*, Color},
+    snow2d::gfx::{draw::*, geom2d::*, Color},
     std::cmp,
     tiled::LayerData,
 };

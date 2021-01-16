@@ -4,7 +4,7 @@ use {
     rlbox::utils::DoubleTrack,
     rokol::{app as ra, gfx as rg},
     snow2d::{
-        gfx::{batcher::draw::*, geom2d::*, Color},
+        gfx::{draw::*, geom2d::*, Color},
         PassConfig, Snow2d,
     },
     std::time::Duration,

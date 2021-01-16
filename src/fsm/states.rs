@@ -4,7 +4,7 @@ use {rokol::gfx as rg, std::any::TypeId};
 
 use snow2d::{
     asset::AssetCacheT,
-    gfx::{batcher::draw::*, geom2d::*, tex::*, Color},
+    gfx::{draw::*, geom2d::*, tex::*, Color},
     PassConfig,
 };
 

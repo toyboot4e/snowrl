@@ -9,6 +9,7 @@ Same as OpenGL or school math (left-handed and column-major).
 */
 
 pub mod batcher;
+pub mod draw;
 pub mod geom2d;
 pub mod shaders;
 pub mod tex;

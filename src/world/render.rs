@@ -8,7 +8,8 @@ use {
     },
     snow2d::{
         gfx::{
-            batcher::{draw::*, mesh::DynamicMesh, vertex::VertexData},
+            batcher::{mesh::DynamicMesh, vertex::VertexData},
+            draw::*,
             geom2d::*,
             tex::RenderTexture,
             Color,

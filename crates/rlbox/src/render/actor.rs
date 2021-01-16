@@ -5,7 +5,7 @@ use std::{collections::HashMap, time::Duration};
 use snow2d::{
     asset::Asset,
     gfx::{
-        batcher::draw::*,
+        draw::*,
         geom2d::*,
         tex::{SpriteData, Texture2dDrop},
     },

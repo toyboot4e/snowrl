@@ -5,7 +5,7 @@ use {
     snow2d::{
         asset::{self, Asset, AssetCacheT},
         gfx::{
-            batcher::draw::Texture2d,
+            draw::Texture2d,
             tex::{SharedSubTexture2d, Texture2dDrop},
         },
     },

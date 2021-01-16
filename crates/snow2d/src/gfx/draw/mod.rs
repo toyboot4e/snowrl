@@ -1,4 +1,4 @@
-//! Fluent drawing API
+//! Fluent drawing API based on quad batcher
 
 mod builder;
 mod params;

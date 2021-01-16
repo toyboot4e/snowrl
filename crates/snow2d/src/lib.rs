@@ -31,10 +31,10 @@ use rokol::{
 
 use crate::gfx::{
     batcher::{
-        draw::*,
         vertex::{QuadData, VertexData},
         Batch, BatchData,
     },
+    draw::*,
     geom2d::*,
     tex::RenderTexture,
 };
@@ -98,7 +98,7 @@ impl Snow2d {
     /// Call when rokol is ready
     pub unsafe fn new() -> Self {
         // create white dot image
-        crate::gfx::batcher::draw::init();
+        crate::gfx::draw::init();
 
         let mut desc = rg::PipelineDesc {
             shader: gfx::shaders::tex_1(),
