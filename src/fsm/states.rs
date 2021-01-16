@@ -49,7 +49,7 @@ impl GameState for Roguelike {
                             // another player turn after all actors taking turns.
                             // maybe all actions didn't take any frame.
                             // force waiting for a frame to ensure we don't enter inifinite loop:
-                            log::trace!("avoid loop");
+                            // log::trace!("avoid player loop");
                             return StateUpdateResult::GotoNextFrame;
                         }
 

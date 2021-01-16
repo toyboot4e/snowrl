@@ -21,7 +21,7 @@ use std::{
 
 /// Get asset path relative to `assets` directory
 /// TODO: remove `unsafe`
-pub unsafe fn path(path: impl AsRef<Path>) -> PathBuf {
+pub fn path(path: impl AsRef<Path>) -> PathBuf {
     // TODO: supply appropreate root path
     let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let assets = PathBuf::from(root).join("assets");
@@ -117,8 +117,10 @@ impl<T: AssetItem> AssetCacheT<T> {
     pub fn load_sync(&mut self, key: impl AsRef<AssetKey>) -> Result<Asset<T>> {
         let id = AssetId::from_key(key.as_ref());
         if let Some(a) = self.find_cache(&id) {
+            log::trace!("cache found for {}", key.as_ref().display());
             Ok(a)
         } else {
+            log::trace!("loading {}", key.as_ref().display());
             self.load_new_sync(id)
         }
     }
@@ -133,13 +135,13 @@ impl<T: AssetItem> AssetCacheT<T> {
     fn load_new_sync(&mut self, id: AssetId) -> Result<Asset<T>> {
         let asset = Asset {
             item: {
-                let path = unsafe { self::path(&id.identity) };
+                let path = self::path(&id.identity);
                 let item = self.loader.load(&path)?;
                 Some(Arc::new(Mutex::new(item)))
             },
         };
 
-        let path = unsafe { self::path(&id.identity) };
+        let path = self::path(&id.identity);
 
         let entry = AssetCacheEntry {
             id,

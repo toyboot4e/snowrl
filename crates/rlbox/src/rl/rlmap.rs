@@ -24,11 +24,11 @@ pub struct TiledRlMap {
 
 /// fs
 impl TiledRlMap {
-    pub fn from_tiled_path(
+    pub fn new(
         tiled_path: impl AsRef<Path>,
         cache: &mut AssetCacheT<Texture2dDrop>,
     ) -> Result<Self> {
-        let tiled_path = unsafe { asset::path(tiled_path) };
+        let tiled_path = asset::path(tiled_path);
 
         let tiled = tiled::parse_file(&tiled_path)?;
         let rlmap = RlMap::from_tiled(&tiled);

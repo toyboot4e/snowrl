@@ -86,7 +86,6 @@ impl SnowRlImpl {
         let mut gl = {
             let mut wcx = WorldContext::new(title);
 
-            // TODO: type inference
             wcx.assets
                 .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
 
@@ -165,7 +164,7 @@ pub mod consts {
 }
 
 fn init_world(wcx: &mut WorldContext) -> anyhow::Result<World> {
-    let map = TiledRlMap::from_tiled_path(
+    let map = TiledRlMap::new(
         crate::paths::map::tmx::RL_START,
         wcx.assets.cache_mut::<Texture2dDrop>().unwrap(),
     )?;
