@@ -9,7 +9,7 @@ use {
         fons::{Align, FontConfig},
         gfx as rg,
     },
-    snow2d::{gfx::Color, Snow2d},
+    snow2d::{asset::AssetCacheAny, gfx::Color, Snow2d},
     std::time::{Duration, Instant},
 };
 
@@ -34,7 +34,7 @@ pub struct WorldContext {
     pub rdr: Snow2d,
     /// Default font configuration
     pub font_cfg: FontConfig,
-    pub soloud: soloud::Soloud,
+    pub assets: AssetCacheAny,
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
     pub input: xdl::Input,
@@ -74,8 +74,7 @@ impl WorldContext {
             window_title: title,
             rdr: snow,
             font_cfg,
-            // TODO: do not unwrap and make a dummy
-            soloud: soloud::Soloud::default().unwrap(),
+            assets: AssetCacheAny::new(),
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             input: xdl::Input::new(),
             dt: Duration::new(0, 0),

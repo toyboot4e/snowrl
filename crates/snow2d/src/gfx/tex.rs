@@ -5,15 +5,16 @@
 use {
     image::GenericImageView,
     rokol::gfx::{self as rg, BakedResource},
-    std::{path::Path, rc::Rc},
+    std::path::Path,
 };
 
-use crate::gfx::{
-    batcher::draw::{DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d},
-    geom2d::{Flips, Scaled, Vec2f},
+use crate::{
+    asset::{self, Asset, AssetItem, AssetLoader},
+    gfx::{
+        batcher::draw::{DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d},
+        geom2d::{Flips, Scaled, Vec2f},
+    },
 };
-
-pub type SharedTexture2d = Rc<Texture2dDrop>;
 
 pub type Result<T> = image::ImageResult<T>;
 
@@ -100,16 +101,27 @@ impl Texture2dDrop {
         };
         (me, desc)
     }
+}
 
-    pub fn into_shared(self) -> SharedTexture2d {
-        Rc::new(self)
+impl AssetItem for Texture2dDrop {
+    type Loader = TextureLoader;
+}
+
+#[derive(Debug)]
+pub struct TextureLoader;
+
+impl AssetLoader for TextureLoader {
+    type Item = Texture2dDrop;
+    fn load(&mut self, path: &Path) -> asset::Result<Self::Item> {
+        use std::io::{Error, ErrorKind};
+        Texture2dDrop::from_path(path).map_err(|e| Error::new(ErrorKind::Other, e))
     }
 }
 
 /// UV rect only reference counted sub texture
 #[derive(Debug, Clone)]
 pub struct SharedSubTexture2d {
-    pub tex: SharedTexture2d,
+    pub tex: Asset<Texture2dDrop>,
     /// [x, y, width, height]
     pub uv_rect: [f32; 4],
 }
@@ -117,7 +129,7 @@ pub struct SharedSubTexture2d {
 /// Full-featured reference counted sub texture
 #[derive(Debug, Clone)]
 pub struct SpriteData {
-    pub tex: SharedTexture2d,
+    pub tex: Asset<Texture2dDrop>,
     /// [x, y, width, height]
     pub uv_rect: [f32; 4],
     pub rot: f32,
@@ -128,11 +140,7 @@ pub struct SpriteData {
 impl Default for SpriteData {
     fn default() -> Self {
         Self {
-            tex: Rc::new(Texture2dDrop {
-                img: rg::Image::default(),
-                w: 0,
-                h: 0,
-            }),
+            tex: Asset::empty(),
             uv_rect: [0.0, 0.0, 1.0, 1.0],
             rot: 0.0,
             // left-up corner
@@ -144,7 +152,7 @@ impl Default for SpriteData {
 
 #[derive(Debug, Clone)]
 pub struct NineSliceSprite {
-    pub sprite: SharedTexture2d,
+    pub tex: Asset<Texture2dDrop>,
 }
 
 // --------------------------------------------------------------------------------
@@ -157,54 +165,74 @@ impl Texture2d for Texture2dDrop {
         self.img
     }
 
-    fn sub_tex_w(&self) -> f32 {
-        self.w as f32
-    }
-
-    fn sub_tex_h(&self) -> f32 {
-        self.h as f32
+    fn sub_tex_size(&self) -> [f32; 2] {
+        [self.w as f32, self.h as f32]
     }
 }
 
 impl Texture2d for SharedSubTexture2d {
     fn img(&self) -> rg::Image {
-        self.tex.img()
+        if let Some(tex) = self.tex.get() {
+            tex.img()
+        } else {
+            // TODO: is this OK?
+            Default::default()
+        }
     }
 
-    fn sub_tex_w(&self) -> f32 {
-        self.tex.sub_tex_w() * self.uv_rect[2]
-    }
-
-    fn sub_tex_h(&self) -> f32 {
-        self.tex.sub_tex_h() * self.uv_rect[3]
+    fn sub_tex_size(&self) -> [f32; 2] {
+        if let Some(tex) = self.tex.get() {
+            let size = tex.sub_tex_size();
+            [size[0] * self.uv_rect[2], size[1] * self.uv_rect[3]]
+        } else {
+            // TODO: is this OK?
+            [0.0, 0.0]
+        }
     }
 }
 
 impl Texture2d for SpriteData {
     fn img(&self) -> rg::Image {
-        self.tex.img()
+        // TODO: don't lock?
+        if let Some(tex) = self.tex.get() {
+            tex.img()
+        } else {
+            // TODO: is this OK?
+            Default::default()
+        }
     }
 
-    fn sub_tex_w(&self) -> f32 {
-        self.tex.sub_tex_w() * self.uv_rect[2]
-    }
-
-    fn sub_tex_h(&self) -> f32 {
-        self.tex.sub_tex_h() * self.uv_rect[3]
+    fn sub_tex_size(&self) -> [f32; 2] {
+        // TODO: don't lock?
+        if let Some(tex) = self.tex.get() {
+            let size = tex.sub_tex_size();
+            [size[0] * self.uv_rect[2], size[1] * self.uv_rect[3]]
+        } else {
+            // TODO: is this OK?
+            [0.0, 0.0]
+        }
     }
 }
 
 impl Texture2d for NineSliceSprite {
+    // TODO: don't lock?
     fn img(&self) -> rg::Image {
-        self.sprite.img()
+        if let Some(tex) = self.tex.get() {
+            tex.img()
+        } else {
+            // TODO: is this OK?
+            Default::default()
+        }
     }
 
-    fn sub_tex_w(&self) -> f32 {
-        self.sprite.sub_tex_w()
-    }
-
-    fn sub_tex_h(&self) -> f32 {
-        self.sprite.sub_tex_h()
+    fn sub_tex_size(&self) -> [f32; 2] {
+        // TODO: don't lock?
+        if let Some(tex) = self.tex.get() {
+            tex.sub_tex_size()
+        } else {
+            // TODO: is this OK?
+            [0.0, 0.0]
+        }
     }
 }
 
@@ -212,30 +240,30 @@ impl Texture2d for NineSliceSprite {
 
 impl OnSpritePush for Texture2dDrop {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
+        let size = self.sub_tex_size();
         builder
-            .src_rect_px([0.0, 0.0, self.sub_tex_w(), self.sub_tex_h()])
-            .dst_size_px([self.sub_tex_w(), self.sub_tex_h()])
+            .src_rect_px(([0.0, 0.0], size))
+            .dst_size_px(size)
             .uv_rect([0.0, 0.0, 1.0, 1.0]);
     }
 }
 
 impl OnSpritePush for SharedSubTexture2d {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
+        let size = self.sub_tex_size();
         builder
-            .src_rect_px([0.0, 0.0, self.sub_tex_w(), self.sub_tex_h()])
-            .dst_size_px([self.sub_tex_w(), self.sub_tex_h()])
+            .src_rect_px(([0.0, 0.0], size))
+            .dst_size_px(size)
             .uv_rect(self.uv_rect);
     }
 }
 
 impl OnSpritePush for SpriteData {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
+        let size = self.sub_tex_size();
         builder
-            .src_rect_px([0.0, 0.0, self.sub_tex_w(), self.sub_tex_h()])
-            .dst_size_px([
-                self.sub_tex_w() * self.scales[0],
-                self.sub_tex_h() * self.scales[1],
-            ])
+            .src_rect_px(([0.0, 0.0], size))
+            .dst_size_px([size[0] * self.scales[0], size[1] * self.scales[1]])
             .uv_rect(self.uv_rect)
             .rot(self.rot)
             .origin(self.origin);
@@ -244,23 +272,39 @@ impl OnSpritePush for SpriteData {
 
 impl OnSpritePush for NineSliceSprite {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
-        self.sprite.init_quad(builder);
+        if let Some(tex) = self.tex.get() {
+            tex.init_quad(builder);
+        }
     }
 
     #[inline]
     fn push_quad<Q: QuadIter>(&self, draw: &mut DrawApiData<Q>, flips: Flips) {
+        let tex = match self.tex.get() {
+            Some(tex) => tex,
+            None => {
+                // FIXME: call default implementation
+                draw.params.write_to_quad(
+                    draw.quad_iter.next_quad_mut(Default::default()),
+                    self,
+                    flips,
+                );
+                return;
+            }
+        };
+
         let (dst_pos, dst_size) = match &draw.params.dst_rect {
             Scaled::Normalized(_rect) => unimplemented!(),
             Scaled::Px(rect) => ([rect.x, rect.y], [rect.w, rect.h]),
         };
 
+        let size = tex.sub_tex_size();
         let ws = {
-            let w = self.sprite.sub_tex_w() / 3.0;
+            let w = size[0] / 3.0;
             [w, dst_size[0] - 2.0 * w, w]
         };
 
         let hs = {
-            let h = self.sprite.sub_tex_h() / 3.0;
+            let h = size[1] / 3.0;
             [h, dst_size[1] - 2.0 * h, h]
         };
 
@@ -280,11 +324,9 @@ impl OnSpritePush for NineSliceSprite {
                 .dst_pos_px(pos)
                 .dst_size_px([ws[ix], hs[iy]]);
 
-            draw.params.write_to_quad(
-                draw.quad_iter.next_quad_mut(self.sprite.img()),
-                self.sprite.as_ref(),
-                flips,
-            );
+            use std::ops::Deref;
+            draw.params
+                .write_to_quad(draw.quad_iter.next_quad_mut(tex.img()), tex.deref(), flips);
         }
     }
 }

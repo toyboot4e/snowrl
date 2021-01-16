@@ -24,7 +24,10 @@ use {
         rl::{fov::FovData, fow::FowData, grid2d::*, rlmap::TiledRlMap},
         utils::Double,
     },
-    snow2d::asset,
+    snow2d::{
+        asset::AssetCacheT,
+        gfx::tex::{Texture2dDrop, TextureLoader},
+    },
 };
 
 use crate::{
@@ -81,8 +84,13 @@ struct SnowRlImpl {
 impl SnowRlImpl {
     pub fn new(title: String) -> Self {
         let mut gl = {
-            let wcx = WorldContext::new(title);
-            let world = self::init_world(&wcx).unwrap();
+            let mut wcx = WorldContext::new(title);
+
+            // TODO: type inference
+            wcx.assets
+                .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
+
+            let world = self::init_world(&mut wcx).unwrap();
 
             fsm::Global {
                 world,
@@ -98,8 +106,10 @@ impl SnowRlImpl {
 
             fsm.insert_default::<fsm::states::Roguelike>();
             fsm.insert_default::<fsm::states::Animation>();
-            fsm.insert_default::<fsm::states::Title>();
-            fsm.insert_default::<fsm::states::PlayScript>();
+
+            let cache = gl.wcx.assets.cache_mut::<Texture2dDrop>().unwrap();
+            fsm.insert(fsm::states::Title::new(cache));
+            fsm.insert(fsm::states::PlayScript::new(cache));
 
             fsm.push::<fsm::states::Roguelike>(&mut gl);
             fsm.push::<fsm::states::Title>(&mut gl);
@@ -154,9 +164,11 @@ pub mod consts {
     pub const TALK_PADS: [f32; 2] = [12.0, 8.0];
 }
 
-fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {
-    let path = snow2d::asset::path(crate::paths::map::tmx::RL_START);
-    let map = TiledRlMap::from_tiled_path(&path)?;
+fn init_world(wcx: &mut WorldContext) -> anyhow::Result<World> {
+    let map = TiledRlMap::from_tiled_path(
+        crate::paths::map::tmx::RL_START,
+        wcx.assets.cache_mut::<Texture2dDrop>().unwrap(),
+    )?;
 
     let radius = [crate::consts::FOV_R, 10];
     let map_size = map.rlmap.size;
@@ -178,7 +190,7 @@ fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {
         entities: Vec::with_capacity(20),
     };
 
-    self::load_actors(&mut world)?;
+    self::load_actors(&mut world, wcx)?;
 
     // just set FoV:
     // shadow.calculate(player.pos, &map.rlmap);
@@ -188,15 +200,18 @@ fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {
     Ok(world)
 }
 
-fn load_actors(w: &mut World) -> anyhow::Result<()> {
+fn load_actors(w: &mut World, wcx: &mut WorldContext) -> anyhow::Result<()> {
+    let cache = wcx.assets.cache_mut::<Texture2dDrop>().unwrap();
+
     // player
 
+    let tex = cache.load_sync(crate::paths::IKA_CHAN).unwrap();
     let img = {
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
 
-        ActorImage::from_path(
-            asset::path(crate::paths::IKA_CHAN),
+        ActorImage::new(
+            tex,
             crate::consts::ACTOR_FPS,
             crate::consts::WALK_TIME,
             pos,
@@ -223,12 +238,13 @@ fn load_actors(w: &mut World) -> anyhow::Result<()> {
 
     // non-player characters
 
+    let tex = cache.load_sync(crate::paths::img::pochi::WHAT).unwrap();
     let img = {
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
 
-        ActorImage::from_path(
-            asset::path(crate::paths::img::pochi::WHAT),
+        ActorImage::new(
+            tex,
             crate::consts::ACTOR_FPS,
             crate::consts::WALK_TIME,
             pos,

@@ -1,10 +1,13 @@
 //! Roguelike map with Tiled backend
 
 use {
-    anyhow::{anyhow, Context, Result},
-    snow2d::gfx::{
-        batcher::draw::*,
-        tex::{SharedSubTexture2d, SharedTexture2d, Texture2dDrop},
+    anyhow::{Context, Result},
+    snow2d::{
+        asset::{self, Asset, AssetCacheT},
+        gfx::{
+            batcher::draw::Texture2d,
+            tex::{SharedSubTexture2d, Texture2dDrop},
+        },
     },
     std::path::Path,
 };
@@ -21,10 +24,15 @@ pub struct TiledRlMap {
 
 /// fs
 impl TiledRlMap {
-    pub fn from_tiled_path(tiled_path: &Path) -> Result<Self> {
-        let tiled = tiled::parse_file(tiled_path)?;
+    pub fn from_tiled_path(
+        tiled_path: impl AsRef<Path>,
+        cache: &mut AssetCacheT<Texture2dDrop>,
+    ) -> Result<Self> {
+        let tiled_path = unsafe { asset::path(tiled_path) };
+
+        let tiled = tiled::parse_file(&tiled_path)?;
         let rlmap = RlMap::from_tiled(&tiled);
-        let idmap = GidTextureMap::from_tiled(tiled_path, &tiled)?;
+        let idmap = GidTextureMap::from_tiled(&tiled_path, &tiled, cache)?;
 
         Ok(Self {
             tiled,
@@ -112,12 +120,16 @@ pub struct GidTextureMap {
 #[derive(Debug, Clone)]
 pub struct TilesetImageSpan {
     first_gid: u32,
-    tex: SharedTexture2d,
+    tex: Asset<Texture2dDrop>,
 }
 
 impl GidTextureMap {
     // TODO: don't use anyhow
-    pub fn from_tiled(tiled_file_path: &Path, tiled: &tiled::Map) -> anyhow::Result<Self> {
+    pub fn from_tiled(
+        tiled_file_path: &Path,
+        tiled: &tiled::Map,
+        cache: &mut AssetCacheT<Texture2dDrop>,
+    ) -> anyhow::Result<Self> {
         let tiled_dir_path = tiled_file_path
             .parent()
             .context("GidTextureMap from_tile path error")?;
@@ -132,16 +144,7 @@ impl GidTextureMap {
                     let relative_img_path = &tileset.images[0].source;
                     let img_path = tiled_dir_path.join(relative_img_path);
 
-                    Texture2dDrop::from_path(&img_path)
-                        .map_err(|err| {
-                            anyhow!(
-                                "failed to load tileset image of tileset `{:?}` in tmx file {}. Orignal error: {}",
-                                tileset,
-                                tiled_file_path.display(),
-                                err
-                            )
-                        })?
-                        .into_shared()
+                    cache.load_sync(&img_path).unwrap()
                 },
             });
         }
@@ -154,20 +157,20 @@ impl GidTextureMap {
             return None;
         }
 
-        for sub_tex in self.imgs.iter().rev() {
-            if gid < sub_tex.first_gid {
+        for span in self.imgs.iter().rev() {
+            if gid < span.first_gid {
                 continue;
             }
 
-            let id = gid - sub_tex.first_gid;
-            let tex_size = [sub_tex.tex.sub_tex_w(), sub_tex.tex.sub_tex_h()];
+            let id = gid - span.first_gid;
+            let tex_size = span.tex.get().unwrap().sub_tex_size();
 
             let n_cols = tex_size[0] as u32 / self.tile_size[0];
             let src_grid_x = id % n_cols;
             let src_grid_y = id / n_cols;
 
             return Some(SharedSubTexture2d {
-                tex: sub_tex.tex.clone(),
+                tex: span.tex.clone(),
                 uv_rect: [
                     self.tile_size[0] as f32 * src_grid_x as f32 / tex_size[0],
                     self.tile_size[1] as f32 * src_grid_y as f32 / tex_size[1],

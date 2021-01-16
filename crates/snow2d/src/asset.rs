@@ -8,16 +8,20 @@ TODO: async loading and dynamic loading
 
 #![allow(dead_code)]
 
+pub use std::io::Result;
+
 use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
     fmt,
-    io::Result,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
 /// Get asset path relative to `assets` directory
-pub fn path(path: impl AsRef<Path>) -> PathBuf {
+/// TODO: remove `unsafe`
+pub unsafe fn path(path: impl AsRef<Path>) -> PathBuf {
     // TODO: supply appropreate root path
     let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let assets = PathBuf::from(root).join("assets");
@@ -26,11 +30,12 @@ pub fn path(path: impl AsRef<Path>) -> PathBuf {
 
 /// Asset data
 pub trait AssetItem: fmt::Debug + Sized + 'static {
-    type Loader: AssetLoader<Self>;
+    type Loader: AssetLoader<Item = Self>;
 }
 
-pub trait AssetLoader<T: AssetItem>: fmt::Debug + Sized + 'static {
-    fn load(&mut self, path: &Path) -> Result<T>;
+pub trait AssetLoader: fmt::Debug + Sized + 'static {
+    type Item: AssetItem;
+    fn load(&mut self, path: &Path) -> Result<Self::Item>;
 }
 
 /// Shared ownership of an [`AssetItem`]
@@ -48,6 +53,14 @@ impl<T: AssetItem> Clone for Asset<T> {
 }
 
 impl<T: AssetItem> Asset<T> {
+    pub fn empty() -> Self {
+        Self { item: None }
+    }
+
+    pub fn is_loaded() -> bool {
+        true
+    }
+
     /// Tries to get `&T`, fails if the asset is not loaded or failed to load
     ///
     /// This step is for asynchrounous loading and hot reloaidng.
@@ -94,8 +107,15 @@ pub struct AssetCacheEntry<T: AssetItem> {
 }
 
 impl<T: AssetItem> AssetCacheT<T> {
-    pub fn load_sync(&mut self, key: &AssetKey) -> Result<Asset<T>> {
-        let id = AssetId::from_key(key);
+    pub fn new(loader: T::Loader) -> Self {
+        Self {
+            assets: Vec::with_capacity(16),
+            loader,
+        }
+    }
+
+    pub fn load_sync(&mut self, key: impl AsRef<AssetKey>) -> Result<Asset<T>> {
+        let id = AssetId::from_key(key.as_ref());
         if let Some(a) = self.find_cache(&id) {
             Ok(a)
         } else {
@@ -113,13 +133,13 @@ impl<T: AssetItem> AssetCacheT<T> {
     fn load_new_sync(&mut self, id: AssetId) -> Result<Asset<T>> {
         let asset = Asset {
             item: {
-                let path = self::path(&id.identity);
+                let path = unsafe { self::path(&id.identity) };
                 let item = self.loader.load(&path)?;
                 Some(Arc::new(Mutex::new(item)))
             },
         };
 
-        let path = self::path(&id.identity);
+        let path = unsafe { self::path(&id.identity) };
 
         let entry = AssetCacheEntry {
             id,
@@ -129,5 +149,32 @@ impl<T: AssetItem> AssetCacheT<T> {
         self.assets.push(entry);
 
         Ok(asset)
+    }
+}
+
+#[derive(Debug)]
+pub struct AssetCacheAny {
+    caches: HashMap<TypeId, Box<dyn Any>>,
+}
+
+impl AssetCacheAny {
+    pub fn new() -> Self {
+        Self {
+            caches: HashMap::with_capacity(16),
+        }
+    }
+
+    pub fn add_cache<T: AssetItem>(&mut self, cache: AssetCacheT<T>) {
+        self.caches.insert(TypeId::of::<T>(), Box::new(cache));
+    }
+
+    pub fn cache_mut<T: AssetItem>(&mut self) -> Option<&mut AssetCacheT<T>> {
+        let boxed = self.caches.get_mut(&TypeId::of::<T>()).unwrap();
+        boxed.downcast_mut::<AssetCacheT<T>>()
+    }
+
+    pub fn load_sync<T: AssetItem>(&mut self, key: impl AsRef<AssetKey>) -> Result<Asset<T>> {
+        // TODO: don't unwrap
+        self.cache_mut::<T>().unwrap().load_sync(key)
     }
 }

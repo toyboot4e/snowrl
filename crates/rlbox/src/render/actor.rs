@@ -1,11 +1,14 @@
 //! Frame-based actor sprite animation
 
-use std::{collections::HashMap, path::Path, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
-use snow2d::gfx::{
-    batcher::draw::*,
-    geom2d::*,
-    tex::{SharedTexture2d, SpriteData, Texture2dDrop},
+use snow2d::{
+    asset::Asset,
+    gfx::{
+        batcher::draw::*,
+        geom2d::*,
+        tex::{SpriteData, Texture2dDrop},
+    },
 };
 
 use crate::{
@@ -16,23 +19,24 @@ use crate::{
 
 /// Generate character walking animation with some heuristic
 pub fn gen_anim_auto(
-    texture: &SharedTexture2d,
+    tex: &Asset<Texture2dDrop>,
     fps: f32,
 ) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
-    if texture.sub_tex_w() >= texture.sub_tex_h() {
-        self::gen_anim8(texture, fps)
+    let size = tex.get().unwrap().sub_tex_size();
+    if size[0] >= size[1] {
+        self::gen_anim8(tex, fps)
     } else {
-        self::gen_anim4(texture, fps)
+        self::gen_anim4(tex, fps)
     }
 }
 
 /// Generates character walking animation from 3x4 character image
 pub fn gen_anim4(
-    texture: &SharedTexture2d,
+    tex: &Asset<Texture2dDrop>,
     fps: f32,
 ) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
     self::gen_dir_anim_with(
-        texture,
+        tex,
         fps,
         &DIR_4_ANIM_PATTERN,
         |ix| {
@@ -47,11 +51,11 @@ pub fn gen_anim4(
 
 /// Generates character walking animation from 6x4 character image
 pub fn gen_anim8(
-    texture: &SharedTexture2d,
+    tex: &Asset<Texture2dDrop>,
     fps: f32,
 ) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
     self::gen_dir_anim_with(
-        texture,
+        tex,
         fps,
         &DIR_8_ANIM_PATTERN,
         |ix| {
@@ -89,7 +93,7 @@ const DIR_8_ANIM_PATTERN: DirAnimPattern = [
 ];
 
 fn gen_dir_anim_with(
-    texture: &SharedTexture2d,
+    tex: &Asset<Texture2dDrop>,
     fps: f32,
     patterns: &DirAnimPattern,
     gen_uv_rect: impl Fn(usize) -> [f32; 4],
@@ -105,7 +109,7 @@ fn gen_dir_anim_with(
                         .iter()
                         .map(|ix| {
                             let mut sprite = SpriteData {
-                                tex: SharedTexture2d::clone(texture),
+                                tex: tex.clone(),
                                 uv_rect: gen_uv_rect(*ix),
                                 rot: 0.0,
                                 // specify the center position of the image to place it
@@ -143,15 +147,13 @@ struct ActorSnapshot {
 }
 
 impl ActorImage {
-    pub fn from_path(
-        path: impl AsRef<Path>,
+    pub fn new(
+        tex: Asset<Texture2dDrop>,
         anim_fps: f32,
         walk_secs: f32,
         pos: Vec2i,
         dir: Dir8,
     ) -> snow2d::gfx::tex::Result<Self> {
-        let tex = Texture2dDrop::from_path(path)?.into_shared();
-        println!("{}, {}", tex.sub_tex_w(), tex.sub_tex_h());
         let anim = self::gen_anim_auto(&tex, anim_fps);
 
         let data = ActorSnapshot { pos, dir };
@@ -221,7 +223,7 @@ impl ActorImage {
     fn align(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
         let mut pos = crate::render::tiled::t2w_center(pos, &tiled);
         pos.y += tiled.tile_height as f32 / 2.0;
-        pos.y -= self.sprite().sub_tex_h() / 2.0;
+        pos.y -= self.sprite().sub_tex_size()[1] / 2.0;
         pos
     }
 

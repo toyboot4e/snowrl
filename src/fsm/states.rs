@@ -3,7 +3,7 @@
 use {rokol::gfx as rg, std::any::TypeId};
 
 use snow2d::{
-    asset,
+    asset::AssetCacheT,
     gfx::{batcher::draw::*, geom2d::*, tex::*, Color},
     PassConfig,
 };
@@ -146,22 +146,18 @@ pub struct Title {
     cursor: usize,
 }
 
-impl Default for Title {
-    fn default() -> Self {
+impl Title {
+    pub fn new(cache: &mut AssetCacheT<Texture2dDrop>) -> Self {
         Self {
             logo: SpriteData {
-                tex: Texture2dDrop::from_path(asset::path(paths::img::title::SNOWRL))
-                    .unwrap()
-                    .into_shared(),
+                tex: cache.load_sync(paths::img::title::SNOWRL).unwrap(),
                 uv_rect: [0.0, 0.0, 1.0, 1.0],
                 rot: 0.0,
                 origin: [0.0, 0.0],
                 scales: [0.5, 0.5],
             },
             choices: {
-                let tex = Texture2dDrop::from_path(asset::path(paths::img::title::CHOICES))
-                    .unwrap()
-                    .into_shared();
+                let tex = cache.load_sync(paths::img::title::CHOICES).unwrap();
 
                 let scale = [0.5, 0.5];
                 let origin = [0.0, 0.0];
@@ -321,18 +317,14 @@ pub struct PlayScript {
     baloon: SpriteData,
 }
 
-impl Default for PlayScript {
-    fn default() -> Self {
+impl PlayScript {
+    pub fn new(cache: &mut AssetCacheT<Texture2dDrop>) -> Self {
         Self {
             window: NineSliceSprite {
-                sprite: Texture2dDrop::from_path(asset::path(paths::img::sourve::A))
-                    .unwrap()
-                    .into_shared(),
+                tex: cache.load_sync(paths::img::sourve::A).unwrap(),
             },
             baloon: SpriteData {
-                tex: Texture2dDrop::from_path(asset::path(paths::img::sourve::BALOON))
-                    .unwrap()
-                    .into_shared(),
+                tex: cache.load_sync(paths::img::sourve::BALOON).unwrap(),
                 uv_rect: [0.0, 0.0, 0.5, 0.5],
                 // REMARK:
                 origin: [0.5, 0.0],
