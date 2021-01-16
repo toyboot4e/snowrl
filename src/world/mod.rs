@@ -12,7 +12,11 @@ use {
     std::time::{Duration, Instant},
 };
 
-use snow2d::{asset::AssetCacheAny, gfx::Color, input::Input, Snow2d};
+use snow2d::{
+    asset::AssetCacheAny,
+    gfx::{Color, Snow2d},
+    input::Input,
+};
 
 use rlbox::{
     rl::{

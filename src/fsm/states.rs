@@ -4,8 +4,7 @@ use {rokol::gfx as rg, std::any::TypeId};
 
 use snow2d::{
     asset::AssetCacheT,
-    gfx::{draw::*, geom2d::*, tex::*, Color},
-    PassConfig,
+    gfx::{draw::*, geom2d::*, tex::*, Color, PassConfig},
 };
 
 use rlbox::rl::grid2d::*;

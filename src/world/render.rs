@@ -6,15 +6,12 @@ use {
         app as ra,
         gfx::{self as rg, BakedResource},
     },
-    snow2d::{
-        gfx::{
-            batcher::{mesh::DynamicMesh, vertex::VertexData},
-            draw::*,
-            geom2d::*,
-            tex::RenderTexture,
-            Color,
-        },
-        PassConfig, Snow2d,
+    snow2d::gfx::{
+        batcher::{mesh::DynamicMesh, vertex::VertexData},
+        draw::*,
+        geom2d::*,
+        tex::RenderTexture,
+        Color, PassConfig, Snow2d,
     },
     std::time::Instant,
 };
