@@ -11,7 +11,7 @@ use crate::gfx::{
 // --------------------------------------------------------------------------------
 // traits
 
-/// What can be pushed onto [`QuadParamBuilder`] by [`SpritePush`]
+/// What can be pushed onto [`QuadParamsBuilder`] by [`SpritePush`]
 pub trait OnSpritePush: Texture2d {
     /// Initializes a quad when starting to build a quad
     ///

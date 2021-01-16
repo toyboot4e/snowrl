@@ -7,10 +7,10 @@ use crate::gfx::{batcher::vertex::QuadData, geom2d::*, Color};
 /// Texture with size data. Used by [`QuadParams`]
 pub trait Texture2d {
     fn img(&self) -> rg::Image;
-    /// Pixels
-    fn w(&self) -> f32;
-    /// Pixels
-    fn h(&self) -> f32;
+    /// Texture width in pixels, scale not considered
+    fn sub_tex_w(&self) -> f32;
+    /// Texture height in pixels, scale not considered
+    fn sub_tex_h(&self) -> f32;
 }
 
 /// Full-featured geometry parameters to push a quadliteral onto [`Batch`]
@@ -67,8 +67,8 @@ impl QuadParams {
     /// -> (src_rect, origin, dst_rect)
     #[inline]
     fn geometry_normalized(&self, texture: &impl Texture2d) -> (Rect2f, Rect2f) {
-        let inv_tex_w = 1.0 / texture.w();
-        let inv_tex_h = 1.0 / texture.h();
+        let inv_tex_w = 1.0 / texture.sub_tex_w();
+        let inv_tex_h = 1.0 / texture.sub_tex_h();
 
         // in uvs
         let src_rect = match &self.src_rect {
@@ -84,10 +84,10 @@ impl QuadParams {
         // in pixel
         let dst_rect = match &self.dst_rect {
             Scaled::Normalized(rect) => Rect2f {
-                x: rect.x * texture.w(),
-                y: rect.y * texture.h(),
-                w: rect.w * texture.w(),
-                h: rect.h * texture.h(),
+                x: rect.x * texture.sub_tex_w(),
+                y: rect.y * texture.sub_tex_h(),
+                w: rect.w * texture.sub_tex_w(),
+                h: rect.h * texture.sub_tex_h(),
             },
             Scaled::Px(rect) => Rect2f {
                 x: rect.x,

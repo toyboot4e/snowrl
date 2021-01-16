@@ -154,20 +154,20 @@ impl GidTextureMap {
             return None;
         }
 
-        for sp in self.imgs.iter().rev() {
-            if gid < sp.first_gid {
+        for sub_tex in self.imgs.iter().rev() {
+            if gid < sub_tex.first_gid {
                 continue;
             }
 
-            let id = gid - sp.first_gid;
-            let tex_size = [sp.tex.w(), sp.tex.h()];
+            let id = gid - sub_tex.first_gid;
+            let tex_size = [sub_tex.tex.sub_tex_w(), sub_tex.tex.sub_tex_h()];
 
             let n_cols = tex_size[0] as u32 / self.tile_size[0];
             let src_grid_x = id % n_cols;
             let src_grid_y = id / n_cols;
 
             return Some(SharedSubTexture2d {
-                shared: sp.tex.clone(),
+                tex: sub_tex.tex.clone(),
                 uv_rect: [
                     self.tile_size[0] as f32 * src_grid_x as f32 / tex_size[0],
                     self.tile_size[1] as f32 * src_grid_y as f32 / tex_size[1],

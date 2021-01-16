@@ -5,7 +5,7 @@ use std::{collections::HashMap, path::Path, time::Duration};
 use snow2d::gfx::{
     batcher::draw::*,
     geom2d::*,
-    tex::{SharedSubTexture2d, SharedTexture2d, SpriteData, Texture2dDrop},
+    tex::{SharedTexture2d, SpriteData, Texture2dDrop},
 };
 
 use crate::{
@@ -19,7 +19,7 @@ pub fn gen_anim_auto(
     texture: &SharedTexture2d,
     fps: f32,
 ) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
-    if texture.w() >= texture.h() {
+    if texture.sub_tex_w() >= texture.sub_tex_h() {
         self::gen_anim8(texture, fps)
     } else {
         self::gen_anim4(texture, fps)
@@ -105,14 +105,12 @@ fn gen_dir_anim_with(
                         .iter()
                         .map(|ix| {
                             let mut sprite = SpriteData {
-                                sub_tex: SharedSubTexture2d {
-                                    shared: texture.clone(),
-                                    uv_rect: gen_uv_rect(*ix),
-                                },
+                                tex: SharedTexture2d::clone(texture),
+                                uv_rect: gen_uv_rect(*ix),
                                 rot: 0.0,
                                 // specify the center position of the image to place it
                                 origin: [0.5, 0.5],
-                                scale: [1.0, 1.0],
+                                scales: [1.0, 1.0],
                             };
 
                             f(&mut sprite);
@@ -153,7 +151,7 @@ impl ActorImage {
         dir: Dir8,
     ) -> snow2d::gfx::tex::Result<Self> {
         let tex = Texture2dDrop::from_path(path)?.into_shared();
-        println!("{}, {}", tex.w(), tex.h());
+        println!("{}, {}", tex.sub_tex_w(), tex.sub_tex_h());
         let anim = self::gen_anim_auto(&tex, anim_fps);
 
         let data = ActorSnapshot { pos, dir };
@@ -223,7 +221,7 @@ impl ActorImage {
     fn align(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
         let mut pos = crate::render::tiled::t2w_center(pos, &tiled);
         pos.y += tiled.tile_height as f32 / 2.0;
-        pos.y -= self.sprite().h() / 2.0;
+        pos.y -= self.sprite().sub_tex_h() / 2.0;
         pos
     }
 

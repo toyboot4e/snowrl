@@ -63,10 +63,10 @@ impl<'a> Talk<'a> {
         let txt_pos = Vec2f::new(win_rect[0], win_rect[1]);
 
         // add paddings
-        win_rect[0] -= crate::consts::MESSAGE_PAD_EACH[0];
-        win_rect[1] -= crate::consts::MESSAGE_PAD_EACH[1];
-        win_rect[2] += crate::consts::MESSAGE_PAD_EACH[0] * 2.0;
-        win_rect[3] += crate::consts::MESSAGE_PAD_EACH[1] * 2.0;
+        win_rect[0] -= crate::consts::TALK_PADS[0];
+        win_rect[1] -= crate::consts::TALK_PADS[1];
+        win_rect[2] += crate::consts::TALK_PADS[0] * 2.0;
+        win_rect[3] += crate::consts::TALK_PADS[1] * 2.0;
 
         TalkLayout {
             txt: txt_pos,

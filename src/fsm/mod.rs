@@ -21,7 +21,7 @@ use crate::{
     world::{World, WorldContext},
 };
 
-/// Game data shared by more than one [`GameState`] or renderer
+/// Thread-local global variables
 #[derive(Debug)]
 pub struct Global {
     pub world: World,

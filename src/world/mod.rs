@@ -28,6 +28,7 @@ use self::{actor::*, vi::VInput};
 /// Powers the game [`World`]
 #[derive(Debug)]
 pub struct WorldContext {
+    /// For debug purpose
     window_title: String,
     /// 2D renderer
     pub rdr: Snow2d,
@@ -37,12 +38,13 @@ pub struct WorldContext {
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
     pub input: xdl::Input,
-    pub vi: VInput,
     /// Delta time from last frame
     pub dt: Duration,
     pub frame_count: u64,
     /// When the game started
     pub start_time: Instant,
+    //
+    pub vi: VInput,
 }
 
 impl WorldContext {
@@ -76,10 +78,10 @@ impl WorldContext {
             soloud: soloud::Soloud::default().unwrap(),
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             input: xdl::Input::new(),
-            vi: VInput::new(),
             dt: Duration::new(0, 0),
             frame_count: 0,
             start_time: Instant::now(),
+            vi: VInput::new(),
         }
     }
 

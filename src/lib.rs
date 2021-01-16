@@ -144,17 +144,14 @@ pub mod consts {
     /// Walk duration in seconds
     pub const WALK_TIME: f32 = 8.0 / 60.0;
 
-    /// Half frame in seconds (fixed timestep with 60 FPS)
-    pub const HALF_FRAME: f32 = 1.0 / 120.0;
-
-    /// Key repeat duration for virtual directionaly key
+    /// Key repeat duration for virtual directional key
     pub const REPEAT_FIRST_FRAMES: u64 = 8;
 
-    /// Key repeat duration for virtual directionaly key
+    /// Key repeat duration for virtual directional key
     pub const REPEAT_MULTI_FRAMES: u64 = 6;
 
-    /// [x, y]
-    pub const MESSAGE_PAD_EACH: [f32; 2] = [12.0, 8.0];
+    /// [left, top]
+    pub const TALK_PADS: [f32; 2] = [12.0, 8.0];
 }
 
 fn init_world(_wcx: &WorldContext) -> anyhow::Result<World> {

@@ -13,6 +13,8 @@ use crate::gfx::{
     geom2d::{Flips, Scaled, Vec2f},
 };
 
+pub type SharedTexture2d = Rc<Texture2dDrop>;
+
 pub type Result<T> = image::ImageResult<T>;
 
 fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
@@ -89,10 +91,6 @@ impl Texture2dDrop {
         Self { img: id, w, h }
     }
 
-    pub fn into_shared(self) -> SharedTexture2d {
-        SharedTexture2d { tex: Rc::new(self) }
-    }
-
     fn offscreen(w: u32, h: u32) -> (Self, rg::ImageDesc) {
         let desc = self::target_desc(w, h);
         let me = Self {
@@ -102,28 +100,16 @@ impl Texture2dDrop {
         };
         (me, desc)
     }
-}
 
-/// Reference counted version of [`Texture2dDrop`]
-#[derive(Debug, Clone)]
-pub struct SharedTexture2d {
-    pub tex: Rc<Texture2dDrop>,
-}
-
-impl SharedTexture2d {
-    /// uv_rect: [x, y, width, height]
-    pub fn split(&self, uv_rect: impl Into<[f32; 4]>) -> SharedSubTexture2d {
-        SharedSubTexture2d {
-            shared: self.clone(),
-            uv_rect: uv_rect.into(),
-        }
+    pub fn into_shared(self) -> SharedTexture2d {
+        Rc::new(self)
     }
 }
 
-/// [`SharedTexture2d`] with uv rectangle
+/// UV rect only reference counted sub texture
 #[derive(Debug, Clone)]
 pub struct SharedSubTexture2d {
-    pub shared: SharedTexture2d,
+    pub tex: SharedTexture2d,
     /// [x, y, width, height]
     pub uv_rect: [f32; 4],
 }
@@ -131,72 +117,38 @@ pub struct SharedSubTexture2d {
 /// Full-featured reference counted sub texture
 #[derive(Debug, Clone)]
 pub struct SpriteData {
-    pub sub_tex: SharedSubTexture2d,
+    pub tex: SharedTexture2d,
+    /// [x, y, width, height]
+    pub uv_rect: [f32; 4],
     pub rot: f32,
     pub origin: [f32; 2],
-    pub scale: [f32; 2],
+    pub scales: [f32; 2],
 }
 
 impl Default for SpriteData {
     fn default() -> Self {
         Self {
-            sub_tex: SharedSubTexture2d {
-                shared: SharedTexture2d {
-                    tex: Rc::new(Texture2dDrop {
-                        img: rg::Image::default(),
-                        w: 0,
-                        h: 0,
-                    }),
-                },
-                uv_rect: Default::default(),
-            },
+            tex: Rc::new(Texture2dDrop {
+                img: rg::Image::default(),
+                w: 0,
+                h: 0,
+            }),
+            uv_rect: [0.0, 0.0, 1.0, 1.0],
             rot: 0.0,
             // left-up corner
             origin: [0.0, 0.0],
-            scale: [1.0, 1.0],
+            scales: [1.0, 1.0],
         }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct NineSliceSprite {
-    pub tex: SharedTexture2d,
+    pub sprite: SharedTexture2d,
 }
 
 // --------------------------------------------------------------------------------
 // Trait implementations
-
-// ----------------------------------------
-
-impl AsRef<Texture2dDrop> for Texture2dDrop {
-    fn as_ref(&self) -> &Texture2dDrop {
-        self
-    }
-}
-
-impl AsRef<Texture2dDrop> for SharedTexture2d {
-    fn as_ref(&self) -> &Texture2dDrop {
-        &self.tex
-    }
-}
-
-impl AsRef<Texture2dDrop> for SharedSubTexture2d {
-    fn as_ref(&self) -> &Texture2dDrop {
-        &self.shared.tex
-    }
-}
-
-impl AsRef<Texture2dDrop> for SpriteData {
-    fn as_ref(&self) -> &Texture2dDrop {
-        &self.sub_tex.shared.tex
-    }
-}
-
-impl AsRef<Texture2dDrop> for NineSliceSprite {
-    fn as_ref(&self) -> &Texture2dDrop {
-        &self.tex.tex
-    }
-}
 
 // ----------------------------------------
 
@@ -205,68 +157,54 @@ impl Texture2d for Texture2dDrop {
         self.img
     }
 
-    fn w(&self) -> f32 {
+    fn sub_tex_w(&self) -> f32 {
         self.w as f32
     }
 
-    fn h(&self) -> f32 {
+    fn sub_tex_h(&self) -> f32 {
         self.h as f32
-    }
-}
-
-impl Texture2d for SharedTexture2d {
-    fn img(&self) -> rg::Image {
-        self.as_ref().img
-    }
-
-    fn w(&self) -> f32 {
-        self.as_ref().w as f32
-    }
-
-    fn h(&self) -> f32 {
-        self.as_ref().h as f32
     }
 }
 
 impl Texture2d for SharedSubTexture2d {
     fn img(&self) -> rg::Image {
-        self.as_ref().img
+        self.tex.img()
     }
 
-    fn w(&self) -> f32 {
-        self.as_ref().w as f32 * self.uv_rect[2] as f32
+    fn sub_tex_w(&self) -> f32 {
+        self.tex.sub_tex_w() * self.uv_rect[2]
     }
 
-    fn h(&self) -> f32 {
-        self.as_ref().h as f32 * self.uv_rect[3] as f32
+    fn sub_tex_h(&self) -> f32 {
+        self.tex.sub_tex_h() * self.uv_rect[3]
     }
 }
 
 impl Texture2d for SpriteData {
     fn img(&self) -> rg::Image {
-        self.sub_tex.img()
+        self.tex.img()
     }
 
-    fn w(&self) -> f32 {
-        self.sub_tex.w()
+    fn sub_tex_w(&self) -> f32 {
+        self.tex.sub_tex_w() * self.uv_rect[2]
     }
 
-    fn h(&self) -> f32 {
-        self.sub_tex.h()
+    fn sub_tex_h(&self) -> f32 {
+        self.tex.sub_tex_h() * self.uv_rect[3]
     }
 }
 
 impl Texture2d for NineSliceSprite {
     fn img(&self) -> rg::Image {
-        self.tex.img()
+        self.sprite.img()
     }
 
-    fn w(&self) -> f32 {
-        self.tex.w()
+    fn sub_tex_w(&self) -> f32 {
+        self.sprite.sub_tex_w()
     }
 
-    fn h(&self) -> f32 {
-        self.tex.h()
+    fn sub_tex_h(&self) -> f32 {
+        self.sprite.sub_tex_h()
     }
 }
 
@@ -275,23 +213,17 @@ impl Texture2d for NineSliceSprite {
 impl OnSpritePush for Texture2dDrop {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
         builder
-            .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
-            .dst_size_px([self.as_ref().w(), self.as_ref().h()])
+            .src_rect_px([0.0, 0.0, self.sub_tex_w(), self.sub_tex_h()])
+            .dst_size_px([self.sub_tex_w(), self.sub_tex_h()])
             .uv_rect([0.0, 0.0, 1.0, 1.0]);
-    }
-}
-
-impl OnSpritePush for SharedTexture2d {
-    fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
-        self.as_ref().init_quad(builder);
     }
 }
 
 impl OnSpritePush for SharedSubTexture2d {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
         builder
-            .src_rect_px([0.0, 0.0, self.as_ref().w(), self.as_ref().h()])
-            .dst_size_px([self.w(), self.h()])
+            .src_rect_px([0.0, 0.0, self.sub_tex_w(), self.sub_tex_h()])
+            .dst_size_px([self.sub_tex_w(), self.sub_tex_h()])
             .uv_rect(self.uv_rect);
     }
 }
@@ -299,9 +231,12 @@ impl OnSpritePush for SharedSubTexture2d {
 impl OnSpritePush for SpriteData {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
         builder
-            .src_rect_px([0.0, 0.0, self.w(), self.h()])
-            .dst_size_px([self.w() * self.scale[0], self.h() * self.scale[1]])
-            .uv_rect(self.sub_tex.uv_rect)
+            .src_rect_px([0.0, 0.0, self.sub_tex_w(), self.sub_tex_h()])
+            .dst_size_px([
+                self.sub_tex_w() * self.scales[0],
+                self.sub_tex_h() * self.scales[1],
+            ])
+            .uv_rect(self.uv_rect)
             .rot(self.rot)
             .origin(self.origin);
     }
@@ -309,7 +244,7 @@ impl OnSpritePush for SpriteData {
 
 impl OnSpritePush for NineSliceSprite {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
-        self.tex.init_quad(builder);
+        self.sprite.init_quad(builder);
     }
 
     #[inline]
@@ -320,12 +255,12 @@ impl OnSpritePush for NineSliceSprite {
         };
 
         let ws = {
-            let w = self.tex.w() / 3.0;
+            let w = self.sprite.sub_tex_w() / 3.0;
             [w, dst_size[0] - 2.0 * w, w]
         };
 
         let hs = {
-            let h = self.tex.h() / 3.0;
+            let h = self.sprite.sub_tex_h() / 3.0;
             [h, dst_size[1] - 2.0 * h, h]
         };
 
@@ -346,12 +281,11 @@ impl OnSpritePush for NineSliceSprite {
                 .dst_size_px([ws[ix], hs[iy]]);
 
             draw.params.write_to_quad(
-                draw.quad_iter.next_quad_mut(self.tex.img()),
-                &self.tex,
+                draw.quad_iter.next_quad_mut(self.sprite.img()),
+                self.sprite.as_ref(),
                 flips,
             );
         }
-        // }
     }
 }
 

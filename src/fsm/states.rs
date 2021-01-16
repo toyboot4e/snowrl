@@ -150,13 +150,13 @@ impl Default for Title {
     fn default() -> Self {
         Self {
             logo: SpriteData {
-                sub_tex: Texture2dDrop::from_path(asset::path(paths::img::title::SNOWRL))
+                tex: Texture2dDrop::from_path(asset::path(paths::img::title::SNOWRL))
                     .unwrap()
-                    .into_shared()
-                    .split([0.0, 0.0, 1.0, 1.0]),
+                    .into_shared(),
+                uv_rect: [0.0, 0.0, 1.0, 1.0],
                 rot: 0.0,
                 origin: [0.0, 0.0],
-                scale: [0.5, 0.5],
+                scales: [0.5, 0.5],
             },
             choices: {
                 let tex = Texture2dDrop::from_path(asset::path(paths::img::title::CHOICES))
@@ -172,22 +172,25 @@ impl Default for Title {
                 // FIXME: slow, so use async. Which is slow, CPU part or GPU part?
                 [
                     SpriteData {
-                        sub_tex: tex.split([0.0, unit * 0.0, 1.0, unit]),
+                        tex: tex.clone(),
+                        uv_rect: [0.0, unit * 0.0, 1.0, unit],
                         rot,
                         origin,
-                        scale,
+                        scales: scale,
                     },
                     SpriteData {
-                        sub_tex: tex.split([0.0, unit * 1.0, 1.0, unit]),
+                        tex: tex.clone(),
+                        uv_rect: [0.0, unit * 1.0, 1.0, unit],
                         rot,
                         origin,
-                        scale,
+                        scales: scale,
                     },
                     SpriteData {
-                        sub_tex: tex.split([0.0, unit * 2.0, 1.0, unit]),
+                        tex: tex.clone(),
+                        uv_rect: [0.0, unit * 2.0, 1.0, unit],
                         rot,
                         origin,
-                        scale,
+                        scales: scale,
                     },
                 ]
             },
@@ -322,15 +325,15 @@ impl Default for PlayScript {
     fn default() -> Self {
         Self {
             window: NineSliceSprite {
-                tex: Texture2dDrop::from_path(asset::path(paths::img::sourve::A))
+                sprite: Texture2dDrop::from_path(asset::path(paths::img::sourve::A))
                     .unwrap()
                     .into_shared(),
             },
             baloon: SpriteData {
-                sub_tex: Texture2dDrop::from_path(asset::path(paths::img::sourve::BALOON))
+                tex: Texture2dDrop::from_path(asset::path(paths::img::sourve::BALOON))
                     .unwrap()
-                    .into_shared()
-                    .split([0.0, 0.0, 0.5, 0.5]),
+                    .into_shared(),
+                uv_rect: [0.0, 0.0, 0.5, 0.5],
                 // REMARK:
                 origin: [0.5, 0.0],
                 ..Default::default()
