@@ -17,13 +17,14 @@ name = "snow"
 
 [workspace]
 members = [
-    "crates/rokol",
+    "crates/snow2d/rokol",
+    "crates/snow2d/xdl",
     "crates/snow2d",
     "crates/rlbox",
 ]
 
 [dependencies]
-rokol = { path = "crates/rokol", features = ["glcore33"] }
+rokol = { path = "crates/snow2d/rokol", features = ["glcore33"] }
 snow2d = { path = "crates/snow2d" }
 rlbox = { path = "crates/rlbox" }
 

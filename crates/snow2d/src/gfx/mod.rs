@@ -173,7 +173,7 @@ impl<'a> Default for PassConfig<'a> {
 #[derive(Debug)]
 pub struct Snow2d {
     /// Vertex/index buffer and images slots
-    pub batch: Batch,
+    batch: Batch,
     pub fontbook: FontBook,
     /// Default pipeline object for on-screen rendering
     screen_pip: rg::Pipeline,

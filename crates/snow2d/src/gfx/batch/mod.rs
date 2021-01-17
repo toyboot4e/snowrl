@@ -1,4 +1,4 @@
-//! Batcher
+//! Quad batcher under the hood
 
 pub mod mesh;
 pub mod vertex;
