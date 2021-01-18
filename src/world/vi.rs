@@ -13,6 +13,8 @@ pub struct VInput {
     pub select: Button,
     /// Change direction without changin position
     pub turn: Button,
+    /// Rest one turn
+    pub rest: Button,
 }
 
 impl VInput {
@@ -61,12 +63,19 @@ impl VInput {
                 },
                 KeyRepeat::None,
             ),
+            rest: Button::new(
+                InputBundle {
+                    keys: vec![Key::Space],
+                },
+                KeyRepeat::None,
+            ),
         }
     }
 
     pub fn update(&mut self, input: &Input, dt: Duration) {
         self.dir.update(input, dt);
-        self.select.update(input, dt);
-        self.turn.update(input, dt);
+        for bt in &mut [&mut self.select, &mut self.turn, &mut self.rest] {
+            bt.update(input, dt);
+        }
     }
 }

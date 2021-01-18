@@ -55,6 +55,24 @@ impl Event for NotConsumeTurn {
 // These additional steps are also good foor visualization.
 
 #[derive(Debug)]
+pub struct RestOneTurn {
+    pub actor: ActorIx,
+}
+
+impl GenAnim for RestOneTurn {
+    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        None
+    }
+}
+
+impl Event for RestOneTurn {
+    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+        println!("REST");
+        EventResult::Finish
+    }
+}
+
+#[derive(Debug)]
 pub struct ChangeDir {
     pub actor: ActorIx,
     pub dir: Dir8,
@@ -256,9 +274,10 @@ impl PlayerTurn {
 
 impl Event for PlayerTurn {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let (select, turn, dir) = (
+        let (select, turn, rest, dir) = (
             ecx.wcx.vi.select.is_pressed(),
             ecx.wcx.vi.turn.is_pressed(),
+            ecx.wcx.vi.rest.is_pressed(),
             ecx.wcx.vi.dir.dir8_down(),
         );
 
@@ -278,6 +297,10 @@ impl Event for PlayerTurn {
                     dir,
                 });
             }
+        }
+
+        if rest {
+            return EventResult::chain(RestOneTurn { actor: self.actor });
         }
 
         if let Some(dir) = dir {
