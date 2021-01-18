@@ -2,7 +2,16 @@
 
 Asset cache and reference-counted asset references
 
-TODO: async loading and dynamic loading
+TODO fixes:
+
+* release cache on no owner
+
+TODO features:
+
+* weak pointer?
+* serde (interning `Arc` asset handles)
+* async loading
+* dynamic loading
 
 */
 
@@ -13,7 +22,7 @@ pub use std::io::Result;
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    fmt,
+    fmt, io,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
@@ -47,7 +56,7 @@ pub struct Asset<T: AssetItem> {
 impl<T: AssetItem> Clone for Asset<T> {
     fn clone(&self) -> Self {
         Self {
-            item: self.item.as_ref().map(|x| Arc::clone(&x)),
+            item: self.item.as_ref().map(|x| Arc::clone(x)),
         }
     }
 }
@@ -64,13 +73,19 @@ impl<T: AssetItem> Asset<T> {
     /// Tries to get `&T`, fails if the asset is not loaded or failed to load
     ///
     /// This step is for asynchrounous loading and hot reloaidng.
+    ///
+    /// Unfortunatelly, the return type is not `Option<&T>` and doesn't implement trait for type `T`.
+    /// Still, you can use `&*asset.get()` to cast it to `&T`.
     pub fn get<'a>(&'a self) -> Option<impl Deref<Target = T> + 'a> {
         self.item.as_ref()?.lock().ok()
     }
 
-    /// Tries to `&mut T`, fails if the asset is not loaded or panics ([`Mutex`] under the hood)
+    /// Tries to get `&mut T`, fails if the asset is not loaded or panics ([`Mutex`] under the hood)
     ///
     /// This step is for asynchrounous loading and hot reloaidng.
+    ///
+    /// Unfortunatelly, the return type is not `Option<&mut T>` and doesn't implement trait for type
+    /// `T`. Still, you can use `&mut *asset.get()` to cast it to `&mut T`.
     pub fn get_mut<'a>(&'a mut self) -> Option<impl DerefMut + Deref<Target = T> + 'a> {
         self.item.as_mut()?.lock().ok()
     }
@@ -116,7 +131,7 @@ impl<T: AssetItem> AssetCacheT<T> {
 
     pub fn load_sync(&mut self, key: impl AsRef<AssetKey>) -> Result<Asset<T>> {
         let id = AssetId::from_key(key.as_ref());
-        if let Some(a) = self.find_cache(&id) {
+        if let Some(a) = self.search_cache(&id) {
             log::trace!("cache found for {}", key.as_ref().display());
             Ok(a)
         } else {
@@ -125,7 +140,7 @@ impl<T: AssetItem> AssetCacheT<T> {
         }
     }
 
-    fn find_cache(&mut self, id: &AssetId) -> Option<Asset<T>> {
+    fn search_cache(&mut self, id: &AssetId) -> Option<Asset<T>> {
         self.assets
             .iter()
             .find(|a| a.id == *id)
@@ -176,7 +191,16 @@ impl AssetCacheAny {
     }
 
     pub fn load_sync<T: AssetItem>(&mut self, key: impl AsRef<AssetKey>) -> Result<Asset<T>> {
-        // TODO: don't unwrap
-        self.cache_mut::<T>().unwrap().load_sync(key)
+        self.cache_mut::<T>()
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!(
+                        "Non-existing asset cache for type {}",
+                        std::any::type_name::<T>()
+                    ),
+                )
+            })?
+            .load_sync(key)
     }
 }

@@ -209,7 +209,7 @@ impl Default for SnowRenderer {
                     ..Default::default()
                 },
                 rasterizer: rg::RasterizerState {
-                    // NOTE: our 2 renderer may output backward triangle
+                    // NOTE: our renderer may output backward triangle
                     cull_mode: rg::CullMode::None as u32,
                     ..Default::default()
                 },
@@ -255,6 +255,7 @@ impl SnowRenderer {
         let w = ra::width() as f32;
         let h = ra::height() as f32;
 
+        self.mesh.verts[0].pos = [0.0, 0.0];
         self.mesh.verts[1].pos = [w, 0.0];
         self.mesh.verts[2].pos = [0.0, h];
         self.mesh.verts[3].pos = [w, h];

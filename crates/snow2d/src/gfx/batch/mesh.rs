@@ -17,6 +17,7 @@ impl<V> DynamicMesh<V> {
         let mut b = rg::Bindings::default();
 
         let size_in_bytes = std::mem::size_of::<V>() * verts.len();
+        log::trace!("mesh size: {}", size_in_bytes);
         b.vertex_buffers[0] = rg::Buffer::create(&rg::vbuf_desc_dyn(
             size_in_bytes as i32,
             rg::ResourceUsage::Stream,
@@ -33,10 +34,12 @@ impl<V> DynamicMesh<V> {
         }
     }
 
+    /// New mesh with `u16` indices
     pub fn new_16(verts: Vec<V>, indices: &[u16]) -> Self {
         Self::new(verts, indices)
     }
 
+    /// New mesh with `u32` indices
     pub fn new_32(verts: Vec<V>, indices: &[u32]) -> Self {
         Self::new(verts, indices)
     }
@@ -49,7 +52,7 @@ impl<V> DynamicMesh<V> {
     /// WARNING: can be called only once a frame
     pub unsafe fn upload_all_verts(&mut self) {
         rg::update_buffer(self.bind.vertex_buffers[0], &self.verts);
-        // updateBuffer gives us a fresh buffer so make sure we reset our append offset
+        // update_buffer gives us a fresh buffer so make sure we reset our append offset
         self.bind.vertex_buffer_offsets[0] = 0;
     }
 
@@ -68,7 +71,7 @@ impl<V> DynamicMesh<V> {
     /// * `start_index`: offset for GPU vertex buffer
     pub fn append_vert_slice(&mut self, start_index: i32, n_verts: usize) -> i32 {
         let start_index = start_index as usize;
-        assert!(start_index + n_verts <= self.verts.len());
+        debug_assert!(start_index + n_verts <= self.verts.len());
 
         let slice = &self.verts[start_index..start_index + n_verts];
         let offset = rg::append_buffer(self.bind.vertex_buffers[0], slice);
@@ -88,7 +91,6 @@ impl<V> DynamicMesh<V> {
     pub fn draw(&self, base_elem: u32, n_verts: u32) {
         rg::apply_bindings(&self.bind);
         rg::draw(base_elem, n_verts, 1);
-        // set `self.mesh.bind.vertex_buffer_offsets[0] = 0;
     }
 
     pub fn draw_all(&self) {

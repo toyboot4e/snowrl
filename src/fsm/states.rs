@@ -3,7 +3,8 @@
 use {rokol::gfx as rg, std::any::TypeId};
 
 use snow2d::{
-    asset::AssetCacheT,
+    asset::{Asset, AssetCacheAny},
+    audio,
     gfx::{draw::*, geom2d::*, tex::*, Color, PassConfig},
 };
 
@@ -18,6 +19,7 @@ use crate::{
         ev,
         tick::{AnimContext, GameLoop, TickResult},
     },
+    world::WorldContext,
 };
 
 /// Roguelike game state
@@ -143,10 +145,13 @@ pub struct Title {
     // TODO: impl selections
     choices: [SpriteData; 3],
     cursor: usize,
+    se_cursor: Asset<audio::src::Wav>,
+    se_select: Asset<audio::src::Wav>,
 }
 
 impl Title {
-    pub fn new(cache: &mut AssetCacheT<Texture2dDrop>) -> Self {
+    pub fn new(wcx: &mut WorldContext) -> Self {
+        let cache = &mut wcx.assets;
         Self {
             logo: SpriteData {
                 tex: cache.load_sync(paths::img::title::SNOWRL).unwrap(),
@@ -190,6 +195,8 @@ impl Title {
                 ]
             },
             cursor: 0,
+            se_cursor: cache.load_sync(paths::sound::se::CURSOR).unwrap(),
+            se_select: cache.load_sync(paths::sound::se::SELECT).unwrap(),
         }
     }
 }
@@ -225,22 +232,33 @@ impl Title {
 }
 
 impl GameState for Title {
+    fn on_enter(&mut self, gl: &mut Global) {
+        let wcx = &mut gl.wcx;
+        let cache = &mut wcx.assets;
+
+        let song = cache.load_sync(paths::sound::bgm::FOREST_02).unwrap();
+        wcx.music_player.play_song(song);
+    }
+
     fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
         if let Some(dir) = gl.wcx.vi.dir.dir4_pressed() {
             match dir.y_sign() {
                 Sign::Pos => {
                     self.cursor += self.choices.len() - 1;
                     self.cursor %= self.choices.len();
+                    gl.wcx.audio.play(&*self.se_cursor.get_mut().unwrap());
                 }
                 Sign::Neg => {
                     self.cursor += 1;
                     self.cursor %= self.choices.len();
+                    gl.wcx.audio.play(&*self.se_cursor.get_mut().unwrap());
                 }
                 Sign::Neutral => {}
             }
         }
 
         if gl.wcx.vi.select.is_pressed() {
+            gl.wcx.audio.play(&*self.se_select.get_mut().unwrap());
             StateUpdateResult::PopAndRun
         } else {
             // TODO: fade out
@@ -298,15 +316,6 @@ impl GameState for Title {
                 .color(color);
         }
     }
-
-    fn on_enter(&mut self, _gl: &mut Global) {
-        // let mut ucx = AnimUpdateContext {
-        //     world: &mut gl.world,
-        //     wcx: &mut gl.wcx,
-        // };
-
-        // gl.anims.on_start(&mut ucx);
-    }
 }
 
 /// Just plays hard-coded script (for now)
@@ -317,7 +326,7 @@ pub struct PlayScript {
 }
 
 impl PlayScript {
-    pub fn new(cache: &mut AssetCacheT<Texture2dDrop>) -> Self {
+    pub fn new(cache: &mut AssetCacheAny) -> Self {
         Self {
             window: NineSliceSprite {
                 tex: cache.load_sync(paths::img::sourve::A).unwrap(),
@@ -383,3 +392,33 @@ impl GameState for PlayScript {
         screen.sprite(&self.baloon).dst_pos_px(layout.baloon_center);
     }
 }
+
+// /// Play text and wait for it
+// #[derive(Debug)]
+// pub struct PlayText {
+//     window: NineSliceSprite,
+//     // state: TextState,
+// }
+//
+// impl GameState for PlayText {
+//     fn on_enter(&mut self, gl: &mut Global) {
+//         assert!(gl.script_to_play.is_some());
+//     }
+//
+//     fn on_exit(&mut self, gl: &mut Global) {
+//         gl.script_to_play = None;
+//     }
+//
+//     fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
+//         if gl.wcx.vi.select.is_pressed() {
+//             // Exit on enter
+//             StateUpdateResult::PopAndRun
+//         } else {
+//             StateUpdateResult::GotoNextFrame
+//         }
+//     }
+//
+//     fn render(&mut self, gl: &mut Global) {
+//         //
+//     }
+// }

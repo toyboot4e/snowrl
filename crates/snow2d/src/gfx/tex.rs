@@ -372,12 +372,13 @@ impl RenderTexture {
         Self { tex, pass }
     }
 
-    pub fn tex(&self) -> &Texture2dDrop {
-        &self.tex
-    }
-
+    /// [`rokol::gfx::Pass`] for off-screen rendering
     pub fn pass(&self) -> rg::Pass {
         self.pass
+    }
+
+    pub fn tex(&self) -> &Texture2dDrop {
+        &self.tex
     }
 
     pub fn img(&self) -> rg::Image {

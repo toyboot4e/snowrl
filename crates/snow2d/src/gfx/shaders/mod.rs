@@ -9,7 +9,7 @@ macro_rules! c_str {
     };
 }
 
-/// On release build, embed shader files
+/// (Release build) embed shader files
 ///
 /// [&str; 2]
 #[cfg(not(debug_assertions))]
@@ -22,7 +22,7 @@ macro_rules! def_shd {
     };
 }
 
-/// On debug build, dynamically load shader files
+/// (Debug build) dynamically load shader files
 ///
 /// [String; 2]
 #[cfg(debug_assertions)]

@@ -14,6 +14,7 @@ use {
 
 use snow2d::{
     asset::AssetCacheAny,
+    audio::{asset::MusicPlayer, Audio},
     gfx::{Color, Snow2d},
     input::Input,
 };
@@ -39,6 +40,10 @@ pub struct WorldContext {
     pub rdr: Snow2d,
     /// Default font configuration
     pub font_cfg: FontConfig,
+    /// Audio context
+    pub audio: Audio,
+    pub music_player: MusicPlayer,
+    /// Asset cache for any type
     pub assets: AssetCacheAny,
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
@@ -75,10 +80,15 @@ impl WorldContext {
         };
         snow.fontbook.apply_cfg(&font_cfg);
 
+        // TODO: don't unwrap
+        let audio = unsafe { Audio::create().unwrap() };
+
         Self {
             window_title: title,
             rdr: snow,
             font_cfg,
+            audio: audio.clone(),
+            music_player: MusicPlayer::new(audio.clone()),
             assets: AssetCacheAny::new(),
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             input: Input::new(),

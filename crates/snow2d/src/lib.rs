@@ -6,16 +6,11 @@ A 2D framework on top of [`rokol`].
 
 */
 
-pub use rokol;
+pub extern crate rokol;
 
 pub mod asset;
+pub mod audio;
 pub mod gfx;
-
-pub mod audio {
-    //! `soloud-rs` re-exported
-
-    pub use soloud::*;
-}
 
 pub mod input {
     //! `xdl` re-exported

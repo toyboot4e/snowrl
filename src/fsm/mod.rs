@@ -63,19 +63,18 @@ impl Global {
 
 /// TODO: consider parameter on push and pass using downcast
 pub trait GameState: std::fmt::Debug {
+    fn on_enter(&mut self, _gl: &mut Global) {}
+    fn on_exit(&mut self, _gl: &mut Global) {}
+    // TODO: use proper name
+    fn on_stop(&mut self, _gl: &mut Global) {}
+
     fn event(&mut self, _ev: &ra::Event, _gl: &mut Global) {}
     fn update(&mut self, _gl: &mut Global) -> StateUpdateResult;
-
     fn render(&mut self, gl: &mut Global) {
         use crate::fsm::render::WorldRenderFlag;
         let flags = WorldRenderFlag::ALL;
         gl.world_render.render(&gl.world, &mut gl.wcx, flags);
     }
-
-    fn on_enter(&mut self, _gl: &mut Global) {}
-    fn on_exit(&mut self, _gl: &mut Global) {}
-    // TODO: use proper name
-    fn on_stop(&mut self, _gl: &mut Global) {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

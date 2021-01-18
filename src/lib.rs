@@ -8,7 +8,9 @@ Snow the roguelike game
 #![feature(generators, generator_trait)]
 
 // re-export mainly dependent crates
-pub use {rlbox, rokol, snow2d};
+pub extern crate rlbox;
+pub extern crate rokol;
+pub extern crate snow2d;
 
 pub mod paths;
 
@@ -27,6 +29,7 @@ use {
     },
     snow2d::{
         asset::AssetCacheT,
+        audio,
         gfx::tex::{Texture2dDrop, TextureLoader},
     },
 };
@@ -90,6 +93,9 @@ impl SnowRlImpl {
             wcx.assets
                 .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
 
+            // TODO: don't unwrap
+            audio::asset::register_asset_loaders(&mut wcx.assets, &wcx.audio.clone());
+
             let world = self::init_world(&mut wcx).unwrap();
 
             fsm::Global {
@@ -107,9 +113,8 @@ impl SnowRlImpl {
             fsm.insert_default::<fsm::states::Roguelike>();
             fsm.insert_default::<fsm::states::Animation>();
 
-            let cache = gl.wcx.assets.cache_mut::<Texture2dDrop>().unwrap();
-            fsm.insert(fsm::states::Title::new(cache));
-            fsm.insert(fsm::states::PlayScript::new(cache));
+            fsm.insert(fsm::states::Title::new(&mut gl.wcx));
+            fsm.insert(fsm::states::PlayScript::new(&mut gl.wcx.assets));
 
             fsm.push::<fsm::states::Roguelike>(&mut gl);
             fsm.push::<fsm::states::Title>(&mut gl);
@@ -155,7 +160,7 @@ pub mod consts {
     pub const WALK_TIME: f32 = 8.0 / 60.0;
 
     /// Key repeat duration for virtual directional key
-    pub const REPEAT_FIRST_FRAMES: u64 = 8;
+    pub const REPEAT_FIRST_FRAMES: u64 = 10;
 
     /// Key repeat duration for virtual directional key
     pub const REPEAT_MULTI_FRAMES: u64 = 6;
