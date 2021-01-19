@@ -225,7 +225,7 @@ impl Snow2d {
     }
 
     /// Begins on-screen rendering pass
-    pub fn screen(&mut self, cfg: PassConfig<'_>) -> Pass<'_> {
+    pub fn screen(&mut self, cfg: PassConfig<'_>) -> RenderPass<'_> {
         rg::begin_default_pass(cfg.pa, ra::width(), ra::height());
 
         // FIXME: pipeline should set uniform by themselves
@@ -243,11 +243,11 @@ impl Snow2d {
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
         }
 
-        Pass { snow: self }
+        RenderPass { snow: self }
     }
 
     /// Begins off-screen rendering pass
-    pub fn offscreen(&mut self, ofs: &RenderTexture, cfg: PassConfig<'_>) -> Pass<'_> {
+    pub fn offscreen(&mut self, ofs: &RenderTexture, cfg: PassConfig<'_>) -> RenderPass<'_> {
         rg::begin_pass(ofs.pass(), cfg.pa);
 
         // FIXME: pipeline should set uniform by themselves
@@ -267,7 +267,7 @@ impl Snow2d {
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
         }
 
-        Pass { snow: self }
+        RenderPass { snow: self }
     }
 
     fn end_pass(&mut self) {
@@ -277,17 +277,17 @@ impl Snow2d {
 }
 
 /// [`DrawApi`] for a rendering pass (on-screen or off-screen)
-pub struct Pass<'a> {
+pub struct RenderPass<'a> {
     snow: &'a mut Snow2d,
 }
 
-impl<'a> Drop for Pass<'a> {
+impl<'a> Drop for RenderPass<'a> {
     fn drop(&mut self) {
         self.snow.end_pass();
     }
 }
 
-impl<'a> QuadIter for Pass<'a> {
+impl<'a> QuadIter for RenderPass<'a> {
     fn peek_quad_mut(&mut self, img: rg::Image) -> &mut QuadData {
         self.snow.batch.data.peek_quad_mut(img)
     }
@@ -297,7 +297,7 @@ impl<'a> QuadIter for Pass<'a> {
     }
 }
 
-impl<'a> DrawApi for Pass<'a> {
+impl<'a> DrawApi for RenderPass<'a> {
     type Q = BatchData;
 
     /// Starts a [`QuadParamsBuilder`] setting source/destination size and uv values
@@ -312,14 +312,14 @@ impl<'a> DrawApi for Pass<'a> {
     }
 }
 
-impl<'a> Pass<'a> {
+impl<'a> RenderPass<'a> {
     pub fn fontbook(&mut self) -> &mut FontBook {
         &mut self.snow.fontbook
     }
 
+    // pub fn txt(&mut self, pos: impl Into<Vec2f>, text: &str) {
+
     /// Renders multiple lines of text
-    ///
-    /// TODO: maybe add it to DrawApi
     pub fn txt(&mut self, pos: impl Into<Vec2f>, text: &str) {
         // use non-premultipiled alpha blending
 
@@ -345,8 +345,8 @@ impl<'a> Pass<'a> {
     fn render_text_line(&mut self, pos: Vec2f, text: &str) {
         let img = self.snow.fontbook.img();
 
-        let mut iter = self.snow.fontbook.text_iter(text).unwrap();
-        while let Some(quad) = iter.next() {
+        let iter = self.snow.fontbook.text_iter(text).unwrap();
+        for quad in iter {
             let q = self.next_quad_mut(img);
 
             q[0].uv = [quad.s0, quad.t0];
@@ -365,8 +365,5 @@ impl<'a> Pass<'a> {
             q[2].color = color;
             q[3].color = color;
         }
-
-        // we should update the image because we might have changed it
-        self.snow.batch.data.force_set_img(self.snow.fontbook.img());
     }
 }

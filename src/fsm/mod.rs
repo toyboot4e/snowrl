@@ -67,7 +67,7 @@ pub trait GameState: std::fmt::Debug {
     fn on_stop(&mut self, _gl: &mut Global) {}
 
     fn event(&mut self, _ev: &ra::Event, _gl: &mut Global) {}
-    fn update(&mut self, _gl: &mut Global) -> StateUpdateResult;
+    fn update(&mut self, _gl: &mut Global) -> StateReturn;
     fn render(&mut self, gl: &mut Global) {
         use crate::fsm::render::WorldRenderFlag;
         let flags = WorldRenderFlag::ALL;
@@ -75,12 +75,33 @@ pub trait GameState: std::fmt::Debug {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum StateUpdateResult {
-    GotoNextFrame,
-    PushAndRun(TypeId),
-    PushAndRunNextFrame(TypeId),
-    PopAndRun,
+#[derive(Debug)]
+pub enum StateReturn {
+    NextFrame(Vec<StateCommand>),
+    ThisFrame(Vec<StateCommand>),
+}
+
+impl StateReturn {
+    pub fn into_cmds(self) -> Vec<StateCommand> {
+        match self {
+            Self::NextFrame(cmds) => cmds,
+            Self::ThisFrame(cmds) => cmds,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum StateCommand {
+    Insert(TypeId, Box<dyn GameState>),
+    Pop,
+    PopAndRemove,
+    Push(TypeId),
+}
+
+impl StateCommand {
+    pub fn insert<T: GameState + 'static>(state: T) -> Self {
+        Self::Insert(TypeId::of::<T>(), Box::new(state))
+    }
 }
 
 /// Stack-based finite state machine
@@ -106,22 +127,32 @@ impl Fsm {
             let state = self.states.get_mut(id).unwrap();
             let res = state.update(gl);
 
-            match res {
-                StateUpdateResult::GotoNextFrame => {
-                    break;
-                }
-                StateUpdateResult::PushAndRun(next_state) => {
-                    self.push_id(next_state, gl);
-                    continue;
-                }
-                StateUpdateResult::PushAndRunNextFrame(next_state) => {
-                    self.push_id(next_state, gl);
-                    break;
-                }
-                StateUpdateResult::PopAndRun => {
-                    self.pop(gl);
-                    continue;
-                }
+            let finish = matches!(res, StateReturn::NextFrame(_));
+
+            for cmd in res.into_cmds() {
+                self.run_cmd(cmd, gl);
+            }
+
+            if finish {
+                break;
+            }
+        }
+    }
+
+    fn run_cmd(&mut self, cmd: StateCommand, gl: &mut Global) {
+        match cmd {
+            StateCommand::Insert(typeid, state) => {
+                self.states.insert(typeid, state);
+            }
+            StateCommand::Pop => {
+                let _ = self.stack.pop().unwrap();
+            }
+            StateCommand::Push(typeid) => {
+                self.push_id(typeid, gl);
+            }
+            StateCommand::PopAndRemove => {
+                let typeid = self.stack.pop().unwrap();
+                self.states.remove(&typeid).unwrap();
             }
         }
     }

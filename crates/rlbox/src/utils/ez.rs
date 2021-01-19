@@ -186,7 +186,7 @@ impl Ease {
             Self::QuintOut => self::quint_out(t),
             Self::QuintIo => self::quint_io(t),
             //
-            Self::SinIn => self::sin_ni(t),
+            Self::SinIn => self::sin_in(t),
             Self::SinOut => self::sin_out(t),
             Self::SinIo => self::sin_io(t),
             //
@@ -304,7 +304,7 @@ pub fn quint_io(t: f32) -> f32 {
 }
 
 #[inline]
-pub fn sin_ni(t: f32) -> f32 {
+pub fn sin_in(t: f32) -> f32 {
     ((t - 1.0) * FRAC_PI_2).sin() + 1.0
 }
 

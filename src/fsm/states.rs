@@ -1,6 +1,9 @@
 //! Stack-based game states
 
-use {rokol::gfx as rg, std::any::TypeId};
+use {
+    rokol::gfx as rg,
+    std::{any::TypeId, borrow::Cow},
+};
 
 use snow2d::{
     asset::{Asset, AssetCacheAny},
@@ -11,13 +14,13 @@ use snow2d::{
 use rlbox::rl::grid2d::*;
 
 use crate::{
-    fsm::{render::WorldRenderFlag, GameState, Global, StateUpdateResult},
+    fsm::{render::WorldRenderFlag, GameState, Global, StateCommand, StateReturn},
     paths,
     script::{self, ScriptRef},
     turn::{
         anim::{AnimResult, AnimUpdateContext},
         ev,
-        tick::{AnimContext, GameLoop, TickResult},
+        tick::{ActorIx, AnimContext, GameLoop, TickResult},
     },
     world::WorldContext,
 };
@@ -31,7 +34,7 @@ pub struct Roguelike {
 }
 
 impl GameState for Roguelike {
-    fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
+    fn update(&mut self, gl: &mut Global) -> StateReturn {
         loop {
             let res = self.game_loop.tick(&mut gl.world, &mut gl.wcx);
             // log::trace!("{:?}", res);
@@ -43,15 +46,18 @@ impl GameState for Roguelike {
                         // infinite loop:
                         // run batched walk animation if it's player's turn
                         if gl.anims.any_batch() {
-                            return StateUpdateResult::PushAndRun(TypeId::of::<Animation>());
+                            return StateReturn::ThisFrame(vec![StateCommand::Push(TypeId::of::<
+                                Animation,
+                            >(
+                            ))]);
                         }
 
                         if self.last_frame_on_tick == self.current_frame_count {
                             // another player turn after all actors taking turns.
                             // maybe all actions didn't take any frame.
                             // force waiting for a frame to ensure we don't enter inifinite loop:
-                            // log::trace!("avoid player loop");
-                            return StateUpdateResult::GotoNextFrame;
+                            // log::trace!("avoid player inifinite loop");
+                            return StateReturn::ThisFrame(vec![]);
                         }
 
                         self.last_frame_on_tick = self.current_frame_count;
@@ -72,7 +78,10 @@ impl GameState for Roguelike {
                         // run not-batched animation
                         // (batch walk animations as much as possible)
                         if gl.anims.any_anim_to_run_now() {
-                            return StateUpdateResult::PushAndRun(TypeId::of::<Animation>());
+                            return StateReturn::ThisFrame(vec![StateCommand::Push(TypeId::of::<
+                                Animation,
+                            >(
+                            ))]);
                         }
                     }
 
@@ -86,13 +95,17 @@ impl GameState for Roguelike {
                             to: talk.to,
                         });
 
-                        return StateUpdateResult::PushAndRunNextFrame(TypeId::of::<PlayScript>());
+                        // enter PlayScript state in NEXT frame because interact key is still pressed
+                        return StateReturn::NextFrame(vec![StateCommand::Push(TypeId::of::<
+                            PlayScript,
+                        >(
+                        ))]);
                     }
 
                     continue;
                 }
                 TickResult::ProcessingEvent => {
-                    return StateUpdateResult::GotoNextFrame;
+                    return StateReturn::NextFrame(vec![]);
                 }
             }
         }
@@ -111,15 +124,15 @@ impl GameState for Roguelike {
 pub struct Animation {}
 
 impl GameState for Animation {
-    fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
+    fn update(&mut self, gl: &mut Global) -> StateReturn {
         let mut ucx = AnimUpdateContext {
             world: &mut gl.world,
             wcx: &mut gl.wcx,
         };
 
         match gl.anims.update(&mut ucx) {
-            AnimResult::GotoNextFrame => StateUpdateResult::GotoNextFrame,
-            AnimResult::Finish => StateUpdateResult::PopAndRun,
+            AnimResult::GotoNextFrame => StateReturn::NextFrame(vec![]),
+            AnimResult::Finish => StateReturn::ThisFrame(vec![StateCommand::Pop]),
         }
     }
 
@@ -240,7 +253,7 @@ impl GameState for Title {
         wcx.music_player.play_song(song);
     }
 
-    fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
+    fn update(&mut self, gl: &mut Global) -> StateReturn {
         if let Some(dir) = gl.wcx.vi.dir.dir4_pressed() {
             match dir.y_sign() {
                 Sign::Pos => {
@@ -259,10 +272,10 @@ impl GameState for Title {
 
         if gl.wcx.vi.select.is_pressed() {
             gl.wcx.audio.play(&*self.se_select.get_mut().unwrap());
-            StateUpdateResult::PopAndRun
+            StateReturn::ThisFrame(vec![StateCommand::Pop])
         } else {
             // TODO: fade out
-            StateUpdateResult::GotoNextFrame
+            StateReturn::NextFrame(vec![])
         }
     }
 
@@ -351,74 +364,63 @@ impl GameState for PlayScript {
         gl.script_to_play = None;
     }
 
-    fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
-        if gl.wcx.vi.select.is_pressed() {
-            // Exit on enter
-            StateUpdateResult::PopAndRun
-        } else {
-            StateUpdateResult::GotoNextFrame
-        }
-    }
-
-    fn render(&mut self, gl: &mut Global) {
-        let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
-
+    fn update(&mut self, gl: &mut Global) -> StateReturn {
         // we assume interact script (for now)
         let script = gl.script_to_play.as_ref().unwrap();
         let (from, to) = match script {
             ScriptRef::Interact { from, to } => (from.clone(), to.clone()),
         };
 
-        // let actor = &gl.world.entities[to.0];
-
-        // let mut pos = actor.img.pos_screen(&gl.world.map.tiled);
-        // pos.y -= gl.world.map.tiled.tile_height as f32;
-
-        let mut screen = gl.wcx.rdr.screen(Default::default());
-
+        // TODO: allow any script
         let txt = "石焼き芋！　焼き芋〜〜\n二行目のテキストです。あいうえお、かきくけこ。\n\n4 行目です！";
+        let play_text = PlayTextState::new(gl, txt.to_string(), from, to);
 
-        let talk = script::Talk { txt, from, to };
-        let layout = talk.layout(screen.fontbook(), &gl.wcx.font_cfg, &gl.world);
+        StateReturn::ThisFrame(vec![
+            StateCommand::insert(play_text),
+            StateCommand::Push(TypeId::of::<PlayTextState>()),
+        ])
+    }
 
-        screen
-            .sprite(&self.window)
-            .dst_rect_px(layout.win_rect_center);
-
-        screen.txt(layout.txt, txt);
-
-        // baloon
-        screen.sprite(&self.baloon).dst_pos_px(layout.baloon_center);
+    fn render(&mut self, _gl: &mut Global) {
+        // unreachable!()
     }
 }
 
-// /// Play text and wait for it
-// #[derive(Debug)]
-// pub struct PlayText {
-//     window: NineSliceSprite,
-//     // state: TextState,
-// }
-//
-// impl GameState for PlayText {
-//     fn on_enter(&mut self, gl: &mut Global) {
-//         assert!(gl.script_to_play.is_some());
-//     }
-//
-//     fn on_exit(&mut self, gl: &mut Global) {
-//         gl.script_to_play = None;
-//     }
-//
-//     fn update(&mut self, gl: &mut Global) -> StateUpdateResult {
-//         if gl.wcx.vi.select.is_pressed() {
-//             // Exit on enter
-//             StateUpdateResult::PopAndRun
-//         } else {
-//             StateUpdateResult::GotoNextFrame
-//         }
-//     }
-//
-//     fn render(&mut self, gl: &mut Global) {
-//         //
-//     }
-// }
+#[derive(Debug)]
+pub struct PlayTextState {
+    txt: script::PlayText,
+}
+
+impl PlayTextState {
+    pub fn new(gl: &mut Global, txt: String, from: ActorIx, to: ActorIx) -> Self {
+        let talk = script::Talk {
+            txt: Cow::Owned(txt),
+            from,
+            to,
+        };
+
+        Self {
+            txt: script::PlayText::new(gl, talk),
+        }
+    }
+}
+
+impl GameState for PlayTextState {
+    fn update(&mut self, gl: &mut Global) -> StateReturn {
+        self.txt.update(gl.wcx.dt);
+
+        if gl.wcx.vi.select.is_pressed() {
+            // Exit on enter
+            StateReturn::NextFrame(vec![StateCommand::PopAndRemove, StateCommand::Pop])
+        } else {
+            StateReturn::NextFrame(vec![])
+        }
+    }
+
+    fn render(&mut self, gl: &mut Global) {
+        let flags = WorldRenderFlag::ALL;
+        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
+        let mut screen = gl.wcx.rdr.screen(Default::default());
+        self.txt.render(&mut screen);
+    }
+}

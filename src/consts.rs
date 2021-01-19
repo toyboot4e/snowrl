@@ -16,6 +16,10 @@ pub const FOV_EASE: ez::Ease = ez::Ease::Linear;
 pub const DEFAULT_FONT_SIZE: f32 = 22.0;
 pub const DEFAULT_LINE_SPACE: f32 = 4.0;
 
+pub const CHARS_PER_SEC: f32 = 100.0;
+pub const TALK_WIN_ANIM_TIME: f32 = 10.0 / 60.0;
+pub const TALK_WIN_EASE: ez::Ease = ez::Ease::CubicOut;
+
 /// Walk duration in seconds
 pub const WALK_TIME: f32 = 8.0 / 60.0;
 
