@@ -388,7 +388,7 @@ impl GameState for PlayScript {
 
 #[derive(Debug)]
 pub struct PlayTextState {
-    txt: script::PlayText,
+    txt: script::PlayTalk,
 }
 
 impl PlayTextState {
@@ -400,7 +400,7 @@ impl PlayTextState {
         };
 
         Self {
-            txt: script::PlayText::new(gl, talk),
+            txt: script::PlayTalk::new(gl, talk),
         }
     }
 }
