@@ -3,7 +3,7 @@
 use {
     anyhow::{Context, Result},
     snow2d::{
-        asset::{self, Asset, AssetCacheT},
+        asset::{self, Asset, AssetCacheT, AssetKey},
         gfx::{
             draw::Texture2d,
             tex::{SharedSubTexture2d, Texture2dDrop},
@@ -144,7 +144,7 @@ impl GidTextureMap {
                     let relative_img_path = &tileset.images[0].source;
                     let img_path = tiled_dir_path.join(relative_img_path);
 
-                    cache.load_sync(&img_path).unwrap()
+                    cache.load_sync(AssetKey::new(&img_path)).unwrap()
                 },
             });
         }

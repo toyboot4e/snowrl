@@ -1,5 +1,10 @@
 //! Utilities
 
+pub mod ez;
+
+/// See [`inline_tweak`](https://docs.rs/inline_tweak/latest/inline_tweak/)
+pub use inline_tweak::tweak;
+
 /// Double buffer
 #[derive(Debug, Clone)]
 pub struct Double<T> {
@@ -154,21 +159,19 @@ impl<T> Clone for Cheat<T> {
 }
 
 impl<T> Cheat<T> {
-    pub fn new(reference: &T) -> Self {
+    pub unsafe fn new(reference: &T) -> Self {
         Self {
             ptr: reference as *const _ as *mut _,
         }
     }
 
-    pub fn empty() -> Self {
+    pub unsafe fn empty() -> Self {
         Self {
             ptr: std::ptr::null_mut(),
         }
     }
 
     /// Explicit cast to `T`
-    ///
-    /// `deref_mut` without importing `DerefMut`.
     pub fn cheat(&mut self) -> &mut T {
         use std::ops::DerefMut;
         self.deref_mut()
@@ -187,9 +190,4 @@ impl<T> std::ops::DerefMut for Cheat<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.ptr }
     }
-}
-
-/// Shorthand for `Cheat::new`
-pub fn cheat<T>(reference: &T) -> Cheat<T> {
-    Cheat::new(reference)
 }

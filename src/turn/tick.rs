@@ -76,9 +76,11 @@ impl Default for GameLoop {
     fn default() -> Self {
         Self {
             gen: self::game_loop(),
-            tcx: TickContext {
-                world: Cheat::empty(),
-                wcx: Cheat::empty(),
+            tcx: unsafe {
+                TickContext {
+                    world: Cheat::empty(),
+                    wcx: Cheat::empty(),
+                }
             },
         }
     }
@@ -87,9 +89,11 @@ impl Default for GameLoop {
 impl GameLoop {
     /// Ticks the game for "one step"
     pub fn tick(&mut self, world: &mut World, wcx: &mut WorldContext) -> TickResult {
-        // set cheat borrows here (for the generators)
-        self.tcx.world = Cheat::new(world);
-        self.tcx.wcx = Cheat::new(wcx);
+        // set cheat borrows here for the generator
+        unsafe {
+            self.tcx.world = Cheat::new(world);
+            self.tcx.wcx = Cheat::new(wcx);
+        }
 
         match Pin::new(&mut self.gen).resume(self.tcx.clone()) {
             GeneratorState::Yielded(res) => res,

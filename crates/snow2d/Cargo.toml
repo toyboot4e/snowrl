@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 rokol = { path = "rokol", features = ["glcore33", "use-fontstash"] }
-soloud = "0.2.4"
+soloud = "0.3.1"
 xdl = { path = "xdl", features = ["use-rokol"] }
 
 log = "0.4.11"

@@ -91,6 +91,7 @@ impl<T: AssetItem> Asset<T> {
     }
 }
 
+/// TODO: use newtype struct while enabling static construction (or use IntoAssetKey)
 pub type AssetKey = Path;
 
 /// Newtype of [`PathBuf`], which is relative path from "root" asset directory

@@ -17,16 +17,23 @@ name = "snow"
 
 [workspace]
 members = [
+    "crates/snow2d",
     "crates/snow2d/rokol",
     "crates/snow2d/xdl",
-    "crates/snow2d",
     "crates/rlbox",
+]
+exclude = [
+    "crates/snow2d"
 ]
 
 [dependencies]
 rokol = { path = "crates/snow2d/rokol", features = ["glcore33"] }
 snow2d = { path = "crates/snow2d" }
 rlbox = { path = "crates/rlbox" }
+
+image = "0.23.12"
+glam = "0.11.2"
+tiled = "0.9.3"
 
 log = "0.4.11"
 env_logger = "0.8.2"
@@ -38,11 +45,6 @@ bitflags = "1.2.1"
 once_cell = "1.5.2"
 rand = "0.8.0"
 downcast-rs = "1.2.0"
-
-image = "0.23.12"
-glam = "0.11.2"
-tiled = "0.9.3"
-soloud = "0.2.3"
 
 [build-dependencies]
 convert_case = "0.4.0"

@@ -6,7 +6,8 @@ Roguelike toolbox
 
 */
 
-pub use {rokol, snow2d};
+pub extern crate rokol;
+pub extern crate snow2d;
 
 pub mod render;
 pub mod rl;

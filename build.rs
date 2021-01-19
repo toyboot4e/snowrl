@@ -14,6 +14,7 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 #[derive(Debug)]
 struct AssetPrint {
     pub asset_root: PathBuf,
+    pub use_strings: Vec<String>,
     pub buf: String,
     pub indent: usize,
 }
@@ -28,6 +29,19 @@ impl AssetPrint {
     fn filter(item: &Path) -> bool {
         let name = item.file_name().unwrap().to_str().unwrap();
         name.starts_with(".") || name.ends_with("tiled-project") || name.ends_with("tiled-session")
+    }
+
+    pub fn doc_string(&mut self, s: &str) {
+        writeln!(&mut self.buf, "{}", s).unwrap();
+        writeln!(&mut self.buf, "").unwrap();
+        self.use_strings();
+    }
+
+    fn use_strings(&mut self) {
+        for i in 0..self.use_strings.len() {
+            self.indent();
+            writeln!(&mut self.buf, "{}", self.use_strings[i]).unwrap();
+        }
     }
 
     pub fn file(&mut self, item: &Path) {
@@ -45,7 +59,7 @@ impl AssetPrint {
 
         writeln!(
             &mut self.buf,
-            r#"pub const {}: &str = "{}";"#,
+            r#"pub static {}: &'static str = "{}";"#,
             name,
             rel_path.display()
         )
@@ -60,8 +74,9 @@ impl AssetPrint {
         let name = name.to_case(Case::Snake);
 
         writeln!(&mut self.buf, "pub mod {} {{", name,).unwrap();
-
         self.indent += 1;
+
+        self.use_strings();
     }
 
     pub fn pop_dir(&mut self) {
@@ -81,15 +96,15 @@ fn main() -> Result<()> {
     // and do this in your source file:
     //     include!(concat!(env!("OUT_DIR"), "/paths.rs"));
 
+    let use_strings = vec![];
     let mut ap = AssetPrint {
         asset_root: asset_root.clone(),
+        use_strings,
         buf: String::with_capacity(1024 * 10),
         indent: 0,
     };
 
-    writeln!(&mut ap.buf, "//! Automatically generated with `build.rs`")?;
-    writeln!(&mut ap.buf, "")?;
-
+    ap.doc_string("//! Automatically generated with `build.rs`");
     self::rec(&mut ap, &asset_root)?;
 
     let mut file = File::create(&dst)?;

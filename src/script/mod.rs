@@ -3,6 +3,7 @@
 use {
     rokol::fons::{FontBook, FontConfig},
     snow2d::gfx::geom2d::*,
+    std::time::Duration,
 };
 
 use crate::{turn::tick::ActorIx, world::World};
@@ -20,12 +21,38 @@ pub enum ScriptRef {
 }
 
 // Generates [`TalkLayout`]
+#[derive(Debug)]
 pub struct Talk<'a> {
     pub txt: &'a str,
     pub from: ActorIx,
     pub to: ActorIx,
 }
 
+/// State to play text
+#[derive(Debug, Default)]
+pub struct TextState {
+    pub n_chars: usize,
+    pub dt_secs: f32,
+    pub n_chars_per_sec: f32,
+}
+
+impl TextState {
+    /// Initializes `self` for next text play
+    pub fn init(&mut self, n_chars: usize) {
+        self.n_chars = n_chars;
+        self.dt_secs = 0.0;
+        self.n_chars_per_sec = 0.0;
+    }
+
+    // pub fn update(&mut self,
+}
+
+// impl TextState {
+//     pub fn init(&mut self, quad:
+// }
+
+/// Layout of talk window, text and baloon
+#[derive(Debug)]
 pub struct TalkLayout {
     pub txt: Vec2f,
     /// TODO: Position is the center of the window

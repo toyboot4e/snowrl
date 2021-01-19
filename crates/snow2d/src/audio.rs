@@ -55,10 +55,10 @@ pub mod asset {
 
     use crate::{
         asset::{Asset, AssetCacheAny, AssetCacheT, AssetItem, AssetLoader},
-        audio::{prelude::*, src, Audio, Handle},
+        audio::{src, Audio, Handle},
     };
 
-    use std::{fs, io};
+    use std::{fmt, io};
 
     use std::path::Path;
 
@@ -70,62 +70,43 @@ pub mod asset {
     }
 
     pub fn register_asset_loaders(assets: &mut AssetCacheAny, audio: &Audio) {
-        assets.add_cache::<src::Wav>(AssetCacheT::new(WavLoader::new(audio.clone())));
+        reg::<src::Wav>(assets, audio.clone());
+        reg::<src::WavStream>(assets, audio.clone());
 
-        assets.add_cache::<src::WavStream>(AssetCacheT::new(WavStreamLoader::new(audio.clone())));
-    }
-
-    // ----------------------------------------
-    // `src::Wav`
-    impl AssetItem for src::Wav {
-        type Loader = WavLoader;
-    }
-
-    /// [`AssetLoader`] of [`src::Wav`], which is for short audio files
-    #[derive(Debug, Clone)]
-    pub struct WavLoader {
-        soloud: Audio,
-    }
-
-    impl WavLoader {
-        pub fn new(soloud: Audio) -> Self {
-            Self { soloud }
+        fn reg<T>(assets: &mut AssetCacheAny, audio: Audio)
+        where
+            T: crate::audio::prelude::FromExt + fmt::Debug + 'static,
+        {
+            assets.add_cache::<T>(AssetCacheT::new(AudioLoader {
+                audio,
+                _phantom: std::marker::PhantomData::<T>::default(),
+            }));
         }
     }
 
-    impl AssetLoader for WavLoader {
-        type Item = src::Wav;
+    #[derive(Debug)]
+    pub struct AudioLoader<Src>
+    where
+        Src: crate::audio::prelude::FromExt + fmt::Debug + 'static,
+    {
+        audio: Audio,
+        _phantom: std::marker::PhantomData<Src>,
+    }
+
+    impl<T> AssetItem for T
+    where
+        T: crate::audio::prelude::FromExt + fmt::Debug + 'static,
+    {
+        type Loader = AudioLoader<T>;
+    }
+
+    impl<T> AssetLoader for AudioLoader<T>
+    where
+        T: crate::audio::prelude::FromExt + fmt::Debug + 'static,
+    {
+        type Item = T;
         fn load(&mut self, path: &Path) -> io::Result<Self::Item> {
-            let mem = fs::read(path)?;
-            let item = Self::Item::from_mem(mem.into()).map_err(upcast_err)?;
-            Ok(item)
-        }
-    }
-
-    // ----------------------------------------
-    // `src::WavStream`
-    impl AssetItem for src::WavStream {
-        type Loader = WavStreamLoader;
-    }
-
-    /// [`AssetLoader`] of [`src::WavStream`], which is for long audio files
-    #[derive(Debug, Clone)]
-    pub struct WavStreamLoader {
-        soloud: Audio,
-    }
-
-    impl WavStreamLoader {
-        pub fn new(soloud: Audio) -> Self {
-            Self { soloud }
-        }
-    }
-
-    impl AssetLoader for WavStreamLoader {
-        type Item = src::WavStream;
-        fn load(&mut self, path: &Path) -> io::Result<Self::Item> {
-            let mem = fs::read(path)?;
-            let item = Self::Item::from_mem(mem.into()).map_err(upcast_err)?;
-            Ok(item)
+            Self::Item::from_path(path).map_err(upcast_err)
         }
     }
 
@@ -151,10 +132,11 @@ pub mod asset {
         }
 
         pub fn play_song(&mut self, mut song: Asset<src::WavStream>) {
-            if let Some(playback) = self.current.as_mut() {
-                //
+            if let Some(_playback) = self.current.as_mut() {
+                // TODO: fade out
             }
 
+            // TODO: fade in
             let handle = self.audio.play(&*song.get_mut().unwrap());
             self.current = Some(Playback { handle, song })
         }
