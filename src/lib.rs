@@ -12,6 +12,7 @@ pub extern crate rlbox;
 pub extern crate rokol;
 pub extern crate snow2d;
 
+pub mod consts;
 pub mod paths;
 
 pub mod fsm;
@@ -24,8 +25,7 @@ use rokol::{app as ra, gfx as rg};
 use {
     rlbox::{
         render::actor::ActorImage,
-        rl::{fov::FovData, fow::FowData, grid2d::*, rlmap::TiledRlMap},
-        utils::Double,
+        rl::{grid2d::*, rlmap::TiledRlMap},
     },
     snow2d::{
         asset::AssetCacheT,
@@ -93,7 +93,6 @@ impl SnowRlImpl {
             wcx.assets
                 .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
 
-            // TODO: don't unwrap
             audio::asset::register_asset_loaders(&mut wcx.assets, &wcx.audio.clone());
 
             let world = self::init_world(&mut wcx).unwrap();
@@ -126,6 +125,7 @@ impl SnowRlImpl {
     }
 }
 
+// Lifecycle
 impl rokol::app::RApp for SnowRlImpl {
     fn event(&mut self, ev: &ra::Event) {
         self.gl.event(ev);
@@ -144,54 +144,18 @@ impl rokol::app::RApp for SnowRlImpl {
     }
 }
 
-pub mod consts {
-    //! Magic values (should be removed)
-
-    /// Temporary way to identify player
-    pub const PLAYER: usize = 0;
-
-    /// FPS of character graphics animation
-    pub const ACTOR_FPS: f32 = 4.0;
-
-    /// Filed of view radius
-    pub const FOV_R: u32 = 5;
-
-    /// Walk duration in seconds
-    pub const WALK_TIME: f32 = 8.0 / 60.0;
-
-    /// Key repeat duration for virtual directional key
-    pub const REPEAT_FIRST_FRAMES: u64 = 10;
-
-    /// Key repeat duration for virtual directional key
-    pub const REPEAT_MULTI_FRAMES: u64 = 6;
-
-    /// [left, top]
-    pub const TALK_PADS: [f32; 2] = [12.0, 8.0];
-}
-
 fn init_world(wcx: &mut WorldContext) -> anyhow::Result<World> {
     let map = TiledRlMap::new(
-        crate::paths::map::tmx::RL_START,
+        paths::map::tmx::RL_START,
         wcx.assets.cache_mut::<Texture2dDrop>().unwrap(),
     )?;
 
-    let radius = [crate::consts::FOV_R, 10];
+    let radius = [consts::FOV_R, 10];
     let map_size = map.rlmap.size;
 
     let mut world = World {
         map,
-        shadow: Shadow {
-            fov: Double {
-                a: FovData::new(radius[0], radius[1]),
-                b: FovData::new(radius[0], radius[1]),
-            },
-            fow: Double {
-                a: FowData::new(map_size),
-                b: FowData::new(map_size),
-            },
-            blend_factor: 0.0,
-            is_dirty: false,
-        },
+        shadow: Shadow::new(radius, map_size, consts::WALK_TIME, consts::FOV_EASE),
         entities: Vec::with_capacity(20),
     };
 
@@ -210,15 +174,16 @@ fn load_actors(w: &mut World, wcx: &mut WorldContext) -> anyhow::Result<()> {
 
     // player
 
-    let tex = cache.load_sync(crate::paths::IKA_CHAN).unwrap();
+    let tex = cache.load_sync(paths::IKA_CHAN).unwrap();
     let img = {
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
 
         ActorImage::new(
             tex,
-            crate::consts::ACTOR_FPS,
-            crate::consts::WALK_TIME,
+            consts::ACTOR_FPS,
+            consts::WALK_TIME,
+            consts::WALK_EASE,
             pos,
             dir,
         )?
@@ -243,15 +208,16 @@ fn load_actors(w: &mut World, wcx: &mut WorldContext) -> anyhow::Result<()> {
 
     // non-player characters
 
-    let tex = cache.load_sync(crate::paths::img::pochi::WHAT).unwrap();
+    let tex = cache.load_sync(paths::img::pochi::WHAT).unwrap();
     let img = {
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
 
         ActorImage::new(
             tex,
-            crate::consts::ACTOR_FPS,
-            crate::consts::WALK_TIME,
+            consts::ACTOR_FPS,
+            consts::WALK_TIME,
+            consts::WALK_EASE,
             pos,
             dir,
         )?

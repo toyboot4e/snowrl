@@ -18,11 +18,6 @@ use {
 
 use crate::world::World;
 
-pub fn render_tiled(draw: &mut impl DrawApi, world: &World) {
-    let bounds = Rect2f::from(([0.0, 0.0], ra::size_scaled()));
-    tiled_render::render_tiled(draw, &world.map.tiled, &world.map.idmap, bounds.clone());
-}
-
 #[derive(Debug)]
 pub struct FovRenderer {
     pa_trans: rg::PassAction,
@@ -47,7 +42,7 @@ impl Default for FovRenderer {
                     ..Default::default()
                 },
                 rasterizer: rg::RasterizerState {
-                    // NOTE: our 2 renderer may output backward triangle
+                    // NOTE: our renderer may output backward triangle
                     cull_mode: rg::CullMode::None as u32,
                     ..Default::default()
                 },
@@ -58,7 +53,7 @@ impl Default for FovRenderer {
 }
 
 impl FovRenderer {
-    /// 1/4 off-screern rendering target
+    /// Creates 1/4 off-screern rendering target
     fn create_shadow() -> RenderTexture {
         let inv_scale = 4.0;
         let mut screen_size = ra::size_scaled();
@@ -67,7 +62,7 @@ impl FovRenderer {
         RenderTexture::new(screen_size[0] as u32, screen_size[1] as u32)
     }
 
-    /// Render shadow texture
+    /// Renders shadow texture (don't forget to use it later)
     pub fn render_ofs(&mut self, rdr: &mut Snow2d, world: &World) {
         // get shadow
         let mut offscreen = rdr.offscreen(
@@ -88,7 +83,7 @@ impl FovRenderer {
             &bounds,
             &world.shadow.fov.a,
             &world.shadow.fov.b,
-            world.shadow.blend_factor,
+            world.shadow.dt.get(),
             &world.shadow.fow.a,
             &world.shadow.fow.b,
         );
@@ -241,7 +236,7 @@ impl SnowRenderer {
             let time = (Instant::now() - self.start_time).as_secs_f32();
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Fs, 1, &time);
 
-            let mouse = glam::Vec2::new(640.0, 360.0);
+            let mouse = glam::Vec2::new(ra::width() as f32, ra::height() as f32);
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Fs, 2, &mouse);
         }
 

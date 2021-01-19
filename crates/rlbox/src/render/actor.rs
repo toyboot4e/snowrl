@@ -14,7 +14,7 @@ use snow2d::{
 use crate::{
     render::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
     rl::grid2d::*,
-    utils::DoubleSwap,
+    utils::{ez, DoubleSwap},
 };
 
 /// Generate character walking animation with some heuristic
@@ -135,8 +135,7 @@ pub struct ActorImage {
     anim_state: FrameAnimState<Dir8, SpriteData>,
     state: DoubleSwap<ActorSnapshot>,
     /// Sec
-    dt: f32,
-    walk_secs: f32,
+    dt: ez::EasedDt,
 }
 
 /// Interpolate two snapshots to draw actor
@@ -151,6 +150,7 @@ impl ActorImage {
         tex: Asset<Texture2dDrop>,
         anim_fps: f32,
         walk_secs: f32,
+        walk_ease: ez::Ease,
         pos: Vec2i,
         dir: Dir8,
     ) -> snow2d::gfx::tex::Result<Self> {
@@ -160,36 +160,34 @@ impl ActorImage {
 
         Ok(Self {
             anim_state: FrameAnimState::new(anim, dir),
-            walk_secs,
             state: DoubleSwap::new(data, data),
-            dt: Default::default(),
+            dt: ez::EasedDt::new(walk_secs, walk_ease),
         })
     }
 
     pub fn force_set(&mut self, pos: Vec2i, dir: Dir8) {
         let next_snap = ActorSnapshot { dir, pos };
-        self.state.a = next_snap;
-        self.state.b = next_snap;
+        self.state.set_a(next_snap);
+        self.state.set_b(next_snap);
         self.anim_state.set_pattern(dir, true);
     }
 
     /// Call after updating actors
     pub fn update(&mut self, dt: Duration, pos: Vec2i, dir: Dir8) {
-        if dir != self.state.a.dir {
+        if dir != self.state.a().dir {
             self.anim_state.set_pattern(dir, false);
         }
 
         // update interpolation value
-        if pos != self.state.a.pos {
-            self.dt = 0.0;
+        if pos != self.state.a().pos {
+            self.dt.reset();
         }
-
-        self.dt = f32::min(self.dt + dt.as_secs_f32(), self.walk_secs);
+        self.dt.tick(dt);
 
         let next_snap = ActorSnapshot { dir, pos };
-        if next_snap != self.state.a {
-            self.state.b = self.state.a;
-            self.state.a = next_snap;
+        if next_snap != *self.state.a() {
+            self.state.swap();
+            self.state.set_a(next_snap);
         }
 
         // update animation frame
@@ -197,11 +195,10 @@ impl ActorImage {
     }
 
     pub fn pos_screen(&self, tiled: &tiled::Map) -> Vec2f {
-        let pos_prev = self.align(self.state.b.pos, tiled);
-        let pos_curr = self.align(self.state.a.pos, tiled);
+        let pos_prev = self.align(self.state.b().pos, tiled);
+        let pos_curr = self.align(self.state.a().pos, tiled);
 
-        let factor = self.dt / self.walk_secs;
-        pos_prev * (1.0 - factor) + pos_curr * factor
+        pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get()
     }
 
     pub fn render<'a, 'b, D: DrawApi>(

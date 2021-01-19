@@ -25,13 +25,11 @@ use crate::{
 #[derive(Debug)]
 pub struct Global {
     pub world: World,
-    // TODO: rename it to global context
     pub wcx: WorldContext,
     pub world_render: WorldRenderer,
-    /// Roguelike game animations (TODO: remove it. use event to pass animation object)
+    /// Roguelike game animations
     pub anims: AnimPlayer,
     pub script_to_play: Option<ScriptRef>,
-    // TODO: add AssetCache
 }
 
 impl Global {

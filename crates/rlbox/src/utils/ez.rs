@@ -1,4 +1,14 @@
-//! Easing
+/*!
+
+Easing and tweening
+
+```no_run
+pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
+    T::lerp(a, b, ease.map(t))
+}
+```
+
+*/
 
 use std::{
     f32::consts::{FRAC_PI_2, PI},
@@ -7,43 +17,79 @@ use std::{
 
 /// Linearly interpolatable, which can be [`Tweened`]
 pub trait Lerp {
-    fn lerp(t: f32, a: Self, b: Self) -> Self;
+    fn lerp(a: Self, b: Self, t: f32) -> Self;
 }
 
 impl Lerp for f32 {
-    fn lerp(t: f32, a: Self, b: Self) -> Self {
+    /// t: [0.0, 1.0] → t': [a, b]
+    fn lerp(a: Self, b: Self, t: f32) -> Self {
         a + t * (b - a)
     }
 }
 
+pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
+    T::lerp(a, b, ease.map(t))
+}
+
 /// Generates tweened value
+#[derive(Debug)]
 pub struct Tweened<T: Lerp + Clone> {
     pub a: T,
     pub b: T,
-    /// Easing function
-    pub ease: Ease,
-    /// Easing state
-    pub ez: Ez,
+    pub dt: EasedDt,
 }
 
 impl<T: Lerp + Clone> Tweened<T> {
     pub fn tick(&mut self, dt: Duration) {
-        self.ez.tick(dt);
+        self.dt.tick(dt);
     }
 
     pub fn get(&self) -> T {
-        T::lerp(self.ease.map(self.ez.t()), self.a.clone(), self.b.clone())
+        T::lerp(self.a.clone(), self.b.clone(), self.dt.get())
     }
 }
 
-/// Easing state that generates interpolation value `t` in range `[0.0, 1.0]` based on time
+/// Eased delta time in range [0.0, 1.0]
 #[derive(Debug, Clone)]
-pub struct Ez {
+pub struct EasedDt {
+    target: f32,
+    accum: f32,
+    pub ease: Ease,
+}
+
+impl EasedDt {
+    pub fn new(target_secs: f32, ease: Ease) -> Self {
+        Self {
+            target: target_secs,
+            accum: 0.0,
+            ease,
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.accum = 0.0;
+    }
+
+    pub fn tick(&mut self, dt: Duration) {
+        self.accum += dt.as_secs_f32();
+        if self.accum > self.target {
+            self.accum = self.target;
+        }
+    }
+
+    pub fn get(&self) -> f32 {
+        self.ease.map(self.accum / self.target)
+    }
+}
+
+/// Normalized delta time in range [0.0, 1.0]
+#[derive(Debug, Clone, Default)]
+pub struct NormDt {
     target: f32,
     accum: f32,
 }
 
-impl Ez {
+impl NormDt {
     pub fn new(target_secs: f32) -> Self {
         Self {
             target: target_secs,
@@ -63,8 +109,12 @@ impl Ez {
     }
 
     /// Interpolation vaule in range `[0.0, 1.0]`
-    pub fn t(&self) -> f32 {
+    pub fn get(&self) -> f32 {
         self.accum / self.target
+    }
+
+    pub fn eased(&self, ease: Ease) -> f32 {
+        ease.map(self.get())
     }
 }
 
@@ -75,90 +125,90 @@ pub enum Ease {
     //
     QuadIn,
     QuadOut,
-    QuadInOut,
+    QuadIo,
     //
     CubicInt,
     CubicOut,
-    CubicInOut,
+    CubicIo,
     //
     QuartIn,
     QuartOut,
-    QuartInOut,
+    QuartIo,
     //
     QuintIn,
     QuintOut,
-    QuintInOut,
+    QuintIo,
     //
     SinIn,
     SinOut,
-    SinInOut,
+    SinIo,
     //
     CircIn,
     CircOut,
-    CircInOut,
+    CircIo,
     //
     ExpoIn,
     ExpoOut,
-    ExpoInOut,
+    ExpoIo,
     //
     ElasticIn,
     ElasticOut,
-    ElasticInOut,
+    ElasticIo,
     //
     BackIn,
     BackOut,
-    BackInOut,
+    BackIo,
     //
     BounceIn,
     BounceOut,
-    BounceInOut,
+    BounceIo,
 }
 
 impl Ease {
-    /// Maps interpolation value `t` in range `[0.0, 1.0]` to an eased floating value
+    /// t: [0.0, 1.0] → t': [0.0 1.0]
     pub fn map(&self, t: f32) -> f32 {
         match self {
             Self::Linear => self::linear(t),
             //
             Self::QuadIn => self::quad_in(t),
             Self::QuadOut => self::quad_out(t),
-            Self::QuadInOut => self::quad_inout(t),
+            Self::QuadIo => self::quad_inout(t),
             //
             Self::CubicInt => self::cubic_in(t),
             Self::CubicOut => self::cubic_out(t),
-            Self::CubicInOut => self::cubic_io(t),
+            Self::CubicIo => self::cubic_io(t),
             //
             Self::QuartIn => self::quart_in(t),
             Self::QuartOut => self::quart_out(t),
-            Self::QuartInOut => self::quart_io(t),
+            Self::QuartIo => self::quart_io(t),
             //
             Self::QuintIn => self::quint_in(t),
             Self::QuintOut => self::quint_out(t),
-            Self::QuintInOut => self::quint_io(t),
+            Self::QuintIo => self::quint_io(t),
             //
             Self::SinIn => self::sin_ni(t),
             Self::SinOut => self::sin_out(t),
-            Self::SinInOut => self::sin_io(t),
+            Self::SinIo => self::sin_io(t),
             //
             Self::CircIn => self::circ_in(t),
             Self::CircOut => self::circ_out(t),
-            Self::CircInOut => self::circ_io(t),
+            Self::CircIo => self::circ_io(t),
             //
             Self::ExpoIn => self::exp_in(t),
             Self::ExpoOut => self::exp_out(t),
-            Self::ExpoInOut => self::exp_io(t),
+            Self::ExpoIo => self::exp_io(t),
             //
             Self::ElasticIn => self::elastic_in(t),
             Self::ElasticOut => self::elastic_out(t),
-            Self::ElasticInOut => self::elastic_io(t),
+            Self::ElasticIo => self::elastic_io(t),
             //
             Self::BackIn => self::back_in(t),
             Self::BackOut => self::back_out(t),
-            Self::BackInOut => self::back_io(t),
+            Self::BackIo => self::back_io(t),
             //
             Self::BounceIn => self::bounce_in(t),
             Self::BounceOut => self::bounce_out(t),
-            Self::BounceInOut => self::bounce_io(t),
+            Self::BounceIo => self::bounce_io(t),
         }
     }
 }

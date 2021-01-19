@@ -2,10 +2,13 @@
 
 pub mod ez;
 
-/// See [`inline_tweak`](https://docs.rs/inline_tweak/latest/inline_tweak/)
-pub use inline_tweak::tweak;
+pub mod tweak {
+    //! See [inline_tweak](https://docs.rs/inline_tweak/latest/inline_tweak/)
 
-/// Double buffer
+    pub use inline_tweak::{self, tweak, watch, Tweakable};
+}
+
+/// Raw double buffer
 #[derive(Debug, Clone)]
 pub struct Double<T> {
     /// Front
@@ -30,7 +33,7 @@ impl<T> Double<T> {
     }
 }
 
-/// Double buffer and interpolation value
+/// Raw double buffer and interpolation value
 #[derive(Debug, Clone)]
 pub struct DoubleTrack<T> {
     /// Front
@@ -58,13 +61,13 @@ impl<T> DoubleTrack<T> {
     }
 }
 
-/// Double buffer that can be swapped
+/// Double buffer that can internally swap buffers without copy
 #[derive(Debug, Clone)]
 pub struct DoubleSwap<T> {
     /// Front buffer at initial state
-    pub a: T,
+    a: T,
     /// Back buffer at initial state
-    pub b: T,
+    b: T,
     /// True then `a` is front
     counter: bool,
 }
@@ -93,7 +96,15 @@ impl<T> DoubleSwap<T> {
         self.counter = !self.counter;
     }
 
-    pub fn into_front(self) -> T {
+    pub fn unwrap(self) -> [T; 2] {
+        if self.counter {
+            [self.a, self.b]
+        } else {
+            [self.b, self.a]
+        }
+    }
+
+    pub fn into_a(self) -> T {
         if self.counter {
             self.a
         } else {
@@ -101,7 +112,7 @@ impl<T> DoubleSwap<T> {
         }
     }
 
-    pub fn into_back(self) -> T {
+    pub fn into_b(self) -> T {
         if self.counter {
             self.b
         } else {
@@ -109,7 +120,8 @@ impl<T> DoubleSwap<T> {
         }
     }
 
-    pub fn front(&self) -> &T {
+    /// Front
+    pub fn a(&self) -> &T {
         if self.counter {
             &self.a
         } else {
@@ -117,7 +129,7 @@ impl<T> DoubleSwap<T> {
         }
     }
 
-    pub fn front_mut(&mut self) -> &mut T {
+    pub fn a_mut(&mut self) -> &mut T {
         if self.counter {
             &mut self.a
         } else {
@@ -125,7 +137,16 @@ impl<T> DoubleSwap<T> {
         }
     }
 
-    pub fn back(&self) -> &T {
+    pub fn set_a(&mut self, x: T) {
+        if self.counter {
+            self.a = x;
+        } else {
+            self.b = x;
+        }
+    }
+
+    /// Back
+    pub fn b(&self) -> &T {
         if self.counter {
             &self.b
         } else {
@@ -133,11 +154,19 @@ impl<T> DoubleSwap<T> {
         }
     }
 
-    pub fn back_mut(&mut self) -> &mut T {
+    pub fn b_mut(&mut self) -> &mut T {
         if self.counter {
             &mut self.b
         } else {
             &mut self.a
+        }
+    }
+
+    pub fn set_b(&mut self, x: T) {
+        if self.counter {
+            self.b = x;
+        } else {
+            self.a = x;
         }
     }
 }

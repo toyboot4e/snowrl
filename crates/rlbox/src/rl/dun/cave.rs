@@ -17,7 +17,7 @@ pub fn ca_gen_cave(size: [usize; 2], prob_init_floor: usize, n_steps: usize) -> 
         x.advance();
     }
 
-    x.map.bufs.into_front()
+    x.map.bufs.into_a()
 }
 
 pub struct CaveMap {
@@ -32,7 +32,7 @@ impl CaveMap {
         let out = io::stdout();
         let mut out = out.lock();
 
-        let cells = self.bufs.front();
+        let cells = self.bufs.a();
         for y in 0..self.size[1] {
             for x in 0..self.size[0] {
                 let ix = x + y * self.size[0];
@@ -110,15 +110,15 @@ impl CaveGenAdvance {
             for x in 0..self.map.size[0] {
                 let ix = x + y * self.map.size[0];
 
-                let nbs = CaveMap::count_neighbours(bufs.back(), self.map.size, x as i32, y as i32);
-                if bufs.back()[ix] {
+                let nbs = CaveMap::count_neighbours(bufs.b(), self.map.size, x as i32, y as i32);
+                if bufs.b()[ix] {
                     // kill?
                     let death_limit = 2;
-                    bufs.front_mut()[ix] = nbs > death_limit;
+                    bufs.a_mut()[ix] = nbs > death_limit;
                 } else {
                     // birth?
                     let birth_limit = 5;
-                    bufs.front_mut()[ix] = nbs > birth_limit;
+                    bufs.a_mut()[ix] = nbs > birth_limit;
                 }
             }
         }

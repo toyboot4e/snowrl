@@ -26,7 +26,7 @@ use rlbox::{
         grid2d::*,
         rlmap::TiledRlMap,
     },
-    utils::Double,
+    utils::{ez, Double},
 };
 
 use self::{actor::*, vi::VInput};
@@ -34,8 +34,10 @@ use self::{actor::*, vi::VInput};
 /// Powers the game [`World`]
 #[derive(Debug)]
 pub struct WorldContext {
-    /// For debug purpose
+    /// TODO: For debug purpose
     window_title: String,
+    /// Clears target (frame buffer) with cornflower blue color
+    pa_blue: rg::PassAction,
     /// 2D renderer
     pub rdr: Snow2d,
     /// Default font configuration
@@ -45,8 +47,6 @@ pub struct WorldContext {
     pub music_player: MusicPlayer,
     /// Asset cache for any type
     pub assets: AssetCacheAny,
-    /// Clears target (frame buffer) with cornflower blue color
-    pa_blue: rg::PassAction,
     pub input: Input,
     /// Delta time from last frame
     pub dt: Duration,
@@ -74,9 +74,8 @@ impl WorldContext {
                 snow.fontbook.stash().set_align(Align::TOP | Align::LEFT);
                 ix
             },
-            // FIXME: hard-coded parameters
-            fontsize: 22.0,
-            line_spacing: 4.0,
+            fontsize: crate::consts::DEFAULT_FONT_SIZE,
+            line_spacing: crate::consts::DEFAULT_LINE_SPACE,
         };
         snow.fontbook.apply_cfg(&font_cfg);
 
@@ -85,12 +84,12 @@ impl WorldContext {
 
         Self {
             window_title: title,
+            pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             rdr: snow,
             font_cfg,
             audio: audio.clone(),
             music_player: MusicPlayer::new(audio.clone()),
             assets: AssetCacheAny::new(),
-            pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             input: Input::new(),
             dt: Duration::new(0, 0),
             frame_count: 0,
@@ -169,19 +168,33 @@ impl World {
     }
 }
 
-/// Shadow data suitable for visualization
+/// Shadow data for visualization
 #[derive(Debug)]
 pub struct Shadow {
     /// Field of view
     pub fov: Double<FovData>,
     /// Fog of war (shadow on map)
     pub fow: Double<FowData>,
-    /// Used to render FoV
-    pub blend_factor: f32,
+    pub dt: ez::EasedDt,
     pub is_dirty: bool,
 }
 
 impl Shadow {
+    pub fn new(radius: [u32; 2], map_size: [usize; 2], anim_secs: f32, ease: ez::Ease) -> Self {
+        Self {
+            fov: Double {
+                a: FovData::new(radius[0], radius[1]),
+                b: FovData::new(radius[0], radius[1]),
+            },
+            fow: Double {
+                a: FowData::new(map_size),
+                b: FowData::new(map_size),
+            },
+            dt: ez::EasedDt::new(anim_secs, ease),
+            is_dirty: false,
+        }
+    }
+
     pub fn make_dirty(&mut self) {
         self.is_dirty = true;
     }
@@ -193,8 +206,7 @@ impl Shadow {
         // FoW is continued from the previous state, so we'll copy it
         self.fow.b = self.fow.a.clone();
 
-        // `self.blend_factor` is `tick`ed later in this frame
-        self.blend_factor = 0.0;
+        self.dt.reset();
 
         rlbox::rl::fow::calculate_fov_fow(&mut self.fov.a, &mut self.fow.a, None, origin, map);
     }
@@ -206,13 +218,6 @@ impl Shadow {
             self.is_dirty = false;
         }
 
-        self.tick(dt);
-    }
-
-    fn tick(&mut self, dt: Duration) {
-        self.blend_factor += dt.as_secs_f32() / crate::consts::WALK_TIME;
-        if self.blend_factor >= 1.0 {
-            self.blend_factor = 1.0;
-        }
+        self.dt.tick(dt);
     }
 }

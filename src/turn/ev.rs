@@ -67,7 +67,6 @@ impl GenAnim for RestOneTurn {
 
 impl Event for RestOneTurn {
     fn run(&self, _ecx: &mut EventContext) -> EventResult {
-        println!("REST");
         EventResult::Finish
     }
 }
