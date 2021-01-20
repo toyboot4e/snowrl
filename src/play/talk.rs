@@ -18,7 +18,7 @@ use snow2d::{
 };
 
 use crate::{
-    script::txt::PlayText,
+    play::txt::PlayText,
     turn::tick::ActorIx,
     utils::{consts, paths},
     world::World,

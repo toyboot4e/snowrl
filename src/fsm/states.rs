@@ -16,7 +16,8 @@ use rlbox::rl::grid2d::*;
 
 use crate::{
     fsm::{render::WorldRenderFlag, GameState, Global, StateCommand, StateReturn},
-    script::{self, ScriptRef},
+    play,
+    script::ScriptRef,
     turn::{
         anim::{AnimResult, AnimUpdateContext},
         ev,
@@ -387,24 +388,24 @@ impl GameState for PlayScript {
 
 #[derive(Debug)]
 pub struct PlayTextState {
-    txt: script::talk::PlayTalk,
+    txt: play::talk::PlayTalk,
 }
 
 impl PlayTextState {
     pub fn new(gl: &mut Global, txt: String, from: ActorIx, to: ActorIx) -> Self {
-        let talk = script::talk::TalkCommand {
+        let talk = play::talk::TalkCommand {
             txt: Cow::Owned(txt),
             from,
             to,
             // TODO: set it externally
-            cfg: script::talk::TalkConfig {
-                dir: script::talk::TalkDirection::Up,
-                kind: script::talk::TalkKind::Speak,
+            cfg: play::talk::TalkConfig {
+                dir: play::talk::TalkDirection::Up,
+                kind: play::talk::TalkKind::Speak,
             },
         };
 
         Self {
-            txt: script::talk::PlayTalk::new(talk, &mut gl.ice, &gl.world),
+            txt: play::talk::PlayTalk::new(talk, &mut gl.ice, &gl.world),
         }
     }
 }
