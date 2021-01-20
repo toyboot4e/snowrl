@@ -1,7 +1,7 @@
 //! Talk
 
 use {
-    rlbox::utils::ez,
+    rlbox::utils::{ez, tweak::*},
     rokol::fons::{FontBook, FontConfig},
     std::{borrow::Cow, time::Duration},
 };
@@ -72,8 +72,6 @@ impl<'a> TalkCommand<'a> {
         fcfg: &FontConfig,
         world: &World,
     ) -> TalkLayout {
-        println!("X");
-        println!("IMPL: {:?}", tcfg);
         let pos = Self::base_pos(world, self.to);
         self.layout_impl(tcfg, fb, fcfg, pos)
     }
@@ -95,7 +93,7 @@ impl<'a> TalkCommand<'a> {
         let mut win_rect = fb.text_bounds(pos, fcfg, &self.txt);
 
         // FIXME: the hard-coded y alignment
-        let mut baloon_pos = Vec2f::new(win_rect[0], win_rect[1] + 8.0);
+        let mut baloon_pos = Vec2f::new(pos.x, pos.y + tweak!(11.0));
 
         // align horizontally the center of the window
         win_rect[0] -= win_rect[2] / 2.0;
@@ -106,7 +104,7 @@ impl<'a> TalkCommand<'a> {
 
         if tcfg.dir == TalkDirection::Down {
             // inverse horizontally
-            baloon_pos.y = pos.y + (pos.y - baloon_pos.y) + 96.0 - 11.0;
+            baloon_pos.y += tweak!(61.0);
             txt_pos.y = pos.y + (pos.y - txt_pos.y);
             win_rect[1] = pos.y + (pos.y - win_rect[1]);
         }

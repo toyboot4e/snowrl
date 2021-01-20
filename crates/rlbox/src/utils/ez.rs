@@ -25,13 +25,25 @@ use std::{
 
 /// Linearly interpolatable, which can be [`Tweened`]
 pub trait Lerp {
+    /// t: [0.0, 1.0] → t': [a, b]
     fn lerp(a: Self, b: Self, t: f32) -> Self;
 }
 
 impl Lerp for f32 {
-    /// t: [0.0, 1.0] → t': [a, b]
     fn lerp(a: Self, b: Self, t: f32) -> Self {
         a + t * (b - a)
+    }
+}
+
+impl Lerp for [f32; 2] {
+    fn lerp(a: Self, b: Self, t: f32) -> Self {
+        [f32::lerp(a[0], b[0], t), f32::lerp(a[1], b[1], t)]
+    }
+}
+
+impl Lerp for snow2d::gfx::geom2d::Vec2f {
+    fn lerp(a: Self, b: Self, t: f32) -> Self {
+        Self::new(f32::lerp(a.x, b.x, t), f32::lerp(a.y, b.y, t))
     }
 }
 
@@ -47,6 +59,16 @@ pub struct Tweened<T: Lerp + Clone> {
     pub dt: EasedDt,
 }
 
+impl<T: Lerp + Clone + Default> Default for Tweened<T> {
+    fn default() -> Self {
+        Self {
+            a: Default::default(),
+            b: Default::default(),
+            dt: Default::default(),
+        }
+    }
+}
+
 impl<T: Lerp + Clone> Tweened<T> {
     pub fn tick(&mut self, dt: Duration) {
         self.dt.tick(dt);
@@ -54,6 +76,10 @@ impl<T: Lerp + Clone> Tweened<T> {
 
     pub fn get(&self) -> T {
         T::lerp(self.a.clone(), self.b.clone(), self.dt.get())
+    }
+
+    pub fn t(&self) -> f32 {
+        self.dt.get()
     }
 }
 
@@ -63,6 +89,16 @@ pub struct EasedDt {
     target: f32,
     accum: f32,
     pub ease: Ease,
+}
+
+impl Default for EasedDt {
+    fn default() -> Self {
+        Self {
+            target: Default::default(),
+            accum: Default::default(),
+            ease: Ease::Linear,
+        }
+    }
 }
 
 impl EasedDt {

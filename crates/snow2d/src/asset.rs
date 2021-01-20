@@ -20,13 +20,15 @@ TODO features:
 pub use std::io::Result;
 
 use std::{
-    any::{Any, TypeId},
+    any::TypeId,
     collections::HashMap,
     fmt, io,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
+
+use downcast_rs::{impl_downcast, Downcast};
 
 /// Get asset path relative to `assets` directory
 /// TODO: remove `unsafe`
@@ -111,7 +113,7 @@ impl AssetId {
 /// Cache of a specific [`AssetItem`] type
 #[derive(Debug)]
 pub struct AssetCacheT<T: AssetItem> {
-    assets: Vec<AssetCacheEntry<T>>,
+    entries: Vec<AssetCacheEntry<T>>,
     loader: T::Loader,
 }
 
@@ -119,13 +121,41 @@ pub struct AssetCacheT<T: AssetItem> {
 struct AssetCacheEntry<T: AssetItem> {
     id: AssetId,
     path: PathBuf,
-    item: Asset<T>,
+    asset: Asset<T>,
+}
+
+trait FreeUnused: fmt::Debug + Downcast {
+    fn free_unused(&mut self);
+}
+
+impl_downcast!(FreeUnused);
+
+impl<T: AssetItem> FreeUnused for AssetCacheT<T> {
+    fn free_unused(&mut self) {
+        let mut i = 0;
+        let mut len = self.entries.len();
+        while i < len {
+            if let Some(item) = &mut self.entries[i].asset.item {
+                if Arc::strong_count(item) == 1 {
+                    log::trace!(
+                        "free asset with path `{}` in slot `{}` of type `{}`",
+                        self.entries[i].path.display(),
+                        i,
+                        std::any::type_name::<T>(),
+                    );
+                    self.entries.remove(i);
+                    len -= 1;
+                }
+            }
+            i += 1;
+        }
+    }
 }
 
 impl<T: AssetItem> AssetCacheT<T> {
     pub fn new(loader: T::Loader) -> Self {
         Self {
-            assets: Vec::with_capacity(16),
+            entries: Vec::with_capacity(16),
             loader,
         }
     }
@@ -133,7 +163,7 @@ impl<T: AssetItem> AssetCacheT<T> {
     pub fn load_sync(&mut self, key: impl AsRef<AssetKey>) -> Result<Asset<T>> {
         let id = AssetId::from_key(key.as_ref());
         if let Some(a) = self.search_cache(&id) {
-            log::trace!("cache found for {}", key.as_ref().display());
+            log::trace!("(cache found for {})", key.as_ref().display());
             Ok(a)
         } else {
             log::trace!("loading {}", key.as_ref().display());
@@ -142,10 +172,10 @@ impl<T: AssetItem> AssetCacheT<T> {
     }
 
     fn search_cache(&mut self, id: &AssetId) -> Option<Asset<T>> {
-        self.assets
+        self.entries
             .iter()
             .find(|a| a.id == *id)
-            .map(|a| a.item.clone())
+            .map(|a| a.asset.clone())
     }
 
     fn load_new_sync(&mut self, id: AssetId) -> Result<Asset<T>> {
@@ -161,9 +191,9 @@ impl<T: AssetItem> AssetCacheT<T> {
         let entry = AssetCacheEntry {
             id,
             path,
-            item: asset.clone(),
+            asset: asset.clone(),
         };
-        self.assets.push(entry);
+        self.entries.push(entry);
 
         Ok(asset)
     }
@@ -172,13 +202,19 @@ impl<T: AssetItem> AssetCacheT<T> {
 /// Cache of any [`AssetItem`] type, a bundle of [`AssetCacheT`]s
 #[derive(Debug)]
 pub struct AssetCacheAny {
-    caches: HashMap<TypeId, Box<dyn Any>>,
+    caches: HashMap<TypeId, Box<dyn FreeUnused>>,
 }
 
 impl AssetCacheAny {
     pub fn new() -> Self {
         Self {
             caches: HashMap::with_capacity(16),
+        }
+    }
+
+    pub fn free_unused(&mut self) {
+        for cache in &mut self.caches.values_mut() {
+            cache.free_unused();
         }
     }
 

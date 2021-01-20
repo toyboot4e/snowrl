@@ -93,6 +93,7 @@ impl Ice {
     }
 
     pub fn on_end_frame(&mut self) {
+        self.assets.free_unused();
         self.input.on_end_frame();
     }
 }
