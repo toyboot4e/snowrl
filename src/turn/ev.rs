@@ -2,8 +2,8 @@
 
 Roguelike game events
 
-Most actor actions result in primitive events. Every change to the roguelike game world should be
-handled as primitive event. That's good for both flexibility and visualization.
+Every change to the roguelike game world should be handled as primitive event. That's good for
+visualization, flexibilities and simplicities.
 
 e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
 
@@ -74,6 +74,7 @@ impl Event for RestOneTurn {
     }
 }
 
+/// Just change direction
 #[derive(Debug)]
 pub struct ChangeDir {
     pub actor: ActorIx,
@@ -92,6 +93,7 @@ impl Event for ChangeDir {
         let actor = &mut ecx.world.entities[self.actor.0];
         actor.dir = self.dir;
 
+        // FIXME: it's dangerous..
         EventResult::chain(NotConsumeTurn { actor: self.actor })
     }
 }

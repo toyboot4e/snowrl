@@ -69,6 +69,7 @@ pub mod asset {
         std::io::Error::new(std::io::ErrorKind::Other, e)
     }
 
+    /// Adds audio asset loaders to [`AssetCacheAny`]
     pub fn register_asset_loaders(assets: &mut AssetCacheAny, audio: &Audio) {
         reg::<src::Wav>(assets, audio.clone());
         reg::<src::WavStream>(assets, audio.clone());
@@ -84,6 +85,7 @@ pub mod asset {
         }
     }
 
+    /// [`AssetLoader`] for most of the audio source types
     #[derive(Debug)]
     pub struct AudioLoader<Src>
     where
@@ -110,6 +112,7 @@ pub mod asset {
         }
     }
 
+    /// Music playback
     #[derive(Debug)]
     pub struct Playback {
         pub handle: Handle,

@@ -24,16 +24,19 @@ use rokol::{
     gfx as rg, Result, Rokol,
 };
 
-pub fn run<T: RApp, F: FnOnce(Rokol) -> T>(rokol: Rokol, init: F) -> Result {
+/// Runs [`RApp`], which provides 60 FPS fixed-timestep game loop
+pub fn run<App: RApp, AppConstructor: FnOnce(Rokol) -> App>(
+    rokol: Rokol,
+    constructor: AppConstructor,
+) -> Result {
     rokol.run(&mut Runner {
         init_rokol: Some(rokol.clone()),
-        init: Some(init),
+        init: Some(constructor),
         x: None,
     })
 }
 
-/// Runs [`RApp`], which provides 60 FPS fixed-timestep game loop
-pub struct Runner<T: RApp, F: FnOnce(Rokol) -> T> {
+struct Runner<T: RApp, F: FnOnce(Rokol) -> T> {
     init_rokol: Option<Rokol>,
     init: Option<F>,
     /// Use `Option` for lazy initialization

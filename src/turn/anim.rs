@@ -14,6 +14,31 @@ use {
 
 use crate::{turn::tick::ActorIx, utils::consts, world::World};
 
+/// Return alue of [`Anim::update`]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AnimResult {
+    GotoNextFrame,
+    Finish,
+}
+
+/// Context to process any [`Anim`]
+#[derive(Debug)]
+pub struct AnimUpdateContext<'a, 'b> {
+    pub world: &'a mut World,
+    pub ice: &'b mut Ice,
+}
+
+/// Roguelike animation object
+pub trait Anim: fmt::Debug + Downcast {
+    fn on_start(&mut self, _ucx: &mut AnimUpdateContext) {}
+    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult;
+    // TODO: render animation
+}
+
+// we can cast `Box<Anim>` to `Box<Any>` with `as_any`
+impl_downcast!(Anim);
+
+/// State to play roguelike animations
 #[derive(Debug)]
 pub struct AnimPlayer {
     /// Queue of animations
@@ -114,26 +139,6 @@ impl AnimPlayer {
         }
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AnimResult {
-    GotoNextFrame,
-    Finish,
-}
-
-#[derive(Debug)]
-pub struct AnimUpdateContext<'a, 'b> {
-    pub world: &'a mut World,
-    pub ice: &'b mut Ice,
-}
-
-pub trait Anim: fmt::Debug + Downcast {
-    fn on_start(&mut self, _ucx: &mut AnimUpdateContext) {}
-    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult;
-    // TODO: render animation
-}
-
-impl_downcast!(Anim);
 
 // do not impl `Anim` for `Box<dyn Anim>` so that the downcast works fine
 

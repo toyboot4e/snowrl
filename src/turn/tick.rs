@@ -2,14 +2,6 @@
 
 Turn-based game loop implemented with generator in unstable Rust
 
-# Borrow rules
-
-It _seems_ like a [generator] holds the value passed to it when they `resume` and we basically have
-to use `Rc<RefCell<T>>` for our game data. However, it is uncomfortable and I'm using a pointer to
-cheat the borrow rules ([`rlbox::utils::Cheat`]).
-
-[generator]: (https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html)
-
 */
 
 use std::{
@@ -21,13 +13,12 @@ use std::{
 
 use {
     downcast_rs::{impl_downcast, Downcast},
-    rlbox::utils::Cheat,
     snow2d::Ice,
 };
 
 use crate::{
     turn::{anim::Anim, ev},
-    utils::consts,
+    utils::{consts, Cheat},
     world::{vi::VInput, World},
 };
 
@@ -45,10 +36,11 @@ struct TickContext {
     vi: Cheat<VInput>,
 }
 
-// do we actually need it?
+/// Index of an actor that can bse used to retrieve `&mut`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ActorIx(pub usize);
 
+/// Return value of [`GameLoop::tick`]
 #[derive(Debug)]
 pub enum TickResult {
     /// Yielded when an actor takes turn
@@ -60,6 +52,17 @@ pub enum TickResult {
 }
 
 /// Roguelike game loop
+///
+/// Internally, it's using [generator] (unstable Rust).
+///
+/// [generator]: (https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html)
+///
+/// # Internals: cheating the borrow checker
+///
+/// Generator _holds_ the value passed to it on `resume`, and we have to _share_ data with generator,
+/// but [`GameLoop::tick`] is not lying about lifetimes of the parameters; the generator uses them
+/// only while it's running. Therefore, cheating the borrow checker with [`crate::utils::Cheat`] so
+/// that we can relax the restriction to the ordinary borrow rules in rust.
 pub struct GameLoop {
     gen: Gen,
     tcx: TickContext,
@@ -164,6 +167,7 @@ pub struct AnimContext<'a, 'b> {
     pub ice: &'b mut Ice,
 }
 
+/// TODO: generate animations externally
 pub trait GenAnim {
     fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
         None

@@ -2,7 +2,8 @@
 
 Roguelike toolbox
 
-2D graphical roguelike framework on top of [`snow2d`]. Orthogonal grid map are assumed.
+Set of utilities on top of [`snow2d`] to create 2D graphical roguelike framework. Orthogonal grid
+maps are assumed.
 
 */
 
