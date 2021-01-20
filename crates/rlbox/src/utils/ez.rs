@@ -23,6 +23,8 @@ use std::{
     time::Duration,
 };
 
+use crate::rl::grid2d::Dir8;
+
 /// Linearly interpolatable, which can be [`Tweened`]
 pub trait Lerp {
     /// t: [0.0, 1.0] → t': [a, b]
@@ -47,12 +49,32 @@ impl Lerp for snow2d::gfx::geom2d::Vec2f {
     }
 }
 
+impl Lerp for Dir8 {
+    fn lerp(a: Self, b: Self, t: f32) -> Self {
+        // TODO: consider direction
+        let n_steps = (b as u8 + 8 - a as u8) % 8;
+        let current_step = (n_steps as f32 * t) as u8;
+        let slot = (a as u8 + current_step) % 8;
+        Self::CLOCKWISE[slot as usize]
+    }
+}
+
+pub fn tween_dirs(a: Dir8, b: Dir8, time_per_pattern: f32) -> Tweened<Dir8> {
+    // FIXME:
+    let n_steps = (b as u8 + 8 - a as u8) % 8;
+    Tweened {
+        a,
+        b,
+        dt: EasedDt::new(time_per_pattern * n_steps as f32, Ease::Linear),
+    }
+}
+
 pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
     T::lerp(a, b, ease.map(t))
 }
 
 /// Generates tweened values
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tweened<T: Lerp + Clone> {
     pub a: T,
     pub b: T,
@@ -80,6 +102,17 @@ impl<T: Lerp + Clone> Tweened<T> {
 
     pub fn t(&self) -> f32 {
         self.dt.get()
+    }
+
+    /// Begins new tween from the end (meaning `t = 1.0`) of the last tween
+    pub fn set_next(&mut self, x: T) {
+        self.a = self.b.clone();
+        self.b = x;
+        self.dt.reset();
+    }
+
+    pub fn set_duration_secs(&mut self, target: f32) {
+        self.dt.target = target;
     }
 }
 

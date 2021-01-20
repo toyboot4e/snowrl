@@ -138,7 +138,7 @@ impl<T: AssetItem> FreeUnused for AssetCacheT<T> {
             if let Some(item) = &mut self.entries[i].asset.item {
                 if Arc::strong_count(item) == 1 {
                     log::trace!(
-                        "free asset with path `{}` in slot `{}` of type `{}`",
+                        "free asset with path `{}` in slot `{}` of cache for type `{}`",
                         self.entries[i].path.display(),
                         i,
                         std::any::type_name::<T>(),

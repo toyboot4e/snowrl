@@ -1,6 +1,14 @@
-//! Generci utilities
+//! Generic utilities
 
 pub mod ez;
+pub mod pool;
+
+pub mod consts {
+    ///! TODO: remove
+
+    /// Duration in seconds to change direction in 45 degrees
+    pub const CHANGE_DIR_TIME: f32 = 1.0 / 60.0;
+}
 
 pub mod tweak {
     //! See [inline_tweak](https://docs.rs/inline_tweak/latest/inline_tweak/)

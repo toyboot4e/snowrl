@@ -17,6 +17,7 @@ use snow2d::{
 use rlbox::{
     render::actor::ActorImage,
     rl::{grid2d::*, rlmap::TiledRlMap},
+    utils::tweak::*,
 };
 
 use snowrl::{
@@ -118,6 +119,10 @@ impl rokol::app::RApp for SnowRl {
     }
 
     fn frame(&mut self) {
+        // if debug
+        #[cfg(debug_assertions)]
+        self.gl.ice.audio.set_global_volume(tweak!(0.0));
+
         self.gl.pre_update();
         self.fsm.update(&mut self.gl);
         self.gl.post_update();
@@ -161,7 +166,7 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
 
     // player
 
-    let tex = cache.load_sync(paths::IKA_CHAN).unwrap();
+    let tex = cache.load_sync(paths::CHICKEN).unwrap();
     let img = {
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;

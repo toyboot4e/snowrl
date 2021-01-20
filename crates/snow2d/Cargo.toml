@@ -26,4 +26,5 @@ glam = "0.11.2"
 auto_ops = "0.1.0"
 bitflags = "1.2.1"
 once_cell = "1.5.2"
+downcast-rs = "1.2.0"
 

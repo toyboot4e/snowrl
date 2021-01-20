@@ -14,7 +14,7 @@ use snow2d::{
 use crate::{
     render::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
     rl::grid2d::*,
-    utils::{ez, DoubleSwap},
+    utils::{consts, ez, DoubleSwap},
 };
 
 /// Generate character walking animation with some heuristic
@@ -136,7 +136,8 @@ fn gen_dir_anim_with(
 pub struct ActorImage {
     anim_state: FrameAnimState<Dir8, SpriteData>,
     state: DoubleSwap<ActorSnapshot>,
-    /// Sec
+    dir: ez::Tweened<Dir8>,
+    /// Interpolation value for walk animation
     dt: ez::EasedDt,
 }
 
@@ -148,6 +149,7 @@ struct ActorSnapshot {
 }
 
 impl ActorImage {
+    /// TODO: allow offsets, scales, rotation
     pub fn new(
         tex: Asset<Texture2dDrop>,
         anim_fps: f32,
@@ -164,6 +166,11 @@ impl ActorImage {
             anim_state: FrameAnimState::new(anim, dir),
             state: DoubleSwap::new(data, data),
             dt: ez::EasedDt::new(walk_secs, walk_ease),
+            dir: ez::Tweened {
+                a: dir,
+                b: dir,
+                dt: ez::EasedDt::new(0.0, ez::Ease::Linear),
+            },
         })
     }
 
@@ -178,10 +185,15 @@ impl ActorImage {
     /// Updates the image with (new) actor position and direction
     pub fn update(&mut self, dt: Duration, pos: Vec2i, dir: Dir8) {
         if dir != self.state.a().dir {
-            self.anim_state.set_pattern(dir, false);
+            // TODO: set duration
+            self.dir = ez::tween_dirs(self.state.a().dir, dir, consts::CHANGE_DIR_TIME);
         }
 
-        // update interpolation value
+        // update direction of the animation
+        self.dir.tick(dt);
+        self.anim_state.set_pattern(self.dir.get(), false);
+
+        // update interpolation value for walk animation
         if pos != self.state.a().pos {
             self.dt.reset();
         }
