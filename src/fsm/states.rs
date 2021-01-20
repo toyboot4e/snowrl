@@ -387,19 +387,24 @@ impl GameState for PlayScript {
 
 #[derive(Debug)]
 pub struct PlayTextState {
-    txt: script::render::PlayTalk,
+    txt: script::talk::PlayTalk,
 }
 
 impl PlayTextState {
     pub fn new(gl: &mut Global, txt: String, from: ActorIx, to: ActorIx) -> Self {
-        let talk = script::render::TalkCommand {
+        let talk = script::talk::TalkCommand {
             txt: Cow::Owned(txt),
             from,
             to,
+            // TODO: set it externally
+            cfg: script::talk::TalkConfig {
+                dir: script::talk::TalkDirection::Up,
+                kind: script::talk::TalkKind::Speak,
+            },
         };
 
         Self {
-            txt: script::render::PlayTalk::new(talk, &mut gl.ice, &gl.world),
+            txt: script::talk::PlayTalk::new(talk, &mut gl.ice, &gl.world),
         }
     }
 }

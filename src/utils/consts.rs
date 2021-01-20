@@ -18,7 +18,7 @@ pub const DEFAULT_LINE_SPACE: f32 = 4.0;
 
 pub const CHARS_PER_SEC: f32 = 100.0;
 pub const TALK_WIN_ANIM_TIME: f32 = 10.0 / 60.0;
-pub const TALK_WIN_EASE: ez::Ease = ez::Ease::CubicOut;
+pub const TALK_WIN_EASE: ez::Ease = ez::Ease::ExpOut;
 
 /// Walk duration in seconds
 pub const WALK_TIME: f32 = 8.0 / 60.0;

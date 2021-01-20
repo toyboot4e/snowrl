@@ -155,9 +155,9 @@ pub enum Ease {
     CircOut,
     CircIo,
     //
-    ExpoIn,
-    ExpoOut,
-    ExpoIo,
+    ExpIn,
+    ExpOut,
+    ExpIo,
     //
     ElasticIn,
     ElasticOut,
@@ -202,9 +202,9 @@ impl Ease {
             Self::CircOut => self::circ_out(t),
             Self::CircIo => self::circ_io(t),
             //
-            Self::ExpoIn => self::exp_in(t),
-            Self::ExpoOut => self::exp_out(t),
-            Self::ExpoIo => self::exp_io(t),
+            Self::ExpIn => self::exp_in(t),
+            Self::ExpOut => self::exp_out(t),
+            Self::ExpIo => self::exp_io(t),
             //
             Self::ElasticIn => self::elastic_in(t),
             Self::ElasticOut => self::elastic_out(t),

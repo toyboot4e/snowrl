@@ -1,6 +1,7 @@
 //! Script
 
-pub mod render;
+pub mod talk;
+pub mod txt;
 
 use crate::turn::tick::ActorIx;
 
