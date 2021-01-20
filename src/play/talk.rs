@@ -65,12 +65,17 @@ struct TalkLayout {
 }
 
 impl<'a> TalkCommand<'a> {
-    /// Layout talk window, text and baloon
-    ///
-    /// * `pos`: center of a cell
-    fn layout(&self, fb: &FontBook, fcfg: &FontConfig, world: &World) -> TalkLayout {
+    fn layout(
+        &self,
+        tcfg: &TalkConfig,
+        fb: &FontBook,
+        fcfg: &FontConfig,
+        world: &World,
+    ) -> TalkLayout {
+        println!("X");
+        println!("IMPL: {:?}", tcfg);
         let pos = Self::base_pos(world, self.to);
-        self.layout_impl(fb, fcfg, pos)
+        self.layout_impl(tcfg, fb, fcfg, pos)
     }
 
     fn base_pos(world: &World, actor: ActorIx) -> Vec2f {
@@ -80,18 +85,31 @@ impl<'a> TalkCommand<'a> {
         pos
     }
 
-    fn layout_impl(&self, fb: &FontBook, fcfg: &FontConfig, pos: Vec2f) -> TalkLayout {
+    fn layout_impl(
+        &self,
+        tcfg: &TalkConfig,
+        fb: &FontBook,
+        fcfg: &FontConfig,
+        pos: Vec2f,
+    ) -> TalkLayout {
         let mut win_rect = fb.text_bounds(pos, fcfg, &self.txt);
 
         // FIXME: the hard-coded y alignment
-        let baloon_pos = Vec2f::new(win_rect[0], win_rect[1] - 24.0);
+        let mut baloon_pos = Vec2f::new(win_rect[0], win_rect[1] + 8.0);
 
         // align horizontally the center of the window
         win_rect[0] -= win_rect[2] / 2.0;
         // align vertically the bottom of the window
         win_rect[1] -= win_rect[3];
 
-        let txt_pos = Vec2f::new(win_rect[0], win_rect[1]);
+        let mut txt_pos = Vec2f::new(win_rect[0], win_rect[1]);
+
+        if tcfg.dir == TalkDirection::Down {
+            // inverse horizontally
+            baloon_pos.y = pos.y + (pos.y - baloon_pos.y) + 96.0 - 11.0;
+            txt_pos.y = pos.y + (pos.y - txt_pos.y);
+            win_rect[1] = pos.y + (pos.y - win_rect[1]);
+        }
 
         // add paddings
         win_rect[0] -= consts::TALK_PADS[0];
@@ -127,28 +145,28 @@ impl TalkSurface {
                 tex: b.clone(),
                 uv_rect: [0.0, 0.0, 0.5, 0.5],
                 // REMARK: we'll specify the center of the top-center of the baloon
-                origin: [0.5, 0.0],
+                origin: [0.5, 0.5],
                 ..Default::default()
             },
             SpriteData {
                 tex: b.clone(),
                 uv_rect: [0.5, 0.0, 0.5, 0.5],
                 // REMARK: we'll specify the center of the top-center of the baloon
-                origin: [0.5, 0.0],
+                origin: [0.5, 0.5],
                 ..Default::default()
             },
             SpriteData {
                 tex: b.clone(),
                 uv_rect: [0.0, 0.5, 0.5, 0.5],
                 // REMARK: we'll specify the center of the top-center of the baloon
-                origin: [0.5, 0.0],
+                origin: [0.5, 0.5],
                 ..Default::default()
             },
             SpriteData {
                 tex: b.clone(),
                 uv_rect: [0.5, 0.5, 0.5, 0.5],
                 // REMARK: we'll specify the center of the top-center of the baloon
-                origin: [0.5, 0.0],
+                origin: [0.5, 0.5],
                 ..Default::default()
             },
         ];
@@ -185,7 +203,7 @@ pub struct PlayTalk {
 
 impl PlayTalk {
     pub fn new(talk: TalkCommand<'_>, ice: &mut Ice, world: &World) -> Self {
-        let layout = talk.layout(&ice.rdr.fontbook, &ice.font_cfg, world);
+        let layout = talk.layout(&talk.cfg, &ice.rdr.fontbook, &ice.font_cfg, world);
         let txt = PlayText::new(talk.txt, layout.txt);
         let surface = TalkSurface::new(layout, &mut ice.assets);
 

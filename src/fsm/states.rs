@@ -388,31 +388,37 @@ impl GameState for PlayScript {
 
 #[derive(Debug)]
 pub struct PlayTextState {
-    txt: play::talk::PlayTalk,
+    data: play::talk::PlayTalk,
 }
 
 impl PlayTextState {
     pub fn new(gl: &mut Global, txt: String, from: ActorIx, to: ActorIx) -> Self {
+        let (a, b) = (&gl.world.entities[from.0], &gl.world.entities[to.0]);
+
         let talk = play::talk::TalkCommand {
             txt: Cow::Owned(txt),
             from,
             to,
-            // TODO: set it externally
             cfg: play::talk::TalkConfig {
-                dir: play::talk::TalkDirection::Up,
+                // let the window not overwrap actors
+                dir: if a.pos.y >= b.pos.y {
+                    play::talk::TalkDirection::Up
+                } else {
+                    play::talk::TalkDirection::Down
+                },
                 kind: play::talk::TalkKind::Speak,
             },
         };
 
         Self {
-            txt: play::talk::PlayTalk::new(talk, &mut gl.ice, &gl.world),
+            data: play::talk::PlayTalk::new(talk, &mut gl.ice, &gl.world),
         }
     }
 }
 
 impl GameState for PlayTextState {
     fn update(&mut self, gl: &mut Global) -> StateReturn {
-        self.txt.update(gl.ice.dt);
+        self.data.update(gl.ice.dt);
 
         if gl.vi.select.is_pressed() {
             // Exit on enter
@@ -426,6 +432,6 @@ impl GameState for PlayTextState {
         let flags = WorldRenderFlag::ALL;
         gl.world_render.render(&gl.world, &mut gl.ice, flags);
         let mut screen = gl.ice.rdr.screen(Default::default());
-        self.txt.render(&mut screen);
+        self.data.render(&mut screen);
     }
 }

@@ -197,6 +197,9 @@ impl ActorImage {
         self.anim_state.tick(dt);
     }
 
+    /// If the character is not walking, it's the bottom-center of the cell
+    ///
+    /// TODO: separate base position and actual position with offset
     pub fn pos_screen(&self, tiled: &tiled::Map) -> Vec2f {
         let pos_prev = self.align(self.state.b().pos, tiled);
         let pos_curr = self.align(self.state.a().pos, tiled);
