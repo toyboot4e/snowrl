@@ -10,7 +10,10 @@ use {
     std::time::Duration,
 };
 
-use crate::world::{render::*, World};
+use crate::{
+    utils::consts,
+    world::{render::*, World},
+};
 
 bitflags::bitflags! {
     /// Fixed set of renderers
@@ -112,7 +115,7 @@ impl WorldRenderer {
                 x.t = Default::default();
             }
 
-            let max = crate::consts::WALK_TIME;
+            let max = consts::WALK_TIME;
 
             x.t += dt.as_secs_f32() / max;
             if x.t > 1.0 {

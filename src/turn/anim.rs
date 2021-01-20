@@ -12,7 +12,7 @@ use {
     std::{collections::VecDeque, fmt, time::Duration},
 };
 
-use crate::{turn::tick::ActorIx, world::World};
+use crate::{turn::tick::ActorIx, utils::consts, world::World};
 
 #[derive(Debug)]
 pub struct AnimPlayer {
@@ -199,7 +199,7 @@ impl Anim for WalkAnim {
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
         self.dt += ucx.ice.dt;
 
-        if self.dt.as_secs_f32() >= crate::consts::WALK_TIME {
+        if self.dt.as_secs_f32() >= consts::WALK_TIME {
             AnimResult::Finish
         } else {
             AnimResult::GotoNextFrame

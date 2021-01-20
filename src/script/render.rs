@@ -14,7 +14,12 @@ use snow2d::{
     Ice,
 };
 
-use crate::{fsm::Global, turn::tick::ActorIx, world::World};
+use crate::{
+    fsm::Global,
+    turn::tick::ActorIx,
+    utils::{consts, paths},
+    world::World,
+};
 
 /// State to play text
 #[derive(Debug, Default)]
@@ -44,7 +49,7 @@ impl PlayText {
             .filter(|c| !matches!(*c, '\n' | '\t'))
             .count();
 
-        self.dt = ez::LerpDt::new(self.n_chars as f32 / crate::consts::CHARS_PER_SEC);
+        self.dt = ez::LerpDt::new(self.n_chars as f32 / consts::CHARS_PER_SEC);
     }
 
     pub fn update(&mut self, dt: Duration) {
@@ -117,10 +122,10 @@ impl<'a> TalkCommand<'a> {
         let txt_pos = Vec2f::new(win_rect[0], win_rect[1]);
 
         // add paddings
-        win_rect[0] -= crate::consts::TALK_PADS[0];
-        win_rect[1] -= crate::consts::TALK_PADS[1];
-        win_rect[2] += crate::consts::TALK_PADS[0] * 2.0;
-        win_rect[3] += crate::consts::TALK_PADS[1] * 2.0;
+        win_rect[0] -= consts::TALK_PADS[0];
+        win_rect[1] -= consts::TALK_PADS[1];
+        win_rect[2] += consts::TALK_PADS[0] * 2.0;
+        win_rect[3] += consts::TALK_PADS[1] * 2.0;
 
         TalkLayout {
             txt: txt_pos,
@@ -143,14 +148,11 @@ pub struct PlayTalk {
 impl PlayTalk {
     pub fn new(talk: TalkCommand<'_>, ice: &mut Ice, world: &World) -> Self {
         let window = NineSliceSprite {
-            tex: ice.assets.load_sync(crate::paths::img::sourve::A).unwrap(),
+            tex: ice.assets.load_sync(paths::img::sourve::A).unwrap(),
         };
 
         let baloon = SpriteData {
-            tex: ice
-                .assets
-                .load_sync(crate::paths::img::sourve::BALOON)
-                .unwrap(),
+            tex: ice.assets.load_sync(paths::img::sourve::BALOON).unwrap(),
             uv_rect: [0.0, 0.0, 0.5, 0.5],
             // REMARK: we'll specify the center of the top-center of the baloon
             origin: [0.5, 0.0],
@@ -164,10 +166,7 @@ impl PlayTalk {
             window,
             baloon,
             layout,
-            dt_win: ez::EasedDt::new(
-                crate::consts::TALK_WIN_ANIM_TIME,
-                crate::consts::TALK_WIN_EASE,
-            ),
+            dt_win: ez::EasedDt::new(consts::TALK_WIN_ANIM_TIME, consts::TALK_WIN_EASE),
             txt,
         }
     }

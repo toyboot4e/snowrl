@@ -16,13 +16,13 @@ use rlbox::rl::grid2d::*;
 
 use crate::{
     fsm::{render::WorldRenderFlag, GameState, Global, StateCommand, StateReturn},
-    paths,
     script::{self, ScriptRef},
     turn::{
         anim::{AnimResult, AnimUpdateContext},
         ev,
         tick::{ActorIx, AnimContext, GameLoop, TickResult},
     },
+    utils::paths,
 };
 
 /// Roguelike game state

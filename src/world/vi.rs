@@ -4,6 +4,8 @@ use std::time::Duration;
 
 use snow2d::input::{vi::*, Input, Key};
 
+use crate::utils::consts;
+
 /// Collection of virtual inputs
 #[derive(Debug, Clone)]
 pub struct VInput {
@@ -21,8 +23,8 @@ impl VInput {
     /// TODO: use serde
     pub fn new() -> Self {
         let dir_repeat = KeyRepeat::Repeat {
-            first: Duration::from_nanos(1_000_000_000 / 60 * crate::consts::REPEAT_FIRST_FRAMES),
-            multi: Duration::from_nanos(1_000_000_000 / 60 * crate::consts::REPEAT_MULTI_FRAMES),
+            first: Duration::from_nanos(1_000_000_000 / 60 * consts::REPEAT_FIRST_FRAMES),
+            multi: Duration::from_nanos(1_000_000_000 / 60 * consts::REPEAT_MULTI_FRAMES),
         };
 
         Self {

@@ -89,7 +89,7 @@ impl AssetPrint {
 fn main() -> Result<()> {
     let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let asset_root = root.join("assets");
-    let dst = root.join("src/paths.rs");
+    let dst = root.join("src/utils/paths.rs");
     // if you prefer to not commit `paths.rs`:
     //    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     //    let dst = out_dir.join("paths.rs");

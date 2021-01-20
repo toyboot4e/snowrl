@@ -10,11 +10,6 @@ edition = "2018"
 # repository = "https://github.com/toyboot4e/snowrl"
 # description = ""
 
-[[bin]]
-bench = false
-path = "src/bin/main.rs"
-name = "snow"
-
 [workspace]
 members = [
     "crates/snow2d",

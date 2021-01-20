@@ -27,6 +27,7 @@ use {
 
 use crate::{
     turn::{anim::Anim, ev},
+    utils::consts,
     world::{vi::VInput, World},
 };
 
@@ -115,7 +116,7 @@ fn game_loop() -> Gen {
 
             // TODO: do not hard code entity actions
             let mut ev: Rc<dyn Event> = match actor.0 {
-                crate::consts::PLAYER => Rc::new(ev::PlayerTurn { actor }),
+                consts::PLAYER => Rc::new(ev::PlayerTurn { actor }),
                 _ => Rc::new(ev::RandomWalk { actor }),
             };
 

@@ -11,9 +11,12 @@ e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
 
 use rlbox::rl::grid2d::*;
 
-use crate::turn::{
-    anim::{self, Anim},
-    tick::{ActorIx, AnimContext, Event, EventContext, EventResult, GenAnim},
+use crate::{
+    turn::{
+        anim::{self, Anim},
+        tick::{ActorIx, AnimContext, Event, EventContext, EventResult, GenAnim},
+    },
+    utils::consts,
 };
 
 /// Some action resulted in a non-turn consuming action
@@ -28,7 +31,7 @@ pub struct NotConsumeTurn {
 
 impl GenAnim for NotConsumeTurn {
     fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
-        if self.actor.0 == crate::consts::PLAYER {
+        if self.actor.0 == consts::PLAYER {
             // wait for one frame so that we won't enter inifinite loop
             Some(Box::new(anim::Wait { frames: 1 }))
         } else {
@@ -39,7 +42,7 @@ impl GenAnim for NotConsumeTurn {
 
 impl Event for NotConsumeTurn {
     fn run(&self, _ecx: &mut EventContext) -> EventResult {
-        if self.actor.0 == crate::consts::PLAYER {
+        if self.actor.0 == consts::PLAYER {
             // TODO: require one frame wait
             EventResult::chain(PlayerTurn { actor: self.actor })
         } else {
