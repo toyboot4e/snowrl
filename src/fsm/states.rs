@@ -9,6 +9,7 @@ use snow2d::{
     asset::{Asset, AssetCacheAny},
     audio,
     gfx::{draw::*, geom2d::*, tex::*, Color, PassConfig},
+    Ice,
 };
 
 use rlbox::rl::grid2d::*;
@@ -22,7 +23,6 @@ use crate::{
         ev,
         tick::{ActorIx, AnimContext, GameLoop, TickResult},
     },
-    world::WorldContext,
 };
 
 /// Roguelike game state
@@ -36,8 +36,7 @@ pub struct Roguelike {
 impl GameState for Roguelike {
     fn update(&mut self, gl: &mut Global) -> StateReturn {
         loop {
-            let res = self.game_loop.tick(&mut gl.world, &mut gl.wcx);
-            // log::trace!("{:?}", res);
+            let res = self.game_loop.tick(&mut gl.world, &mut gl.vi);
 
             match res {
                 TickResult::TakeTurn(actor) => {
@@ -69,7 +68,7 @@ impl GameState for Roguelike {
                     // play animations if any
                     if let Some(anim) = ev.gen_anim(&mut AnimContext {
                         world: &mut gl.world,
-                        wcx: &mut gl.wcx,
+                        ice: &mut gl.ice,
                     }) {
                         // log::trace!("event animation: {:?}", anim);
 
@@ -113,7 +112,7 @@ impl GameState for Roguelike {
 
     fn render(&mut self, gl: &mut Global) {
         let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
+        gl.world_render.render(&gl.world, &mut gl.ice, flags);
     }
 }
 
@@ -127,7 +126,7 @@ impl GameState for Animation {
     fn update(&mut self, gl: &mut Global) -> StateReturn {
         let mut ucx = AnimUpdateContext {
             world: &mut gl.world,
-            wcx: &mut gl.wcx,
+            ice: &mut gl.ice,
         };
 
         match gl.anims.update(&mut ucx) {
@@ -139,7 +138,7 @@ impl GameState for Animation {
     fn on_enter(&mut self, gl: &mut Global) {
         let mut ucx = AnimUpdateContext {
             world: &mut gl.world,
-            wcx: &mut gl.wcx,
+            ice: &mut gl.ice,
         };
 
         gl.anims.on_start(&mut ucx);
@@ -147,7 +146,7 @@ impl GameState for Animation {
 
     fn render(&mut self, gl: &mut Global) {
         let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
+        gl.world_render.render(&gl.world, &mut gl.ice, flags);
     }
 }
 
@@ -163,8 +162,8 @@ pub struct Title {
 }
 
 impl Title {
-    pub fn new(wcx: &mut WorldContext) -> Self {
-        let cache = &mut wcx.assets;
+    pub fn new(ice: &mut Ice) -> Self {
+        let cache = &mut ice.assets;
         Self {
             logo: SpriteData {
                 tex: cache.load_sync(paths::img::title::SNOWRL).unwrap(),
@@ -246,32 +245,32 @@ impl Title {
 
 impl GameState for Title {
     fn on_enter(&mut self, gl: &mut Global) {
-        let wcx = &mut gl.wcx;
-        let cache = &mut wcx.assets;
+        let ice = &mut gl.ice;
+        let cache = &mut ice.assets;
 
         let song = cache.load_sync(paths::sound::bgm::FOREST_02).unwrap();
-        wcx.music_player.play_song(song);
+        ice.music_player.play_song(song);
     }
 
     fn update(&mut self, gl: &mut Global) -> StateReturn {
-        if let Some(dir) = gl.wcx.vi.dir.dir4_pressed() {
+        if let Some(dir) = gl.vi.dir.dir4_pressed() {
             match dir.y_sign() {
                 Sign::Pos => {
                     self.cursor += self.choices.len() - 1;
                     self.cursor %= self.choices.len();
-                    gl.wcx.audio.play(&*self.se_cursor.get_mut().unwrap());
+                    gl.ice.audio.play(&*self.se_cursor.get_mut().unwrap());
                 }
                 Sign::Neg => {
                     self.cursor += 1;
                     self.cursor %= self.choices.len();
-                    gl.wcx.audio.play(&*self.se_cursor.get_mut().unwrap());
+                    gl.ice.audio.play(&*self.se_cursor.get_mut().unwrap());
                 }
                 Sign::Neutral => {}
             }
         }
 
-        if gl.wcx.vi.select.is_pressed() {
-            gl.wcx.audio.play(&*self.se_select.get_mut().unwrap());
+        if gl.vi.select.is_pressed() {
+            gl.ice.audio.play(&*self.se_select.get_mut().unwrap());
             StateReturn::ThisFrame(vec![StateCommand::Pop])
         } else {
             // TODO: fade out
@@ -281,9 +280,9 @@ impl GameState for Title {
 
     fn render(&mut self, gl: &mut Global) {
         let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
+        gl.world_render.render(&gl.world, &mut gl.ice, flags);
 
-        let mut screen = gl.wcx.rdr.screen(PassConfig {
+        let mut screen = gl.ice.rdr.screen(PassConfig {
             pa: &rg::PassAction::NONE,
             tfm: None,
             pip: None,
@@ -388,28 +387,28 @@ impl GameState for PlayScript {
 
 #[derive(Debug)]
 pub struct PlayTextState {
-    txt: script::PlayTalk,
+    txt: script::render::PlayTalk,
 }
 
 impl PlayTextState {
     pub fn new(gl: &mut Global, txt: String, from: ActorIx, to: ActorIx) -> Self {
-        let talk = script::Talk {
+        let talk = script::render::TalkCommand {
             txt: Cow::Owned(txt),
             from,
             to,
         };
 
         Self {
-            txt: script::PlayTalk::new(gl, talk),
+            txt: script::render::PlayTalk::new(talk, &mut gl.ice, &gl.world),
         }
     }
 }
 
 impl GameState for PlayTextState {
     fn update(&mut self, gl: &mut Global) -> StateReturn {
-        self.txt.update(gl.wcx.dt);
+        self.txt.update(gl.ice.dt);
 
-        if gl.wcx.vi.select.is_pressed() {
+        if gl.vi.select.is_pressed() {
             // Exit on enter
             StateReturn::NextFrame(vec![StateCommand::PopAndRemove, StateCommand::Pop])
         } else {
@@ -419,8 +418,8 @@ impl GameState for PlayTextState {
 
     fn render(&mut self, gl: &mut Global) {
         let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
-        let mut screen = gl.wcx.rdr.screen(Default::default());
+        gl.world_render.render(&gl.world, &mut gl.ice, flags);
+        let mut screen = gl.ice.rdr.screen(Default::default());
         self.txt.render(&mut screen);
     }
 }

@@ -14,7 +14,7 @@ use {
 
 use crate::rl::{fov::OpacityMap, grid2d::Vec2i};
 
-/// Bundles tiled map and roguelike map data
+/// Bundle of Tiled map and internal roguelike map data
 #[derive(Debug)]
 pub struct TiledRlMap {
     pub tiled: tiled::Map,
@@ -43,8 +43,6 @@ impl TiledRlMap {
 }
 
 /// Roguelike map data
-///
-/// Considers layer with name "collision".
 #[derive(Debug)]
 pub struct RlMap {
     pub size: [usize; 2],
@@ -73,6 +71,7 @@ impl RlMap {
 
 /// IO
 impl RlMap {
+    /// Requires "collision" layer
     pub fn from_tiled(tiled: &tiled::Map) -> Self {
         let collision = tiled
             .layers
@@ -110,15 +109,16 @@ impl OpacityMap for RlMap {
     }
 }
 
-/// Maps global tile id to sub texture
+/// Maps Tiled's GID (global tile id) to a texture
 #[derive(Debug, Clone)]
 pub struct GidTextureMap {
-    pub imgs: Vec<TilesetImageSpan>,
+    spans: Vec<GidTextureSpan>,
     tile_size: [u32; 2],
 }
 
+/// Span of Tiled's gid (global tile id) that uses one texture
 #[derive(Debug, Clone)]
-pub struct TilesetImageSpan {
+struct GidTextureSpan {
     first_gid: u32,
     tex: Asset<Texture2dDrop>,
 }
@@ -136,9 +136,9 @@ impl GidTextureMap {
 
         let tile_size = [tiled.tile_width, tiled.tile_height];
 
-        let mut imgs = Vec::with_capacity(1);
+        let mut spans = Vec::with_capacity(1);
         for tileset in &tiled.tilesets {
-            imgs.push(TilesetImageSpan {
+            spans.push(GidTextureSpan {
                 first_gid: tileset.first_gid,
                 tex: {
                     let relative_img_path = &tileset.images[0].source;
@@ -149,7 +149,7 @@ impl GidTextureMap {
             });
         }
 
-        Ok(Self { imgs, tile_size })
+        Ok(Self { spans, tile_size })
     }
 
     pub fn gid_to_tile(&self, gid: u32) -> Option<SharedSubTexture2d> {
@@ -157,7 +157,7 @@ impl GidTextureMap {
             return None;
         }
 
-        for span in self.imgs.iter().rev() {
+        for span in self.spans.iter().rev() {
             if gid < span.first_gid {
                 continue;
             }

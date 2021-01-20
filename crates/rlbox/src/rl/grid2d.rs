@@ -7,7 +7,6 @@ pub use snow2d::input::axis::{Dir4, Dir8, Sign};
 // --------------------------------------------------------------------------------
 // Space
 
-/// Screen bounds in pixels
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Rect2i {
     pos: Vec2i,
@@ -70,7 +69,6 @@ impl Rect2i {
     // }
 }
 
-/// Size/point in pixels
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Vec2i {
     pub x: i32,
@@ -167,7 +165,6 @@ impl From<Dir8> for Vec2i {
     }
 }
 
-/// Point in pixels
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Vec2u {
     pub x: u32,

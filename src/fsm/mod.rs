@@ -1,6 +1,13 @@
 /*!
 
-Stack-based finite state machine and a scheduler of renderers
+State machine and game states
+
+The FSM is based on a state stack.
+
+Considerations:
+
+* message system
+* rendering scheduler (with efficiency; share RenderPass as long as possible)
 
 */
 
@@ -11,6 +18,7 @@ pub mod states;
 
 use {
     rokol::app as ra,
+    snow2d::Ice,
     std::{any::TypeId, collections::HashMap},
 };
 
@@ -18,15 +26,16 @@ use crate::{
     fsm::render::WorldRenderer,
     script::ScriptRef,
     turn::anim::AnimPlayer,
-    world::{World, WorldContext},
+    world::{vi::VInput, World},
 };
 
 /// Thread-local global variables
 #[derive(Debug)]
 pub struct Global {
     pub world: World,
-    pub wcx: WorldContext,
+    pub ice: Ice,
     pub world_render: WorldRenderer,
+    pub vi: VInput,
     /// Roguelike game animations
     pub anims: AnimPlayer,
     pub script_to_play: Option<ScriptRef>,
@@ -34,32 +43,35 @@ pub struct Global {
 
 impl Global {
     pub fn event(&mut self, ev: &ra::Event) {
-        self.wcx.event(ev);
+        self.ice.event(ev);
     }
 
     /// Called before updating the FSM (game state)
     pub fn pre_update(&mut self) {
-        self.wcx.pre_update();
-        self.world.update(&mut self.wcx);
+        self.ice.pre_update();
+        self.vi.update(&self.ice.input, self.ice.dt);
+        self.world.update(&mut self.ice);
     }
 
     /// Called after updating the FSM (game state)
     pub fn post_update(&mut self) {
-        self.wcx.post_update();
-
         self.world
             .shadow
-            .post_update(self.wcx.dt, &self.world.map.rlmap, &self.world.entities[0]);
+            .post_update(self.ice.dt, &self.world.map.rlmap, &self.world.entities[0]);
 
-        self.world_render.post_update(&self.world, self.wcx.dt);
+        self.world_render.post_update(&self.world, self.ice.dt);
+    }
+
+    pub fn pre_render(&mut self) {
+        self.ice.pre_render();
     }
 
     pub fn on_end_frame(&mut self) {
-        self.wcx.on_end_frame();
+        self.ice.on_end_frame();
     }
 }
 
-/// TODO: consider parameter on push and pass using downcast
+/// Game state lifecycle
 pub trait GameState: std::fmt::Debug {
     fn on_enter(&mut self, _gl: &mut Global) {}
     fn on_exit(&mut self, _gl: &mut Global) {}
@@ -71,13 +83,16 @@ pub trait GameState: std::fmt::Debug {
     fn render(&mut self, gl: &mut Global) {
         use crate::fsm::render::WorldRenderFlag;
         let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.wcx, flags);
+        gl.world_render.render(&gl.world, &mut gl.ice, flags);
     }
 }
 
+/// Return value of [`GameState::update`]
 #[derive(Debug)]
 pub enum StateReturn {
+    /// Run every command in this frame. Call update in next frame
     NextFrame(Vec<StateCommand>),
+    /// Run every command in this frame. Call update in this frame
     ThisFrame(Vec<StateCommand>),
 }
 
@@ -90,6 +105,7 @@ impl StateReturn {
     }
 }
 
+/// Command in [`StateReturn`]
 #[derive(Debug)]
 pub enum StateCommand {
     Insert(TypeId, Box<dyn GameState>),

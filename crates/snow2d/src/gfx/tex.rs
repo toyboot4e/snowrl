@@ -63,7 +63,7 @@ fn target_desc(w: u32, h: u32) -> rg::ImageDesc {
     }
 }
 
-/// [`AssetItem`]. Frees GPU image on drop
+/// A 2D owned texture that frees GPU image on drop. It's an [`AssetItem`].
 #[derive(Debug, Default)]
 pub struct Texture2dDrop {
     img: rg::Image,
@@ -77,8 +77,6 @@ impl Drop for Texture2dDrop {
     }
 }
 
-/// The width and height have to be in scaled size (e.g. if on 2x DPI monitor with 1280x720 scaled
-/// screen size, pass 1280x720)
 impl Texture2dDrop {
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
         let img = image::open(path)?;
@@ -92,6 +90,8 @@ impl Texture2dDrop {
         Ok(Self::from_pixels(img.as_bytes(), img.width(), img.height()))
     }
 
+    /// The width and height have to be in scaled size (e.g. if on 2x DPI monitor with 1280x720 scaled
+    /// screen size, pass 1280x720)
     pub fn from_pixels(pixels: &[u8], w: u32, h: u32) -> Self {
         let id = self::gen_img(pixels, w, h);
         Self { img: id, w, h }
@@ -124,7 +124,7 @@ impl AssetLoader for TextureLoader {
     }
 }
 
-/// UV-rect-only texture
+/// Texture with uv values
 #[derive(Debug, Clone)]
 pub struct SharedSubTexture2d {
     pub tex: Asset<Texture2dDrop>,
@@ -156,6 +156,7 @@ impl Default for SpriteData {
     }
 }
 
+/// A nine slice texture is suitable for e.g., window image
 #[derive(Debug, Clone)]
 pub struct NineSliceSprite {
     pub tex: Asset<Texture2dDrop>,

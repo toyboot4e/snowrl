@@ -2,11 +2,19 @@
 
 Easing and tweening
 
+Easing functions are visualized in [this site] for example. They map `[0.0, 1.0]` to a different
+curve in the same range `[0.0, 1.0]`. They can be applied to other types that are linearly
+interpolatable:
+
+[this site]: https://easings.net/
+
 ```no_run
 pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
     T::lerp(a, b, ease.map(t))
 }
 ```
+
+Tweens are applied based on time.
 
 */
 
@@ -31,7 +39,7 @@ pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
     T::lerp(a, b, ease.map(t))
 }
 
-/// Generates tweened value
+/// Generates tweened values
 #[derive(Debug)]
 pub struct Tweened<T: Lerp + Clone> {
     pub a: T,
@@ -49,7 +57,7 @@ impl<T: Lerp + Clone> Tweened<T> {
     }
 }
 
-/// Eased delta time in range [0.0, 1.0]
+/// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` with easing on `get`
 #[derive(Debug, Clone)]
 pub struct EasedDt {
     target: f32,
@@ -82,14 +90,14 @@ impl EasedDt {
     }
 }
 
-/// Normalized delta time in range [0.0, 1.0]
+/// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` on `get`
 #[derive(Debug, Clone, Default)]
-pub struct NormDt {
+pub struct LerpDt {
     target: f32,
     accum: f32,
 }
 
-impl NormDt {
+impl LerpDt {
     pub fn new(target_secs: f32) -> Self {
         Self {
             target: target_secs,

@@ -68,7 +68,8 @@ pub fn gen_anim8(
     )
 }
 
-pub type DirAnimPattern = [(Dir8, [usize; 3]); 8];
+/// Maps [`Dir8`] to a diretional animation frame
+type DirAnimPattern = [(Dir8, [usize; 3]); 8];
 
 const DIR_4_ANIM_PATTERN: DirAnimPattern = [
     (Dir8::E, [6, 7, 8]),
@@ -130,6 +131,7 @@ fn gen_dir_anim_with(
         .collect()
 }
 
+/// An animatable actor image
 #[derive(Debug, Clone)]
 pub struct ActorImage {
     anim_state: FrameAnimState<Dir8, SpriteData>,
@@ -165,14 +167,15 @@ impl ActorImage {
         })
     }
 
-    pub fn force_set(&mut self, pos: Vec2i, dir: Dir8) {
+    /// Sets position and direction without animation
+    pub fn warp(&mut self, pos: Vec2i, dir: Dir8) {
         let next_snap = ActorSnapshot { dir, pos };
         self.state.set_a(next_snap);
         self.state.set_b(next_snap);
         self.anim_state.set_pattern(dir, true);
     }
 
-    /// Call after updating actors
+    /// Updates the image with (new) actor position and direction
     pub fn update(&mut self, dt: Duration, pos: Vec2i, dir: Dir8) {
         if dir != self.state.a().dir {
             self.anim_state.set_pattern(dir, false);

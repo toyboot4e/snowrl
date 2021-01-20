@@ -19,13 +19,15 @@ use std::{
     rc::Rc,
 };
 
-use downcast_rs::{impl_downcast, Downcast};
-
-use rlbox::utils::Cheat;
+use {
+    downcast_rs::{impl_downcast, Downcast},
+    rlbox::utils::Cheat,
+    snow2d::Ice,
+};
 
 use crate::{
     turn::{anim::Anim, ev},
-    world::{World, WorldContext},
+    world::{vi::VInput, World},
 };
 
 /// Boxed [generator]
@@ -39,7 +41,7 @@ type Gen = Box<dyn Generator<TickContext, Yield = TickResult, Return = ()> + Unp
 #[derive(Debug, Clone)]
 struct TickContext {
     world: Cheat<World>,
-    wcx: Cheat<WorldContext>,
+    vi: Cheat<VInput>,
 }
 
 // do we actually need it?
@@ -79,7 +81,7 @@ impl Default for GameLoop {
             tcx: unsafe {
                 TickContext {
                     world: Cheat::empty(),
-                    wcx: Cheat::empty(),
+                    vi: Cheat::empty(),
                 }
             },
         }
@@ -88,11 +90,11 @@ impl Default for GameLoop {
 
 impl GameLoop {
     /// Ticks the game for "one step"
-    pub fn tick(&mut self, world: &mut World, wcx: &mut WorldContext) -> TickResult {
+    pub fn tick(&mut self, world: &mut World, vi: &mut VInput) -> TickResult {
         // set cheat borrows here for the generator
         unsafe {
             self.tcx.world = Cheat::new(world);
-            self.tcx.wcx = Cheat::new(wcx);
+            self.tcx.vi = Cheat::new(vi);
         }
 
         match Pin::new(&mut self.gen).resume(self.tcx.clone()) {
@@ -123,7 +125,7 @@ fn game_loop() -> Gen {
             loop {
                 let mut ecx = EventContext {
                     world: &mut tcx.world,
-                    wcx: &mut tcx.wcx,
+                    vi: &mut tcx.vi,
                 };
 
                 match ev.run(&mut ecx) {
@@ -158,7 +160,7 @@ fn game_loop() -> Gen {
 #[derive(Debug)]
 pub struct AnimContext<'a, 'b> {
     pub world: &'a mut World,
-    pub wcx: &'b mut WorldContext,
+    pub ice: &'b mut Ice,
 }
 
 pub trait GenAnim {
@@ -172,9 +174,10 @@ pub trait GenAnim {
 
 /// Context for event handling, both internals ang GUI
 #[derive(Debug)]
-pub struct EventContext<'a, 'b> {
+pub struct EventContext<'a> {
     pub world: &'a mut World,
-    pub wcx: &'b mut WorldContext,
+    /// TODO: remove input
+    pub vi: &'a mut VInput,
 }
 
 /// Return value of event handling

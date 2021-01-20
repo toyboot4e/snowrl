@@ -6,14 +6,13 @@ They're created referencing rogulike events and then we forget about original ev
 
 */
 
-use downcast_rs::{impl_downcast, Downcast};
-
-use std::{collections::VecDeque, fmt, time::Duration};
-
-use crate::{
-    turn::tick::ActorIx,
-    world::{World, WorldContext},
+use {
+    downcast_rs::{impl_downcast, Downcast},
+    snow2d::Ice,
+    std::{collections::VecDeque, fmt, time::Duration},
 };
+
+use crate::{turn::tick::ActorIx, world::World};
 
 #[derive(Debug)]
 pub struct AnimPlayer {
@@ -125,7 +124,7 @@ pub enum AnimResult {
 #[derive(Debug)]
 pub struct AnimUpdateContext<'a, 'b> {
     pub world: &'a mut World,
-    pub wcx: &'b mut WorldContext,
+    pub ice: &'b mut Ice,
 }
 
 pub trait Anim: fmt::Debug + Downcast {
@@ -198,7 +197,7 @@ impl Anim for WalkAnim {
     }
 
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
-        self.dt += ucx.wcx.dt;
+        self.dt += ucx.ice.dt;
 
         if self.dt.as_secs_f32() >= crate::consts::WALK_TIME {
             AnimResult::Finish

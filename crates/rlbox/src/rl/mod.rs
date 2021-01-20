@@ -2,8 +2,6 @@
 
 Roguelike game utilities
 
-Orthogonal grid map is assumed.
-
 */
 
 pub mod dun;

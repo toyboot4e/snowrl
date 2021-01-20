@@ -20,7 +20,11 @@ pub mod script;
 pub mod turn;
 pub mod world;
 
-use rokol::{app as ra, gfx as rg};
+use rokol::{
+    app as ra,
+    fons::{Align, FontConfig},
+    gfx as rg,
+};
 
 use {
     rlbox::{
@@ -30,14 +34,18 @@ use {
     snow2d::{
         asset::AssetCacheT,
         audio,
-        gfx::tex::{Texture2dDrop, TextureLoader},
+        gfx::{
+            tex::{Texture2dDrop, TextureLoader},
+            Snow2d,
+        },
+        Ice,
     },
 };
 
 use crate::{
     fsm::render::WorldRenderer,
     turn::anim::AnimPlayer,
-    world::{actor::Actor, Shadow, World, WorldContext},
+    world::{actor::Actor, vi::VInput, Shadow, World},
 };
 
 pub fn run(app: rokol::Rokol) -> rokol::Result {
@@ -88,18 +96,37 @@ struct SnowRlImpl {
 impl SnowRlImpl {
     pub fn new(title: String) -> Self {
         let mut gl = {
-            let mut wcx = WorldContext::new(title);
+            let mut snow = unsafe { Snow2d::new() };
+            let font_cfg = FontConfig {
+                font: {
+                    // FIXME: font path
+                    let font = include_bytes!("../assets_embeded/mplus-1p-regular.ttf");
+                    let ix = snow
+                        .fontbook
+                        .stash()
+                        .add_font_mem("mplus-1p-regular", font)
+                        .unwrap();
+                    snow.fontbook.stash().set_align(Align::TOP | Align::LEFT);
+                    ix
+                },
+                fontsize: crate::consts::DEFAULT_FONT_SIZE,
+                line_spacing: crate::consts::DEFAULT_LINE_SPACE,
+            };
+            snow.fontbook.apply_cfg(&font_cfg);
 
-            wcx.assets
+            let mut ice = Ice::new(title, snow, font_cfg);
+
+            ice.assets
                 .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
 
-            audio::asset::register_asset_loaders(&mut wcx.assets, &wcx.audio.clone());
+            audio::asset::register_asset_loaders(&mut ice.assets, &ice.audio.clone());
 
-            let world = self::init_world(&mut wcx).unwrap();
+            let world = self::init_world(&mut ice).unwrap();
 
             fsm::Global {
                 world,
-                wcx,
+                ice,
+                vi: VInput::new(),
                 world_render: WorldRenderer::default(),
                 anims: AnimPlayer::default(),
                 script_to_play: None,
@@ -112,8 +139,8 @@ impl SnowRlImpl {
             fsm.insert_default::<fsm::states::Roguelike>();
             fsm.insert_default::<fsm::states::Animation>();
 
-            fsm.insert(fsm::states::Title::new(&mut gl.wcx));
-            fsm.insert(fsm::states::PlayScript::new(&mut gl.wcx.assets));
+            fsm.insert(fsm::states::Title::new(&mut gl.ice));
+            fsm.insert(fsm::states::PlayScript::new(&mut gl.ice.assets));
 
             fsm.push::<fsm::states::Roguelike>(&mut gl);
             fsm.push::<fsm::states::Title>(&mut gl);
@@ -136,6 +163,7 @@ impl rokol::app::RApp for SnowRlImpl {
         self.fsm.update(&mut self.gl);
         self.gl.post_update();
 
+        self.gl.pre_render();
         self.fsm.render(&mut self.gl);
 
         self.gl.on_end_frame();
@@ -144,10 +172,10 @@ impl rokol::app::RApp for SnowRlImpl {
     }
 }
 
-fn init_world(wcx: &mut WorldContext) -> anyhow::Result<World> {
+fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
     let map = TiledRlMap::new(
         paths::map::tmx::RL_START,
-        wcx.assets.cache_mut::<Texture2dDrop>().unwrap(),
+        ice.assets.cache_mut::<Texture2dDrop>().unwrap(),
     )?;
 
     let radius = [consts::FOV_R, 10];
@@ -159,7 +187,7 @@ fn init_world(wcx: &mut WorldContext) -> anyhow::Result<World> {
         entities: Vec::with_capacity(20),
     };
 
-    self::load_actors(&mut world, wcx)?;
+    self::load_actors(&mut world, ice)?;
 
     // just set FoV:
     // shadow.calculate(player.pos, &map.rlmap);
@@ -169,8 +197,8 @@ fn init_world(wcx: &mut WorldContext) -> anyhow::Result<World> {
     Ok(world)
 }
 
-fn load_actors(w: &mut World, wcx: &mut WorldContext) -> anyhow::Result<()> {
-    let cache = wcx.assets.cache_mut::<Texture2dDrop>().unwrap();
+fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
+    let cache = ice.assets.cache_mut::<Texture2dDrop>().unwrap();
 
     // player
 
@@ -198,7 +226,7 @@ fn load_actors(w: &mut World, wcx: &mut WorldContext) -> anyhow::Result<()> {
             dir,
             img: {
                 let mut img = img.clone();
-                img.force_set(pos, dir);
+                img.warp(pos, dir);
                 img
             },
         };
@@ -231,7 +259,7 @@ fn load_actors(w: &mut World, wcx: &mut WorldContext) -> anyhow::Result<()> {
             dir,
             img: {
                 let mut img = img.clone();
-                img.force_set(pos, dir);
+                img.warp(pos, dir);
                 img
             },
         }
@@ -245,7 +273,7 @@ fn load_actors(w: &mut World, wcx: &mut WorldContext) -> anyhow::Result<()> {
             dir,
             img: {
                 let mut img = img.clone();
-                img.force_set(pos, dir);
+                img.warp(pos, dir);
                 img
             },
         }

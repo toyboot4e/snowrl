@@ -4,20 +4,9 @@ pub mod actor;
 pub mod render;
 pub mod vi;
 
-use {
-    rokol::{
-        fons::{Align, FontConfig},
-        gfx as rg,
-    },
-    std::time::{Duration, Instant},
-};
+use std::time::Duration;
 
-use snow2d::{
-    asset::AssetCacheAny,
-    audio::{asset::MusicPlayer, Audio},
-    gfx::{Color, Snow2d},
-    input::Input,
-};
+use snow2d::Ice;
 
 use rlbox::{
     rl::{
@@ -29,100 +18,7 @@ use rlbox::{
     utils::{ez, Double},
 };
 
-use self::{actor::*, vi::VInput};
-
-/// Powers the game [`World`]
-#[derive(Debug)]
-pub struct WorldContext {
-    /// TODO: For debug purpose
-    window_title: String,
-    /// Clears target (frame buffer) with cornflower blue color
-    pa_blue: rg::PassAction,
-    /// 2D renderer
-    pub rdr: Snow2d,
-    /// Default font configuration
-    pub font_cfg: FontConfig,
-    /// Audio context
-    pub audio: Audio,
-    pub music_player: MusicPlayer,
-    /// Asset cache for any type
-    pub assets: AssetCacheAny,
-    pub input: Input,
-    /// Delta time from last frame
-    pub dt: Duration,
-    pub frame_count: u64,
-    /// When the game started
-    pub start_time: Instant,
-    //
-    pub vi: VInput,
-}
-
-impl WorldContext {
-    pub fn new(title: String) -> Self {
-        let mut snow = unsafe { Snow2d::new() };
-
-        // store default font
-        let font_cfg = FontConfig {
-            font: {
-                // FIXME: font path
-                let font = include_bytes!("../../assets_embeded/mplus-1p-regular.ttf");
-                let ix = snow
-                    .fontbook
-                    .stash()
-                    .add_font_mem("mplus-1p-regular", font)
-                    .unwrap();
-                snow.fontbook.stash().set_align(Align::TOP | Align::LEFT);
-                ix
-            },
-            fontsize: crate::consts::DEFAULT_FONT_SIZE,
-            line_spacing: crate::consts::DEFAULT_LINE_SPACE,
-        };
-        snow.fontbook.apply_cfg(&font_cfg);
-
-        // TODO: don't unwrap
-        let audio = unsafe { Audio::create().unwrap() };
-
-        Self {
-            window_title: title,
-            pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
-            rdr: snow,
-            font_cfg,
-            audio: audio.clone(),
-            music_player: MusicPlayer::new(audio.clone()),
-            assets: AssetCacheAny::new(),
-            input: Input::new(),
-            dt: Duration::new(0, 0),
-            frame_count: 0,
-            start_time: Instant::now(),
-            vi: VInput::new(),
-        }
-    }
-
-    pub fn event(&mut self, ev: &rokol::app::Event) {
-        self.input.event(ev);
-    }
-
-    pub fn pre_update(&mut self) {
-        self.frame_count += 1;
-
-        // FIXME: use real dt
-        self.dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
-
-        self.vi.update(&self.input, self.dt);
-    }
-
-    pub fn post_update(&mut self) {
-        self.rdr.post_update();
-    }
-
-    pub fn render(&mut self) {
-        // debug render?
-    }
-
-    pub fn on_end_frame(&mut self) {
-        self.input.on_end_frame();
-    }
-}
+use self::actor::*;
 
 /// The rougelike game world
 ///
@@ -136,9 +32,9 @@ pub struct World {
 
 /// Lifecycle
 impl World {
-    pub fn update(&mut self, wcx: &mut WorldContext) {
+    pub fn update(&mut self, ice: &mut Ice) {
         for e in &mut self.entities {
-            e.img.update(wcx.dt, e.pos, e.dir);
+            e.img.update(ice.dt, e.pos, e.dir);
         }
     }
 }

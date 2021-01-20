@@ -177,13 +177,13 @@ impl GenAnim for PlayerWalk {}
 
 impl Event for PlayerWalk {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let EventContext { world, wcx } = ecx;
+        let EventContext { world, vi } = ecx;
 
         let actor = &mut world.entities[self.actor.0];
         let pos = actor.pos + Vec2i::from(self.dir.signs_i32());
         drop(actor);
 
-        let is_rotate_only = wcx.vi.turn.is_down();
+        let is_rotate_only = vi.turn.is_down();
 
         if is_rotate_only || world.is_blocked(pos) {
             EventResult::chain(ChangeDir {
@@ -274,10 +274,10 @@ impl PlayerTurn {
 impl Event for PlayerTurn {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
         let (select, turn, rest, dir) = (
-            ecx.wcx.vi.select.is_pressed(),
-            ecx.wcx.vi.turn.is_pressed(),
-            ecx.wcx.vi.rest.is_pressed(),
-            ecx.wcx.vi.dir.dir8_down(),
+            ecx.vi.select.is_pressed(),
+            ecx.vi.turn.is_pressed(),
+            ecx.vi.rest.is_pressed(),
+            ecx.vi.dir.dir8_down(),
         );
 
         if select {

@@ -4,6 +4,12 @@ pub mod ez;
 
 pub mod tweak {
     //! See [inline_tweak](https://docs.rs/inline_tweak/latest/inline_tweak/)
+    //!
+    //! ```
+    //! use rlbox::utils::tweak::*;
+    //!
+    //! let x = tweak!(1.0);
+    //! ```
 
     pub use inline_tweak::{self, tweak, watch, Tweakable};
 }
@@ -33,7 +39,7 @@ impl<T> Double<T> {
     }
 }
 
-/// Raw double buffer and interpolation value
+/// Raw double buffer with interpolation value
 #[derive(Debug, Clone)]
 pub struct DoubleTrack<T> {
     /// Front
@@ -173,9 +179,9 @@ impl<T> DoubleSwap<T> {
 
 /// Lifetime-free mutable reference to type `T`
 ///
-/// Be sure that the pointer lives as long as required.
+/// # Safety
 ///
-/// I basicaly prefer `Cheat<T>` to `Rc<RefCell<T>>`.
+/// Make sure the pointer lives as long as required.
 #[derive(Debug)]
 pub struct Cheat<T> {
     ptr: *mut T,

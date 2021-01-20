@@ -16,7 +16,7 @@ use crate::rl::{
 // --------------------------------------------------------------------------------
 // Coordinates
 
-/// World coordinates to tile coordinates flooring remaning pixels
+/// World coordinates to tile coordinates flooring remaning pixels in a cell
 pub fn w2t_floor(w: impl Into<Vec2f>, tiled: &tiled::Map) -> Vec2i {
     let w = w.into();
     let x = w.x as u32 / tiled.tile_width;
@@ -24,7 +24,7 @@ pub fn w2t_floor(w: impl Into<Vec2f>, tiled: &tiled::Map) -> Vec2i {
     Vec2i::new(x as i32, y as i32)
 }
 
-/// World coordinates to tile coordinates rounding up remaning pixels
+/// World coordinates to tile coordinates rounding up remaning pixels in a cell
 pub fn w2t_round_up(w: impl Into<Vec2f>, tiled: &tiled::Map) -> Vec2i {
     let w = w.into();
     let x = (w.x as u32 + tiled.tile_width - 1) / tiled.tile_width;
@@ -40,6 +40,7 @@ pub fn t2w(pos: impl Into<Vec2i>, tiled: &tiled::Map) -> Vec2f {
     Vec2f::new(x, y)
 }
 
+/// Tile coordinates to world coordinates (corner)
 pub fn t2w_center(pos: impl Into<Vec2i>, tiled: &tiled::Map) -> Vec2f {
     let pos = pos.into();
     let x = pos.x as f32 * tiled.tile_width as f32 + tiled.tile_width as f32 / 2.0;
@@ -47,6 +48,50 @@ pub fn t2w_center(pos: impl Into<Vec2i>, tiled: &tiled::Map) -> Vec2f {
     Vec2f::new(x, y)
 }
 
+fn grid_bounds_from_pixel_bounds(map: &tiled::Map, bounds: &Rect2f) -> Rect2i {
+    let left_up = {
+        // FIXME: w2t_round_up would be enough?
+        let mut pos = w2t_floor(bounds.left_up(), map);
+        pos.x = cmp::max(pos.x, 0);
+        pos.y = cmp::max(pos.y, 0);
+        pos
+    };
+
+    // right down position of the map + [1, 1]
+    let right_down = {
+        let mut pos = w2t_round_up(bounds.right_down(), map);
+        pos.x = cmp::min(pos.x, map.width as i32);
+        pos.y = cmp::min(pos.y, map.height as i32);
+        pos
+    };
+
+    let size = [
+        (right_down.x - left_up.x) as u32,
+        (right_down.y - left_up.y) as u32,
+    ];
+
+    Rect2i::new(left_up, size)
+}
+
+/// Returns (ys, xs)
+fn visible_cells_from_px_bounds(px_bounds: &Rect2f, tiled: &tiled::Map) -> ([u32; 2], [u32; 2]) {
+    let grid_bounds = self::grid_bounds_from_pixel_bounds(tiled, px_bounds);
+    self::visible_cells_from_grid_bounds(&grid_bounds)
+}
+
+/// Returns (ys, xs)
+fn visible_cells_from_grid_bounds(grid_bounds: &Rect2i) -> ([u32; 2], [u32; 2]) {
+    (
+        [
+            grid_bounds.up() as u32,
+            grid_bounds.up() as u32 + grid_bounds.h(),
+        ],
+        [
+            grid_bounds.left() as u32,
+            grid_bounds.left() as u32 + grid_bounds.w(),
+        ],
+    )
+}
 // --------------------------------------------------------------------------------
 // Rendering
 
@@ -102,13 +147,8 @@ fn render_tiled_layer(
     }
 }
 
-/// Renders field of view as shadows
-pub fn render_fov_shadows(
-    draw: &mut impl DrawApi,
-    tiled: &tiled::Map,
-    bounds: &Rect2f,
-    fov: &FovData,
-) {
+/// Renders FoV
+pub fn render_fov(draw: &mut impl DrawApi, tiled: &tiled::Map, bounds: &Rect2f, fov: &FovData) {
     let tile_size = Vec2u::new(tiled.tile_width, tiled.tile_height);
 
     let (ys, xs) = self::visible_cells_from_px_bounds(bounds, tiled);
@@ -120,6 +160,7 @@ pub fn render_fov_shadows(
     }
 }
 
+/// Renders FoV blending two (for animation)
 pub fn render_fov_blend(
     draw: &mut impl DrawApi,
     tiled: &tiled::Map,
@@ -144,6 +185,7 @@ pub fn render_fov_blend(
     }
 }
 
+/// Renders FoV and FoW blending two (for animation)
 pub fn render_fov_fow_blend(
     draw: &mut impl DrawApi,
     tiled: &tiled::Map,
@@ -242,8 +284,8 @@ fn render_shadow_cell(
 // --------------------------------------------------------------------------------
 // Debug rendering
 
-/// Renders rectangles to non-blocking cells
-pub fn render_rects_on_non_blocking_cells(
+/// Renders rectangles to non-blocking cells (TODO: consider FoV)
+pub fn mark_non_blocking_cells(
     draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     blocks: &[bool],
@@ -272,51 +314,4 @@ pub fn render_rects_on_non_blocking_cells(
             );
         }
     }
-}
-
-// --------------------------------------------------------------------------------
-// Internal utilities
-
-/// Returns (ys, xs)
-fn visible_cells_from_px_bounds(px_bounds: &Rect2f, tiled: &tiled::Map) -> ([u32; 2], [u32; 2]) {
-    let grid_bounds = self::grid_bounds_from_pixel_bounds(tiled, px_bounds);
-    self::visible_cells_from_grid_bounds(&grid_bounds)
-}
-
-/// Returns (ys, xs)
-fn visible_cells_from_grid_bounds(grid_bounds: &Rect2i) -> ([u32; 2], [u32; 2]) {
-    (
-        [
-            grid_bounds.up() as u32,
-            grid_bounds.up() as u32 + grid_bounds.h(),
-        ],
-        [
-            grid_bounds.left() as u32,
-            grid_bounds.left() as u32 + grid_bounds.w(),
-        ],
-    )
-}
-
-fn grid_bounds_from_pixel_bounds(map: &tiled::Map, bounds: &Rect2f) -> Rect2i {
-    let left_up = {
-        let mut pos = w2t_floor(bounds.left_up(), map);
-        pos.x = cmp::max(pos.x, 0);
-        pos.y = cmp::max(pos.y, 0);
-        pos
-    };
-
-    // right down position of the map + [1, 1]
-    let right_down = {
-        let mut pos = w2t_round_up(bounds.right_down(), map);
-        pos.x = cmp::min(pos.x, map.width as i32);
-        pos.y = cmp::min(pos.y, map.height as i32);
-        pos
-    };
-
-    let size = [
-        (right_down.x - left_up.x) as u32,
-        (right_down.y - left_up.y) as u32,
-    ];
-
-    Rect2i::new(left_up, size)
 }

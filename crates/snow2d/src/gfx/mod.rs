@@ -30,6 +30,7 @@ use self::{
     tex::RenderTexture,
 };
 
+/// 4 bytes color data
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
     pub r: u8,
@@ -66,6 +67,7 @@ impl Color {
         Self { r, g, b, a }
     }
 
+    /// Example: `Color::WHITE.with_alpha(128)`
     pub fn with_alpha(self, a: u8) -> Self {
         let mut x = self;
         x.a = a;
@@ -91,11 +93,11 @@ macro_rules! def_colors {
 def_colors!(
     // name, r, g, b, a
     (WHITE, 255, 255, 255, 255),
-    (WHITE_TRANSPARENT, 255, 255, 255, 0),
     (WHITE_SEMI_TRANSPARENT, 255, 255, 255, 128),
+    (WHITE_TRANSPARENT, 255, 255, 255, 0),
     (BLACK, 0, 0, 0, 0),
-    (BLACK_TRANSPARENT, 0, 0, 0, 0),
     (BLACK_SEMI_TRANSPARENT, 0, 0, 0, 128),
+    (BLACK_TRANSPARENT, 0, 0, 0, 0),
     (GRAY, 32, 32, 32, 32),
     (CORNFLOWER_BLUE, 100, 149, 237, 255),
     // TODO: define more colors
@@ -218,8 +220,11 @@ impl Snow2d {
         }
     }
 
-    pub fn post_update(&mut self) {
+    pub fn pre_render(&mut self) {
+        // probablly we measure text before rendendering, so
+        // this is the proper place to update GPU texture with CPU texture
         unsafe {
+            // call it every frame but only once
             self.fontbook.maybe_update_image();
         }
     }

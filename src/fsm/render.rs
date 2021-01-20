@@ -3,11 +3,14 @@
 use {
     rlbox::utils::DoubleTrack,
     rokol::{app as ra, gfx as rg},
-    snow2d::gfx::{draw::*, geom2d::*, Color, PassConfig, Snow2d},
+    snow2d::{
+        gfx::{draw::*, geom2d::*, Color, PassConfig, Snow2d},
+        Ice,
+    },
     std::time::Duration,
 };
 
-use crate::world::{render::*, World, WorldContext};
+use crate::world::{render::*, World};
 
 bitflags::bitflags! {
     /// Fixed set of renderers
@@ -50,9 +53,9 @@ impl WorldRenderer {
     }
 
     /// Renders the world (maybe partially)
-    pub fn render(&mut self, world: &World, wcx: &mut WorldContext, flags: WorldRenderFlag) {
+    pub fn render(&mut self, world: &World, ice: &mut Ice, flags: WorldRenderFlag) {
         if flags.contains(WorldRenderFlag::MAP | WorldRenderFlag::ACTORS) {
-            let mut screen = wcx.rdr.screen(PassConfig {
+            let mut screen = ice.rdr.screen(PassConfig {
                 pa: &self.pa_blue,
                 tfm: None,
                 pip: None,
@@ -63,13 +66,13 @@ impl WorldRenderer {
             }
 
             if flags.contains(WorldRenderFlag::ACTORS) {
-                self.actors(&mut screen, &world, wcx.dt);
+                self.actors(&mut screen, &world, ice.dt);
             }
         }
 
         if flags.contains(WorldRenderFlag::SHADOW) {
-            self.fov_render.render_ofs(&mut wcx.rdr, &world);
-            self.shadow(&mut wcx.rdr);
+            self.fov_render.render_ofs(&mut ice.rdr, &world);
+            self.shadow(&mut ice.rdr);
         }
 
         if flags.contains(WorldRenderFlag::SNOW) {
