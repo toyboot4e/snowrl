@@ -51,17 +51,28 @@ impl Lerp for snow2d::gfx::geom2d::Vec2f {
 
 impl Lerp for Dir8 {
     fn lerp(a: Self, b: Self, t: f32) -> Self {
-        // TODO: consider direction
         let n_steps = (b as u8 + 8 - a as u8) % 8;
+
+        let (n_steps, step_size) = if n_steps <= 4 {
+            (n_steps, 1)
+        } else {
+            (8 - n_steps, 8 - 1)
+        };
+
         let current_step = (n_steps as f32 * t) as u8;
-        let slot = (a as u8 + current_step) % 8;
+        log::trace!("{} | {}", n_steps, current_step);
+
+        let slot = (a as u8 + current_step * step_size) % 8;
         Self::CLOCKWISE[slot as usize]
     }
 }
 
 pub fn tween_dirs(a: Dir8, b: Dir8, time_per_pattern: f32) -> Tweened<Dir8> {
-    // FIXME:
     let n_steps = (b as u8 + 8 - a as u8) % 8;
+
+    // we'll use shorter rotation on `lerp`
+    let n_steps = u8::max(n_steps, 4);
+
     Tweened {
         a,
         b,
@@ -140,6 +151,14 @@ impl EasedDt {
             target: target_secs,
             accum: 0.0,
             ease,
+        }
+    }
+
+    pub fn completed() -> Self {
+        Self {
+            target: 1.0,
+            accum: 1.0,
+            ease: Ease::Linear,
         }
     }
 

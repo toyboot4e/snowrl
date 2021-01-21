@@ -137,7 +137,7 @@ impl<T: AssetItem> FreeUnused for AssetCacheT<T> {
         while i < len {
             if let Some(item) = &mut self.entries[i].asset.item {
                 if Arc::strong_count(item) == 1 {
-                    log::trace!(
+                    log::debug!(
                         "free asset with path `{}` in slot `{}` of cache for type `{}`",
                         self.entries[i].path.display(),
                         i,
@@ -166,7 +166,7 @@ impl<T: AssetItem> AssetCacheT<T> {
             log::trace!("(cache found for {})", key.as_ref().display());
             Ok(a)
         } else {
-            log::trace!("loading {}", key.as_ref().display());
+            log::debug!("loading {}", key.as_ref().display());
             self.load_new_sync(id)
         }
     }

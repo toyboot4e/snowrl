@@ -139,11 +139,6 @@ impl<K: Eq + std::hash::Hash, T> FrameAnimState<K, T> {
         self.state = next_state;
     }
 
-    // /// Accumulated time
-    // pub fn accumu(&self) -> Duration {
-    //     self.accum
-    // }
-
     pub fn current_frame(&self) -> &T {
         let pattern = self.patterns.get(&self.cur_key).unwrap();
         pattern.frame(self.accum)

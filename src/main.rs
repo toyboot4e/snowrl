@@ -1,3 +1,5 @@
+//! TODO: filter debug/error log on release build
+
 use rokol::{
     app as ra,
     fons::{Align, FontConfig},

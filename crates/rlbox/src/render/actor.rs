@@ -169,7 +169,7 @@ impl ActorImage {
             dir: ez::Tweened {
                 a: dir,
                 b: dir,
-                dt: ez::EasedDt::new(0.0, ez::Ease::Linear),
+                dt: ez::EasedDt::completed(),
             },
         })
     }
@@ -184,9 +184,20 @@ impl ActorImage {
 
     /// Updates the image with (new) actor position and direction
     pub fn update(&mut self, dt: Duration, pos: Vec2i, dir: Dir8) {
-        if dir != self.state.a().dir {
-            // TODO: set duration
-            self.dir = ez::tween_dirs(self.state.a().dir, dir, consts::CHANGE_DIR_TIME);
+        let (dir_diff, pos_diff) = (dir != self.state.a().dir, pos != self.state.a().pos);
+
+        if dir_diff {
+            if pos_diff {
+                // rotate instantly
+                self.dir = ez::tween_dirs(self.state.a().dir, dir, consts::CHANGE_DIR_TIME);
+            } else {
+                // NOTE: it always animate with rotation
+                self.dir = ez::Tweened {
+                    a: self.dir.b,
+                    b: dir,
+                    dt: ez::EasedDt::completed(),
+                };
+            }
         }
 
         // update direction of the animation
@@ -194,14 +205,14 @@ impl ActorImage {
         self.anim_state.set_pattern(self.dir.get(), false);
 
         // update interpolation value for walk animation
-        if pos != self.state.a().pos {
+        if pos_diff {
             self.dt.reset();
         }
         self.dt.tick(dt);
 
-        let next_snap = ActorSnapshot { dir, pos };
-        if next_snap != *self.state.a() {
+        if pos_diff || dir_diff {
             self.state.swap();
+            let next_snap = ActorSnapshot { dir, pos };
             self.state.set_a(next_snap);
         }
 
