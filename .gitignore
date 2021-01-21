@@ -1,4 +1,5 @@
 /target
 /assets
 .DS_Store
+/src/utils/paths.rs
 
