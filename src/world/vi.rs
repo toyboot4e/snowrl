@@ -2,12 +2,20 @@
 
 use std::time::Duration;
 
-use snow2d::input::{vi::*, Input, Key};
+use serde::{Deserialize, Serialize};
+
+use snow2d::input::{
+    vi::{
+        KeyEntry::{Key1, Key2},
+        *,
+    },
+    Input, Key,
+};
 
 use crate::utils::consts;
 
 /// Collection of virtual inputs
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VInput {
     /// Diractional input
     pub dir: AxisDirButton,
@@ -22,7 +30,7 @@ pub struct VInput {
 impl VInput {
     /// TODO: use serde
     pub fn new() -> Self {
-        let dir_repeat = KeyRepeat::Repeat {
+        let dir_repeat = KeyRepeatConfig::Repeat {
             first: Duration::from_nanos(1_000_000_000 / 60 * consts::REPEAT_FIRST_FRAMES),
             multi: Duration::from_nanos(1_000_000_000 / 60 * consts::REPEAT_MULTI_FRAMES),
         };
@@ -34,42 +42,42 @@ impl VInput {
                 [
                     // x positive
                     InputBundle {
-                        keys: vec![Key::D, Key::E, Key::C],
+                        keys: vec![Key1([Key::D]), Key1([Key::E]), Key1([Key::C])],
                     },
                     // x negative
                     InputBundle {
-                        keys: vec![Key::A, Key::Q, Key::Z],
+                        keys: vec![Key1([Key::A]), Key1([Key::Q]), Key1([Key::Z])],
                     },
                 ],
                 // y
                 [
                     // y positive
                     InputBundle {
-                        keys: vec![Key::X, Key::Z, Key::C],
+                        keys: vec![Key1([Key::X]), Key1([Key::Z]), Key1([Key::C])],
                     },
                     // y negative
                     InputBundle {
-                        keys: vec![Key::W, Key::Q, Key::E],
+                        keys: vec![Key1([Key::W]), Key1([Key::Q]), Key1([Key::E])],
                     },
                 ],
             ),
             select: Button::new(
                 InputBundle {
-                    keys: vec![Key::Enter],
+                    keys: vec![Key1([Key::Enter])],
                 },
-                KeyRepeat::None,
+                KeyRepeatConfig::NoRepeat,
             ),
             turn: Button::new(
                 InputBundle {
-                    keys: vec![Key::LeftShift, Key::RightShift],
+                    keys: vec![Key1([Key::LeftShift]), Key1([Key::RightShift])],
                 },
-                KeyRepeat::None,
+                KeyRepeatConfig::NoRepeat,
             ),
             rest: Button::new(
                 InputBundle {
-                    keys: vec![Key::Space],
+                    keys: vec![Key1([Key::Space])],
                 },
-                KeyRepeat::None,
+                KeyRepeatConfig::NoRepeat,
             ),
         }
     }
