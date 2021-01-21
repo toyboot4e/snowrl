@@ -15,7 +15,14 @@ pub mod gfx;
 pub mod input {
     //! `xdl` re-exported
 
-    pub use xdl::*;
+    pub use xdl::{axis, utils, Input, Key, Keyboard};
+
+    pub mod vi {
+        //! Virtual input
+
+        pub use snow2d_macros::keys;
+        pub use xdl::vi::*;
+    }
 }
 
 use std::time::{Duration, Instant};
