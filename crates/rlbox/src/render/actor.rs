@@ -189,14 +189,14 @@ impl ActorImage {
         if dir_diff {
             if pos_diff {
                 // rotate instantly
-                self.dir = ez::tween_dirs(self.state.a().dir, dir, consts::CHANGE_DIR_TIME);
-            } else {
-                // NOTE: it always animate with rotation
                 self.dir = ez::Tweened {
-                    a: self.dir.b,
+                    a: self.dir.a,
                     b: dir,
                     dt: ez::EasedDt::completed(),
                 };
+            } else {
+                // NOTE: it always animate with rotation
+                self.dir = ez::tween_dirs(self.state.a().dir, dir, consts::CHANGE_DIR_TIME);
             }
         }
 

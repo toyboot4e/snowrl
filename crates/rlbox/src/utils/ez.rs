@@ -60,7 +60,6 @@ impl Lerp for Dir8 {
         };
 
         let current_step = (n_steps as f32 * t) as u8;
-        log::trace!("{} | {}", n_steps, current_step);
 
         let slot = (a as u8 + current_step * step_size) % 8;
         Self::CLOCKWISE[slot as usize]
