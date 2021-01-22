@@ -6,7 +6,10 @@ use serde::{Deserialize, Serialize};
 
 use snow2d::input::{vi::*, Input, Key};
 
-use crate::utils::consts;
+/// TODO: rm
+const REPEAT_FIRST_FRAMES: u64 = 10;
+/// TODO: rm
+const REPEAT_MULTI_FRAMES: u64 = 6;
 
 /// Collection of virtual inputs
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,8 +31,8 @@ impl VInput {
     /// TODO: use serde
     pub fn new() -> Self {
         let dir_repeat = KeyRepeatConfig::Repeat {
-            first: Duration::from_nanos(1_000_000_000 / 60 * consts::REPEAT_FIRST_FRAMES),
-            multi: Duration::from_nanos(1_000_000_000 / 60 * consts::REPEAT_MULTI_FRAMES),
+            first: Duration::from_nanos(1_000_000_000 / 60 * REPEAT_FIRST_FRAMES),
+            multi: Duration::from_nanos(1_000_000_000 / 60 * REPEAT_MULTI_FRAMES),
         };
 
         use Key::*;

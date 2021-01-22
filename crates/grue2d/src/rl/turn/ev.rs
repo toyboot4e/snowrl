@@ -7,17 +7,150 @@ visualization, flexibilities and simplicities.
 
 e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
 
+TODO: remove non-primitive events
+
 */
 
 use rlbox::rl::grid2d::*;
 
-use crate::{
-    turn::{
-        anim::{self, Anim},
-        tick::{ActorIx, AnimContext, Event, EventContext, EventResult, GenAnim},
-    },
-    utils::consts,
+use crate::rl::turn::{
+    anim::{self, Anim},
+    tick::{ActorIx, AnimContext, Event, EventContext, EventResult, GenAnim},
 };
+
+/// TODO: remove
+const PLAYER: usize = 0;
+
+/// Some action resulted in a non-turn consuming action
+///
+/// Player should take another turn.
+///
+/// FIXME: unintentional side effects
+#[derive(Debug)]
+pub struct NotConsumeTurn {
+    pub actor: ActorIx,
+}
+
+impl GenAnim for NotConsumeTurn {
+    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        if self.actor.0 == PLAYER {
+            // wait for one frame so that we won't enter inifinite loop
+            Some(Box::new(anim::Wait { frames: 1 }))
+        } else {
+            None
+        }
+    }
+}
+
+impl Event for NotConsumeTurn {
+    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+        if self.actor.0 == PLAYER {
+            // TODO: require one frame wait
+            EventResult::chain(PlayerTurn { actor: self.actor })
+        } else {
+            EventResult::Finish
+        }
+    }
+}
+
+// --------------------------------------------------------------------------------
+// Primitive events
+
+// Every change to the roguelike game should happen as a primitive event.
+// These additional steps are also good foor visualization.
+
+#[derive(Debug)]
+pub struct RestOneTurn {
+    pub actor: ActorIx,
+}
+
+impl GenAnim for RestOneTurn {
+    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        None
+    }
+}
+
+impl Event for RestOneTurn {
+    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+        EventResult::Finish
+    }
+}
+
+/// Just change direction
+#[derive(Debug)]
+pub struct ChangeDir {
+    pub actor: ActorIx,
+    pub dir: Dir8,
+}
+
+impl GenAnim for ChangeDir {
+    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        // TODO: play rotation and wait for it to finish
+        None
+    }
+}
+
+impl Event for ChangeDir {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        let actor = &mut ecx.world.entities[self.actor.0];
+        actor.dir = self.dir;
+
+        // FIXME: it's dangerous..
+        EventResult::chain(NotConsumeTurn { actor: self.actor })
+    }
+}
+
+/// Walk | Teleport
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MoveContext {
+    Teleport,
+    Walk,
+}
+
+/// Change in actor's position and direction
+#[derive(Debug)]
+pub struct Move {
+    pub actor: ActorIx,
+    pub mcx: MoveContext,
+    pub from_pos: Vec2i,
+    pub from_dir: Dir8,
+    pub to_pos: Vec2i,
+    pub to_dir: Dir8,
+}
+
+impl GenAnim for Move {
+    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        Some(Box::new(anim::WalkAnim::new(self.actor)))
+    }
+}
+
+impl Event for Move {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        if !ecx.world.is_blocked(self.to_pos) {
+            let actor = &mut ecx.world.entities[self.actor.0];
+            actor.dir = self.to_dir;
+            actor.pos = self.to_pos;
+            EventResult::Finish
+        } else {
+            EventResult::chain(ChangeDir {
+                actor: self.actor,
+                dir: self.to_dir,
+            })
+        }
+    }
+}
+
+// --------------------------------------------------------------------------------
+// Higher-level commands
+
+// /// TODO: Attack in direction
+// #[derive(Debug)]
+// pub struct Attack {
+//     pub actor: ActorIx,
+//     pub dir: Dir8,
+// }
+
+// impl GenAnim for Attack {}
 
 // --------------------------------------------------------------------------------
 // Interactive commands

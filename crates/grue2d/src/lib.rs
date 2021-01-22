@@ -1,35 +1,79 @@
 /*!
 
-State machine and game states
-
-The FSM is based on a state stack.
-
-Considerations:
-
-* message system
-* rendering scheduler (with efficiency; share RenderPass as long as possible)
+`grue2d` is the global game states for SnowRL
 
 */
 
-// TODO: use result
+// use generator (unstable Rust)
+#![feature(generators, generator_trait)]
 
 pub mod render;
-pub mod states;
+pub mod rl;
+pub mod vi;
+
+pub(crate) mod utils;
 
 use {
-    rokol::app as ra,
+    rokol::{
+        app::{self as ra, RApp},
+        gfx as rg, Rokol,
+    },
     snow2d::Ice,
     std::{any::TypeId, collections::HashMap},
 };
 
 use crate::{
-    fsm::render::WorldRenderer,
-    script::ScriptRef,
-    turn::anim::AnimPlayer,
-    world::{vi::VInput, World},
+    render::WorldRenderer,
+    rl::{script::ScriptRef, turn::anim::AnimPlayer, world::World},
+    vi::VInput,
 };
 
-/// Thread-local global variables
+pub extern crate rokol;
+
+pub extern crate snow2d;
+
+pub extern crate rlbox;
+
+/// Runs [`RApp`], which provides 60 FPS fixed-timestep game loop
+pub fn run<App: RApp, AppConstructor: FnOnce(Rokol) -> App>(
+    rokol: Rokol,
+    constructor: AppConstructor,
+) -> rokol::Result {
+    rokol.run(&mut Runner {
+        init_rokol: Some(rokol.clone()),
+        init: Some(constructor),
+        x: None,
+    })
+}
+
+struct Runner<T: RApp, F: FnOnce(Rokol) -> T> {
+    init_rokol: Option<Rokol>,
+    init: Option<F>,
+    /// Use `Option` for lazy initialization
+    x: Option<T>,
+}
+
+impl<T: RApp, F: FnOnce(Rokol) -> T> rokol::app::RApp for Runner<T, F> {
+    fn init(&mut self) {
+        rg::setup(&mut rokol::glue::app_desc());
+        let f = self.init.take().unwrap();
+        self.x = Some(f(self.init_rokol.take().unwrap()));
+    }
+
+    fn event(&mut self, ev: &ra::Event) {
+        if let Some(x) = self.x.as_mut() {
+            x.event(ev);
+        }
+    }
+
+    fn frame(&mut self) {
+        if let Some(x) = self.x.as_mut() {
+            x.frame();
+        }
+    }
+}
+
+/// Thread-local global game states
 #[derive(Debug)]
 pub struct Global {
     pub world: World,
@@ -80,11 +124,7 @@ pub trait GameState: std::fmt::Debug {
 
     fn event(&mut self, _ev: &ra::Event, _gl: &mut Global) {}
     fn update(&mut self, _gl: &mut Global) -> StateReturn;
-    fn render(&mut self, gl: &mut Global) {
-        use crate::fsm::render::WorldRenderFlag;
-        let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.ice, flags);
-    }
+    fn render(&mut self, gl: &mut Global);
 }
 
 /// Return value of [`GameState::update`]

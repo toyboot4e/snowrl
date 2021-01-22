@@ -87,6 +87,8 @@ impl AssetPrint {
 }
 
 fn main() -> Result<()> {
+    println!("cargo:rerun-if-changed=assets");
+
     let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let asset_root = root.join("assets");
     let dst = root.join("src/utils/paths.rs");

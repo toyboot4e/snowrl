@@ -12,7 +12,10 @@ use {
     std::{collections::VecDeque, fmt, time::Duration},
 };
 
-use crate::{turn::tick::ActorIx, utils::consts, world::World};
+use crate::rl::{turn::tick::ActorIx, world::World};
+
+/// TODO: rm
+const WALK_TIME: f32 = 8.0 / 60.0;
 
 /// Return alue of [`Anim::update`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -140,8 +143,6 @@ impl AnimPlayer {
     }
 }
 
-// do not impl `Anim` for `Box<dyn Anim>` so that the downcast works fine
-
 /// Wait for n frames
 #[derive(Debug, Clone)]
 pub struct Wait {
@@ -159,7 +160,7 @@ impl Anim for Wait {
     }
 }
 
-// TODO: MoveAnimBatch (both walk and change dir)
+// do not impl `Anim` for `Box<dyn Anim>` so that the downcast works fine
 
 /// Walk animation is currently run automatically, so we just wait for it to finish
 #[derive(Debug, Clone)]
@@ -204,7 +205,7 @@ impl Anim for WalkAnim {
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
         self.dt += ucx.ice.dt;
 
-        if self.dt.as_secs_f32() >= consts::WALK_TIME {
+        if self.dt.as_secs_f32() >= WALK_TIME {
             AnimResult::Finish
         } else {
             AnimResult::GotoNextFrame

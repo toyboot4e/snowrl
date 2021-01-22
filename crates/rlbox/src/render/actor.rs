@@ -238,11 +238,15 @@ impl ActorImage {
     where
         'b: 'a,
     {
-        let pos = self.pos_screen(tiled);
+        let sprite = self.sprite();
 
-        let mut x = draw.sprite(self.sprite());
-        x.dst_pos_px(pos);
-        x
+        let mut pos = self.pos_screen(tiled);
+        // we assume the sprite is aligned to the center of it
+        // pos.y -= self.sprite().sub_tex_size()[1] / 2.0;
+
+        let mut draw = draw.sprite(sprite);
+        draw.dst_pos_px(pos);
+        draw
     }
 
     /// Align the bottom-center of an actor to the bottom-center of a cell
@@ -256,5 +260,10 @@ impl ActorImage {
     /// Sprite for current frame
     pub fn sprite(&self) -> &SpriteData {
         self.anim_state.current_frame()
+    }
+
+    /// Used to modify frame animation sprites after loading
+    pub fn frames_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut SpriteData> {
+        self.anim_state.frames_mut()
     }
 }

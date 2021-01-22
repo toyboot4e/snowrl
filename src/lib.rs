@@ -14,11 +14,8 @@ pub extern crate snow2d;
 
 pub mod utils;
 
-pub mod fsm;
 pub mod play;
-pub mod script;
-pub mod turn;
-pub mod world;
+pub mod states;
 
 use rokol::{
     app::{self as ra, RApp},

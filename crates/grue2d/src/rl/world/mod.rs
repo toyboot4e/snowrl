@@ -1,8 +1,6 @@
 //! The game world, internals and the GUI
 
 pub mod actor;
-pub mod render;
-pub mod vi;
 
 use std::time::Duration;
 

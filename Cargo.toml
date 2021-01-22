@@ -16,6 +16,7 @@ members = [
     "crates/snow2d/rokol",
     "crates/snow2d/xdl",
     "crates/rlbox",
+    "crates/grue2d",
 ]
 exclude = [
     "crates/snow2d"
@@ -25,6 +26,7 @@ exclude = [
 rokol = { path = "crates/snow2d/rokol", features = ["glcore33"] }
 snow2d = { path = "crates/snow2d" }
 rlbox = { path = "crates/rlbox" }
+grue2d = { path = "crates/grue2d" }
 
 image = "0.23.12"
 glam = "0.11.2"
@@ -43,6 +45,8 @@ downcast-rs = "1.2.0"
 
 serde = { version = "1.0.120", features = ["derive"] }
 ron = "0.6.4"
+glsp = "0.2.0"
+live-reload = "0.2.0"
 
 [build-dependencies]
 convert_case = "0.4.0"

@@ -17,17 +17,20 @@ use rlbox::{
     utils::{ez, tweak::*},
 };
 
-use crate::{
-    fsm::{render::WorldRenderFlag, GameState, Global, StateCommand, StateReturn},
-    play,
-    script::ScriptRef,
-    turn::{
-        anim::{AnimResult, AnimUpdateContext},
-        ev,
-        tick::{ActorIx, AnimContext, GameLoop, TickResult},
+use grue2d::{
+    render::WorldRenderFlag,
+    rl::{
+        script::ScriptRef,
+        turn::{
+            anim::{AnimResult, AnimUpdateContext},
+            ev,
+            tick::{ActorIx, AnimContext, GameLoop, TickResult},
+        },
     },
-    utils::paths,
+    GameState, Global, StateCommand, StateReturn,
 };
+
+use crate::{play, utils::paths};
 
 /// Roguelike game state
 #[derive(Debug, Default)]

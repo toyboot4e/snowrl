@@ -4,11 +4,11 @@
 
 ## Features
 
-| Feature   | details                                           |
+| Feature   | About                                             |
 |-----------|---------------------------------------------------|
 | window    | `rokol::app`                                      |
 | graphics  | 2D rendering API on `rokoln:gfx`                  |
-| input     | key states and virtual buttons                    |
+| input     | Input states and virtual buttons                  |
 | audio     | `soloud-rs` re-exported with `assets` ingegration |
-| assets    | reference-counted assets                          |
+| assets    | Reference-counted assets                          |
 

@@ -22,12 +22,19 @@ use rlbox::{
     utils::tweak::*,
 };
 
+use grue2d::{
+    render::WorldRenderer,
+    rl::{
+        turn::anim::AnimPlayer,
+        world::{actor::Actor, Shadow, World},
+    },
+    vi::VInput,
+    Fsm, Global,
+};
+
 use snowrl::{
-    fsm,
-    fsm::render::WorldRenderer,
-    turn::anim::AnimPlayer,
+    states,
     utils::{consts, paths},
-    world::{actor::Actor, vi::VInput, Shadow, World},
 };
 
 fn main() -> rokol::Result {
@@ -50,8 +57,8 @@ fn main() -> rokol::Result {
 /// [`Global`] fsm::Global
 #[derive(Debug)]
 struct SnowRl {
-    gl: fsm::Global,
-    fsm: fsm::Fsm,
+    gl: Global,
+    fsm: Fsm,
 }
 
 impl SnowRl {
@@ -85,7 +92,7 @@ impl SnowRl {
 
             let world = self::init_world(&mut ice).unwrap();
 
-            fsm::Global {
+            Global {
                 world,
                 ice,
                 vi: VInput::new(),
@@ -95,17 +102,23 @@ impl SnowRl {
             }
         };
 
+        {
+            let x = ron::ser::to_string_pretty(&gl.vi, Default::default()).unwrap();
+            println!("{}", x);
+            let _y: VInput = ron::de::from_str(&x).unwrap();
+        }
+
         let fsm = {
-            let mut fsm = fsm::Fsm::default();
+            let mut fsm = grue2d::Fsm::default();
 
-            fsm.insert_default::<fsm::states::Roguelike>();
-            fsm.insert_default::<fsm::states::Animation>();
+            fsm.insert_default::<states::Roguelike>();
+            fsm.insert_default::<states::Animation>();
 
-            fsm.insert(fsm::states::Title::new(&mut gl.ice));
-            fsm.insert(fsm::states::PlayScript::new(&mut gl.ice.assets));
+            fsm.insert(states::Title::new(&mut gl.ice));
+            fsm.insert(states::PlayScript::new(&mut gl.ice.assets));
 
-            fsm.push::<fsm::states::Roguelike>(&mut gl);
-            fsm.push::<fsm::states::Title>(&mut gl);
+            fsm.push::<states::Roguelike>(&mut gl);
+            fsm.push::<states::Title>(&mut gl);
 
             fsm
         };
@@ -169,18 +182,26 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
     // player
 
     let tex = cache.load_sync(paths::CHICKEN).unwrap();
+
     let img = {
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
 
-        ActorImage::new(
+        let mut img = ActorImage::new(
             tex,
             consts::ACTOR_FPS,
             consts::WALK_TIME,
             consts::WALK_EASE,
             pos,
             dir,
-        )?
+        )?;
+
+        for frame_sprite in img.frames_mut() {
+            frame_sprite.scales[0] = 2.0;
+            frame_sprite.scales[1] = 2.0;
+        }
+
+        img
     };
 
     w.entities.push({

@@ -1,0 +1,14 @@
+[package]
+name = "snow2d_macros"
+version = "0.1.0"
+authors = ["toyboot4e <toyboot4e@gmail.com>"]
+edition = "2018"
+
+# exclude = [""]
+# keywords = []
+# license = "MIT"
+# repository = "https://github.com/toyboot4e/snow_rl"
+# description = ""
+
+[dependencies]
+xdl = { path = "../xdl", features = ["use-rokol"] }

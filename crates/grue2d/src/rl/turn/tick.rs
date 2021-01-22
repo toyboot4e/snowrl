@@ -17,10 +17,16 @@ use {
 };
 
 use crate::{
-    turn::{anim::Anim, ev},
-    utils::{consts, Cheat},
-    world::{vi::VInput, World},
+    rl::{
+        turn::{anim::Anim, ev},
+        world::World,
+    },
+    utils::Cheat,
+    vi::VInput,
 };
+
+/// TODO: remove me
+const PLAYER: usize = 0;
 
 /// Boxed [generator]
 ///
@@ -61,8 +67,8 @@ pub enum TickResult {
 ///
 /// Generator _holds_ the value passed to it on `resume`, and we have to _share_ data with generator,
 /// but [`GameLoop::tick`] is not lying about lifetimes of the parameters; the generator uses them
-/// only while it's running. Therefore, cheating the borrow checker with [`crate::utils::Cheat`] so
-/// that we can relax the restriction to the ordinary borrow rules in rust.
+/// only while it's running. Therefore, cheating the borrow checker with pointers so that we can
+/// relax the restriction to the ordinary borrow rules in rust.
 pub struct GameLoop {
     gen: Gen,
     tcx: TickContext,
@@ -119,7 +125,7 @@ fn game_loop() -> Gen {
 
             // TODO: do not hard code entity actions
             let mut ev: Rc<dyn Event> = match actor.0 {
-                consts::PLAYER => Rc::new(ev::PlayerTurn { actor }),
+                PLAYER => Rc::new(ev::PlayerTurn { actor }),
                 _ => Rc::new(ev::RandomWalk { actor }),
             };
 

@@ -28,7 +28,7 @@ pub enum LoopState {
 /// Frame-based animation pattern
 #[derive(Debug, Clone)]
 pub struct FrameAnimPattern<T> {
-    pub frames: Vec<T>,
+    frames: Vec<T>,
     fps: f32,
     loop_mode: LoopMode,
 }
@@ -104,7 +104,10 @@ impl<T> FrameAnimPattern<T> {
 ///
 /// Animation patterns are selected by keys, which is often `enum`s.
 #[derive(Debug, Clone)]
-pub struct FrameAnimState<K, T> {
+pub struct FrameAnimState<K, T>
+where
+    K: Eq + std::hash::Hash,
+{
     // pattern settings
     patterns: HashMap<K, FrameAnimPattern<T>>,
     // states
@@ -113,7 +116,10 @@ pub struct FrameAnimState<K, T> {
     state: LoopState,
 }
 
-impl<K, T> FrameAnimState<K, T> {
+impl<K, T> FrameAnimState<K, T>
+where
+    K: Eq + std::hash::Hash,
+{
     pub fn new(patterns: HashMap<K, FrameAnimPattern<T>>, initial_key: K) -> Self {
         Self {
             patterns,
@@ -122,9 +128,7 @@ impl<K, T> FrameAnimState<K, T> {
             state: LoopState::Running,
         }
     }
-}
 
-impl<K: Eq + std::hash::Hash, T> FrameAnimState<K, T> {
     /// Lifecycle
     pub fn tick(&mut self, dt: Duration) {
         if matches!(self.state, LoopState::Stopped) {
@@ -154,5 +158,9 @@ impl<K: Eq + std::hash::Hash, T> FrameAnimState<K, T> {
         }
 
         self.cur_key = key;
+    }
+
+    pub fn frames_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut T> {
+        self.patterns.values_mut().flat_map(|p| p.frames.iter_mut())
     }
 }

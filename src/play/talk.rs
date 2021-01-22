@@ -17,11 +17,11 @@ use snow2d::{
     Ice,
 };
 
+use grue2d::rl::{turn::tick::ActorIx, world::World};
+
 use crate::{
     play::txt::PlayText,
-    turn::tick::ActorIx,
     utils::{consts, paths},
-    world::World,
 };
 
 /// Talk command description
