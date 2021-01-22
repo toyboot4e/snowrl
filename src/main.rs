@@ -48,7 +48,7 @@ fn main() -> rokol::Result {
         ..Default::default()
     };
 
-    snowrl::run(rokol, SnowRl::new)
+    grue2d::run(rokol, SnowRl::new)
 }
 
 /// Runs a [`Fsm`] with some [`Global`] data

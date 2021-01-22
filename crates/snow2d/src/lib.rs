@@ -1,8 +1,8 @@
 /*!
 
-Snow2D
+`snow2d` ❄️
 
-A 2D framework on top of [`rokol`].
+`snow2d` is a  2D framework built on top of [`rokol`].
 
 */
 

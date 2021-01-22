@@ -1,6 +1,6 @@
 /*!
 
-Roguelike framework
+The roguelike framework for SnowRL
 
 */
 

@@ -21,6 +21,7 @@ pub use std::io::Result;
 
 use std::{
     any::TypeId,
+    borrow::Cow,
     collections::HashMap,
     fmt, io,
     ops::{Deref, DerefMut},
@@ -94,7 +95,35 @@ impl<T: AssetItem> Asset<T> {
 }
 
 /// TODO: use newtype struct while enabling static construction (or use IntoAssetKey)
-pub type AssetKey = Path;
+pub struct AssetKey<'a>(Cow<'a, Path>);
+
+impl<'a> AssetKey<'a> {
+    pub fn new(p: impl Into<Cow<'a, Path>>) -> Self {
+        AssetKey(p.into())
+    }
+}
+
+impl<'a> std::ops::Deref for AssetKey<'a> {
+    type Target = Path;
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct StaticAssetKey(pub &'static str);
+
+impl<'a> Into<AssetKey<'a>> for StaticAssetKey {
+    fn into(self) -> AssetKey<'a> {
+        AssetKey(Cow::Borrowed(self.0.as_ref()))
+    }
+}
+
+impl AsRef<Path> for StaticAssetKey {
+    fn as_ref(&self) -> &Path {
+        self.0.as_ref()
+    }
+}
 
 /// Newtype of [`PathBuf`], which is relative path from "root" asset directory
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -160,13 +189,14 @@ impl<T: AssetItem> AssetCacheT<T> {
         }
     }
 
-    pub fn load_sync(&mut self, key: impl AsRef<AssetKey>) -> Result<Asset<T>> {
-        let id = AssetId::from_key(key.as_ref());
+    pub fn load_sync<'a>(&mut self, key: impl Into<AssetKey<'a>>) -> Result<Asset<T>> {
+        let key = key.into();
+        let id = AssetId::from_key(&key);
         if let Some(a) = self.search_cache(&id) {
-            log::trace!("(cache found for {})", key.as_ref().display());
+            log::trace!("(cache found for {})", key.display());
             Ok(a)
         } else {
-            log::debug!("loading {}", key.as_ref().display());
+            log::debug!("loading {}", key.display());
             self.load_new_sync(id)
         }
     }
@@ -227,7 +257,11 @@ impl AssetCacheAny {
         boxed.downcast_mut::<AssetCacheT<T>>()
     }
 
-    pub fn load_sync<T: AssetItem>(&mut self, key: impl AsRef<AssetKey>) -> Result<Asset<T>> {
+    pub fn load_sync<'a, T: AssetItem>(
+        &mut self,
+        key: impl Into<AssetKey<'a>>,
+    ) -> Result<Asset<T>> {
+        let key = key.into();
         self.cache_mut::<T>()
             .ok_or_else(|| {
                 io::Error::new(

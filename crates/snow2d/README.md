@@ -7,7 +7,7 @@
 | Feature   | About                                             |
 |-----------|---------------------------------------------------|
 | window    | `rokol::app`                                      |
-| graphics  | 2D rendering API on `rokoln:gfx`                  |
+| graphics  | 2D rendering API on `rokol:gfx`                   |
 | input     | Input states and virtual buttons                  |
 | audio     | `soloud-rs` re-exported with `assets` ingegration |
 | assets    | Reference-counted assets                          |

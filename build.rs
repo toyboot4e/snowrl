@@ -59,7 +59,7 @@ impl AssetPrint {
 
         writeln!(
             &mut self.buf,
-            r#"pub static {}: &'static str = "{}";"#,
+            r#"pub static {}: StaticAssetKey = StaticAssetKey("{}");"#,
             name,
             rel_path.display()
         )
@@ -98,7 +98,10 @@ fn main() -> Result<()> {
     // and do this in your source file:
     //     include!(concat!(env!("OUT_DIR"), "/paths.rs"));
 
-    let use_strings = vec![];
+    let use_strings = vec![
+        "#![allow(unused)]".to_string(),
+        "use snow2d::asset::StaticAssetKey;".to_string(),
+    ];
     let mut ap = AssetPrint {
         asset_root: asset_root.clone(),
         use_strings,
