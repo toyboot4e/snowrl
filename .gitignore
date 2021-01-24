@@ -1,5 +1,6 @@
 /target
 /assets
+/assets_embedded
 .DS_Store
 /src/utils/paths.rs
 
