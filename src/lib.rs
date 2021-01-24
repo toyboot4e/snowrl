@@ -69,7 +69,7 @@ impl RApp for SnowRl {
             self.plugin.reload().unwrap();
 
             let load: Symbol<extern "C" fn() -> Box<dyn Plugin>> =
-                unsafe { self.plugin.lib.get(b"load") }.unwrap();
+                unsafe { self.plugin.get(b"load") }.unwrap();
             println!("current plugin: {:?}", load());
             // plugin.close().unwrap();
         }
