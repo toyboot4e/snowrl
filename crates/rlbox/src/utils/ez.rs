@@ -31,11 +31,19 @@ pub trait Lerp {
     fn lerp(a: Self, b: Self, t: f32) -> Self;
 }
 
-impl Lerp for f32 {
-    fn lerp(a: Self, b: Self, t: f32) -> Self {
-        a + t * (b - a)
-    }
+macro_rules! impl_simple_lerp {
+    ($($ty:ident),* $(,)?) => {
+        $(
+            impl Lerp for $ty {
+                fn lerp(a: Self, b: Self, t: f32) -> Self {
+                    (a as f32 + t * (b - a) as f32) as Self
+                }
+            }
+        )*
+    };
 }
+
+impl_simple_lerp!(u8, f32);
 
 impl Lerp for [f32; 2] {
     fn lerp(a: Self, b: Self, t: f32) -> Self {
@@ -46,6 +54,17 @@ impl Lerp for [f32; 2] {
 impl Lerp for snow2d::gfx::geom2d::Vec2f {
     fn lerp(a: Self, b: Self, t: f32) -> Self {
         Self::new(f32::lerp(a.x, b.x, t), f32::lerp(a.y, b.y, t))
+    }
+}
+
+impl Lerp for snow2d::gfx::Color {
+    fn lerp(a: Self, b: Self, t: f32) -> Self {
+        Self::rgba(
+            u8::lerp(a.r, b.r, t),
+            u8::lerp(a.g, b.g, t),
+            u8::lerp(a.b, b.b, t),
+            u8::lerp(a.a, b.a, t),
+        )
     }
 }
 
@@ -119,6 +138,11 @@ impl<T: Lerp + Clone> Tweened<T> {
         self.a = self.b.clone();
         self.b = x;
         self.dt.reset();
+    }
+
+    pub fn set_next_and_easing(&mut self, x: T, ease: Ease) {
+        self.set_next(x);
+        self.dt.ease = ease;
     }
 
     pub fn set_duration_secs(&mut self, target: f32) {

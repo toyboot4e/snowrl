@@ -1,9 +1,8 @@
 //! TODO: filter debug/error log on release build
 
 use rokol::{
-    app as ra,
     fons::{Align, FontConfig},
-    gfx as rg, Rokol,
+    Rokol,
 };
 
 use snow2d::{
@@ -19,7 +18,6 @@ use snow2d::{
 use rlbox::{
     render::actor::ActorImage,
     rl::{grid2d::*, rlmap::TiledRlMap},
-    utils::tweak::*,
 };
 
 use grue2d::{
@@ -29,12 +27,13 @@ use grue2d::{
         world::{actor::Actor, Shadow, World},
     },
     vi::VInput,
-    Fsm, Global,
+    Global, GlueRl,
 };
 
 use snowrl::{
     states,
     utils::{consts, paths},
+    SnowRl,
 };
 
 fn main() -> rokol::Result {
@@ -48,107 +47,76 @@ fn main() -> rokol::Result {
         ..Default::default()
     };
 
-    grue2d::run(rokol, SnowRl::new)
+    grue2d::run(rokol, |rokol| SnowRl {
+        grue: self::new_game(rokol),
+        plugin: grue2d::hot_crate::HotLibrary::load("Cargo.toml", "crates/plugins/Cargo.toml")
+            .unwrap(),
+    })
 }
 
-/// Runs a [`Fsm`] with some [`Global`] data
-///
-/// [`Fsm`] fsm::Fsm
-/// [`Global`] fsm::Global
-#[derive(Debug)]
-struct SnowRl {
-    gl: Global,
-    fsm: Fsm,
-}
-
-impl SnowRl {
-    pub fn new(rokol: Rokol) -> Self {
-        let title = rokol.title;
-        let mut gl = {
-            let mut snow = unsafe { Snow2d::new() };
-            let font_cfg = FontConfig {
-                font: {
-                    // FIXME: font path
-                    let font = include_bytes!("../assets_embeded/mplus-1p-regular.ttf");
-                    let ix = snow
-                        .fontbook
-                        .stash()
-                        .add_font_mem("mplus-1p-regular", font)
-                        .unwrap();
-                    snow.fontbook.stash().set_align(Align::TOP | Align::LEFT);
-                    ix
-                },
-                fontsize: crate::consts::DEFAULT_FONT_SIZE,
-                line_spacing: crate::consts::DEFAULT_LINE_SPACE,
-            };
-            snow.fontbook.apply_cfg(&font_cfg);
-
-            let mut ice = Ice::new(title, snow, font_cfg);
-
-            ice.assets
-                .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
-
-            audio::asset::register_asset_loaders(&mut ice.assets, &ice.audio.clone());
-
-            let world = self::init_world(&mut ice).unwrap();
-
-            Global {
-                world,
-                ice,
-                vi: VInput::new(),
-                world_render: WorldRenderer::default(),
-                anims: AnimPlayer::default(),
-                script_to_play: None,
-            }
+fn new_game(rokol: Rokol) -> GlueRl {
+    let title = rokol.title;
+    let mut gl = {
+        let mut snow = unsafe { Snow2d::new() };
+        let font_cfg = FontConfig {
+            font: {
+                // FIXME: font path
+                let font = include_bytes!("../assets_embedded/mplus-1p-regular.ttf");
+                let ix = snow
+                    .fontbook
+                    .stash()
+                    .add_font_mem("mplus-1p-regular", font)
+                    .unwrap();
+                snow.fontbook.stash().set_align(Align::TOP | Align::LEFT);
+                ix
+            },
+            fontsize: crate::consts::DEFAULT_FONT_SIZE,
+            line_spacing: crate::consts::DEFAULT_LINE_SPACE,
         };
+        snow.fontbook.apply_cfg(&font_cfg);
 
-        {
-            let x = ron::ser::to_string_pretty(&gl.vi, Default::default()).unwrap();
-            println!("{}", x);
-            let _y: VInput = ron::de::from_str(&x).unwrap();
+        let mut ice = Ice::new(title, snow, font_cfg);
+
+        ice.assets
+            .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
+
+        audio::asset::register_asset_loaders(&mut ice.assets, &ice.audio.clone());
+
+        let world = self::init_world(&mut ice).unwrap();
+
+        Global {
+            world,
+            ice,
+            vi: VInput::new(),
+            ui: Default::default(),
+            world_render: WorldRenderer::default(),
+            anims: AnimPlayer::default(),
+            script_to_play: None,
         }
+    };
 
-        let fsm = {
-            let mut fsm = grue2d::Fsm::default();
-
-            fsm.insert_default::<states::Roguelike>();
-            fsm.insert_default::<states::Animation>();
-
-            fsm.insert(states::Title::new(&mut gl.ice));
-            fsm.insert(states::PlayScript::new(&mut gl.ice.assets));
-
-            fsm.push::<states::Roguelike>(&mut gl);
-            fsm.push::<states::Title>(&mut gl);
-
-            fsm
-        };
-
-        Self { gl, fsm }
-    }
-}
-
-// Lifecycle
-impl rokol::app::RApp for SnowRl {
-    fn event(&mut self, ev: &ra::Event) {
-        self.gl.event(ev);
+    {
+        let x = ron::ser::to_string_pretty(&gl.vi, Default::default()).unwrap();
+        println!("{}", x);
+        let _y: VInput = ron::de::from_str(&x).unwrap();
     }
 
-    fn frame(&mut self) {
-        // if debug
-        #[cfg(debug_assertions)]
-        self.gl.ice.audio.set_global_volume(tweak!(0.0));
+    let fsm = {
+        let mut fsm = grue2d::Fsm::default();
 
-        self.gl.pre_update();
-        self.fsm.update(&mut self.gl);
-        self.gl.post_update();
+        fsm.insert_default::<states::Roguelike>();
+        fsm.insert_default::<states::Animation>();
 
-        self.gl.pre_render();
-        self.fsm.render(&mut self.gl);
+        fsm.insert(states::Title::new(&mut gl.ice));
+        fsm.insert(states::PlayScript::new(&mut gl.ice.assets));
 
-        self.gl.on_end_frame();
+        fsm.push::<states::Roguelike>(&mut gl);
+        fsm.push::<states::Title>(&mut gl);
 
-        rg::commit();
-    }
+        fsm
+    };
+
+    GlueRl::new(gl, fsm)
 }
 
 fn init_world(ice: &mut Ice) -> anyhow::Result<World> {

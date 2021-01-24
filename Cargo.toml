@@ -17,7 +17,9 @@ members = [
     "crates/snow2d/xdl",
     "crates/rlbox",
     "crates/grue2d",
+    "crates/plugins",
 ]
+
 exclude = [
     "crates/snow2d"
 ]
@@ -27,8 +29,8 @@ rokol = { path = "crates/snow2d/rokol", features = ["glcore33"] }
 snow2d = { path = "crates/snow2d" }
 rlbox = { path = "crates/rlbox" }
 grue2d = { path = "crates/grue2d" }
+plugins = { path = "crates/plugins" }
 
-image = "0.23.12"
 glam = "0.11.2"
 tiled = "0.9.3"
 
@@ -37,16 +39,8 @@ env_logger = "0.8.2"
 anyhow = "1.0.37"
 thiserror = "1.0.21"
 
-auto_ops = "0.1.0"
-bitflags = "1.2.1"
-once_cell = "1.5.2"
-rand = "0.8.0"
-downcast-rs = "1.2.0"
-
 serde = { version = "1.0.120", features = ["derive"] }
 ron = "0.6.4"
-glsp = "0.2.0"
-live-reload = "0.2.0"
 
 [build-dependencies]
 convert_case = "0.4.0"

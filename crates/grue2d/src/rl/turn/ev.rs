@@ -18,6 +18,20 @@ use crate::rl::turn::{
     tick::{ActorIx, AnimContext, Event, EventContext, EventResult, GenAnim},
 };
 
+pub enum Response {
+    Ignored,
+    Captured,
+}
+
+impl Response {
+    pub fn merge(self, b: Self) -> Self {
+        match self {
+            Self::Ignored => b,
+            Self::Captured => Self::Captured,
+        }
+    }
+}
+
 /// TODO: remove
 const PLAYER: usize = 0;
 

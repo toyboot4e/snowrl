@@ -14,6 +14,7 @@ pub mod vi;
 pub(crate) mod utils;
 
 use {
+    rlbox::omg::Ui,
     rokol::{
         app::{self as ra, RApp},
         gfx as rg, Rokol,
@@ -34,6 +35,9 @@ pub extern crate snow2d;
 
 pub extern crate rlbox;
 
+pub extern crate hot_crate;
+pub trait Plugin: std::fmt::Debug {}
+
 /// Runs [`RApp`], which provides 60 FPS fixed-timestep game loop
 pub fn run<App: RApp, AppConstructor: FnOnce(Rokol) -> App>(
     rokol: Rokol,
@@ -46,8 +50,10 @@ pub fn run<App: RApp, AppConstructor: FnOnce(Rokol) -> App>(
     })
 }
 
+/// Creates [`RApp`] _after_ creating `rokol::gfx` contexts
 struct Runner<T: RApp, F: FnOnce(Rokol) -> T> {
     init_rokol: Option<Rokol>,
+    /// Use `Option` for lazy initialization
     init: Option<F>,
     /// Use `Option` for lazy initialization
     x: Option<T>,
@@ -73,13 +79,32 @@ impl<T: RApp, F: FnOnce(Rokol) -> T> rokol::app::RApp for Runner<T, F> {
     }
 }
 
+/// Runs a [`Fsm`] with some [`Global`] data
+///
+/// [`Fsm`] fsm::Fsm
+/// [`Global`] fsm::Global
+#[derive(Debug)]
+pub struct GlueRl {
+    pub gl: Global,
+    pub fsm: Fsm,
+}
+
+impl GlueRl {
+    pub fn new(gl: Global, fsm: Fsm) -> Self {
+        Self { gl, fsm }
+    }
+}
+
 /// Thread-local global game states
+///
+/// TODO: consider using `Global<T>` for additional contexts
 #[derive(Debug)]
 pub struct Global {
     pub world: World,
     pub ice: Ice,
     pub world_render: WorldRenderer,
     pub vi: VInput,
+    pub ui: Ui,
     /// Roguelike game animations
     pub anims: AnimPlayer,
     pub script_to_play: Option<ScriptRef>,

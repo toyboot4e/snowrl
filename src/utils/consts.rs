@@ -2,9 +2,6 @@
 
 use rlbox::utils::ez;
 
-/// Temporary way to identify player
-pub const PLAYER: usize = 0;
-
 /// FPS of character graphics animation
 pub const ACTOR_FPS: f32 = 4.0;
 

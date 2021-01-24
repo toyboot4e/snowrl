@@ -240,7 +240,8 @@ impl ActorImage {
     {
         let sprite = self.sprite();
 
-        let mut pos = self.pos_screen(tiled);
+        // FIXME: actor image alignment
+        let pos = self.pos_screen(tiled);
         // we assume the sprite is aligned to the center of it
         // pos.y -= self.sprite().sub_tex_size()[1] / 2.0;
 
