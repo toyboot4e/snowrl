@@ -107,11 +107,12 @@ fn new_game(rokol: Rokol) -> GlueRl {
         fsm.insert_default::<states::Roguelike>();
         fsm.insert_default::<states::Animation>();
 
-        fsm.insert(states::Title::new(&mut gl.ice));
+        // fsm.insert(states::Title::new(&mut gl.ice));
+        fsm.insert(states::TitleUi::new(&mut gl.ice, &mut gl.ui));
         fsm.insert(states::PlayScript::new(&mut gl.ice.assets));
 
         fsm.push::<states::Roguelike>(&mut gl);
-        fsm.push::<states::Title>(&mut gl);
+        fsm.push::<states::TitleUi>(&mut gl);
 
         fsm
     };

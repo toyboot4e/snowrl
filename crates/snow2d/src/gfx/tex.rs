@@ -4,7 +4,7 @@
 
 */
 
-// TODO: do not use composition
+// TODO: texture builder
 
 use {
     image::GenericImageView,
@@ -17,6 +17,7 @@ use crate::{
     gfx::{
         draw::{DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d},
         geom2d::{Flips, Scaled, Vec2f},
+        Color,
     },
 };
 
@@ -141,6 +142,7 @@ pub struct SpriteData {
     pub rot: f32,
     pub origin: [f32; 2],
     pub scales: [f32; 2],
+    pub color: Color,
 }
 
 impl Default for SpriteData {
@@ -152,6 +154,7 @@ impl Default for SpriteData {
             // left-up corner
             origin: [0.0, 0.0],
             scales: [1.0, 1.0],
+            color: Color::WHITE,
         }
     }
 }
@@ -273,7 +276,8 @@ impl OnSpritePush for SpriteData {
             .dst_size_px([size[0] * self.scales[0], size[1] * self.scales[1]])
             .uv_rect(self.uv_rect)
             .rot(self.rot)
-            .origin(self.origin);
+            .origin(self.origin)
+            .color(self.color);
     }
 }
 

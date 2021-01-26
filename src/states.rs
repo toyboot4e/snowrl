@@ -14,6 +14,7 @@ use snow2d::{
 
 use rlbox::{
     rl::grid2d::*,
+    ui::Ui,
     utils::{ez, tweak::*},
 };
 
@@ -30,7 +31,13 @@ use grue2d::{
     GameState, Global, StateCommand, StateReturn,
 };
 
-use crate::{play, utils::paths};
+use crate::{
+    play,
+    utils::{
+        asset_defs::{title, AssetDef},
+        paths,
+    },
+};
 
 /// Roguelike game state
 #[derive(Debug, Default)]
@@ -159,6 +166,73 @@ impl GameState for Animation {
 
 /// Title screen
 #[derive(Debug)]
+pub struct TitleUi {
+    title: crate::scenes::Title,
+}
+
+impl TitleUi {
+    pub fn new(ice: &mut Ice, ui: &mut Ui) -> Self {
+        Self {
+            title: crate::scenes::Title::new(ice, &mut ui.nodes),
+        }
+    }
+}
+
+impl GameState for TitleUi {
+    fn on_enter(&mut self, gl: &mut Global) {
+        // self.title.init();
+
+        let song = gl
+            .ice
+            .assets
+            .load_sync(paths::sound::bgm::FOREST_02)
+            .unwrap();
+        gl.ice.music_player.play_song(song);
+    }
+
+    fn update(&mut self, gl: &mut Global) -> StateReturn {
+        // // if debug
+        // #[cfg(debug_assertions)]
+        // if gl.ice.input.kbd.is_key_pressed(snow2d::input::Key::R) {
+        //     self.init();
+        // }
+
+        self.title.tick(gl.ice.dt);
+        let res = match self.title.handle_input(gl) {
+            Some(res) => res,
+            None => return StateReturn::NextFrame(vec![]),
+        };
+
+        use crate::scenes::title::Choice::*;
+        match res {
+            NewGame => StateReturn::NextFrame(vec![StateCommand::PopAndRemove]),
+            Continue => {
+                println!("unimplemented");
+                return StateReturn::NextFrame(vec![]);
+            }
+            Exit => {
+                println!("unimplemented");
+                return StateReturn::NextFrame(vec![]);
+            }
+        }
+    }
+
+    fn render(&mut self, gl: &mut Global) {
+        let flags = WorldRenderFlag::ALL;
+        gl.world_render.render(&gl.world, &mut gl.ice, flags);
+
+        let mut screen = gl.ice.rdr.screen(PassConfig {
+            pa: &rg::PassAction::NONE,
+            tfm: None,
+            pip: None,
+        });
+
+        gl.ui.render(&mut screen);
+    }
+}
+
+/// Title screen
+#[derive(Debug)]
 pub struct Title {
     logo: SpriteData,
     logo_pos: ez::Tweened<Vec2f>,
@@ -174,49 +248,10 @@ impl Title {
     pub fn new(ice: &mut Ice) -> Self {
         let cache = &mut ice.assets;
         Self {
-            logo: SpriteData {
-                tex: cache.load_sync(paths::img::title::SNOWRL).unwrap(),
-                uv_rect: [0.0, 0.0, 1.0, 1.0],
-                rot: 0.0,
-                origin: [0.0, 0.0],
-                scales: [0.5, 0.5],
-            },
+            logo: title::Logo::load(cache).unwrap(),
             logo_pos: Default::default(),
             choice_pos: Default::default(),
-            choices: {
-                let tex = cache.load_sync(paths::img::title::CHOICES).unwrap();
-
-                let scale = [0.5, 0.5];
-                let origin = [0.0, 0.0];
-                let rot = 0.0;
-
-                let unit = 1.0 / 3.0;
-
-                // FIXME: slow, so use async. Which is slow, CPU part or GPU part?
-                [
-                    SpriteData {
-                        tex: tex.clone(),
-                        uv_rect: [0.0, unit * 0.0, 1.0, unit],
-                        rot,
-                        origin,
-                        scales: scale,
-                    },
-                    SpriteData {
-                        tex: tex.clone(),
-                        uv_rect: [0.0, unit * 1.0, 1.0, unit],
-                        rot,
-                        origin,
-                        scales: scale,
-                    },
-                    SpriteData {
-                        tex: tex.clone(),
-                        uv_rect: [0.0, unit * 2.0, 1.0, unit],
-                        rot,
-                        origin,
-                        scales: scale,
-                    },
-                ]
-            },
+            choices: title::Choices::load(cache).unwrap(),
             cursor: 0,
             se_cursor: cache.load_sync(paths::sound::se::CURSOR).unwrap(),
             se_select: cache.load_sync(paths::sound::se::SELECT).unwrap(),

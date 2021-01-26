@@ -112,10 +112,8 @@ fn gen_dir_anim_with(
                             let mut sprite = SpriteData {
                                 tex: tex.clone(),
                                 uv_rect: gen_uv_rect(*ix),
-                                rot: 0.0,
-                                // specify the center position of the image to place it
                                 origin: [0.5, 0.5],
-                                scales: [1.0, 1.0],
+                                ..Default::default()
                             };
 
                             f(&mut sprite);

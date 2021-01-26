@@ -14,7 +14,7 @@ pub mod vi;
 pub(crate) mod utils;
 
 use {
-    rlbox::omg::Ui,
+    rlbox::ui::Ui,
     rokol::{
         app::{self as ra, RApp},
         gfx as rg, Rokol,
