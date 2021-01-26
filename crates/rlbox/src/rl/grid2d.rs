@@ -1,4 +1,8 @@
-//! Desrete geometry types
+/*!
+Desrete geometry types
+
+TODO: prefer glam types
+*/
 
 use auto_ops::*;
 

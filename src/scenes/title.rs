@@ -1,4 +1,6 @@
-//! Scenes
+/*!
+Scenes
+*/
 
 use snow2d::{
     asset::{Asset, AssetCacheAny},

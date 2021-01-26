@@ -1,38 +1,31 @@
 /*!
-
 Snow the roguelike game
 
-SnowRL is a set of plugins to [`grue2d`]. There are multiple crates under SnowRL:
+2D framework:
 
 | Crate      | Description                             |
 |------------|-----------------------------------------|
 | [`rokol`]  | Window and lower-level graphics         |
 | [`snow2d`] | 2D rendering and asset management       |
+
+SnowRL framework:
+
+| Crate      | Description                             |
+|------------|-----------------------------------------|
 | [`rlbox`]  | Toolkit to power 2D GUI roguelike games |
 | [`grue2d`] | Game states for SnowRL                  |
 
+And `snowrl` is a set of plugins to [`grue2d`].
 */
 
 // use generator (unstable Rust)
 #![feature(generators, generator_trait)]
-
-// re-export mainly dependent crates
-pub extern crate rokol;
-
-pub extern crate snow2d;
-
-pub extern crate rlbox;
-
-pub extern crate grue2d;
-
-// pub extern crate grue2d;
 
 pub mod utils;
 
 pub mod play;
 pub mod scenes;
 pub mod states;
-pub mod systems;
 
 use {
     grue2d::{hot_crate, GlueRl},

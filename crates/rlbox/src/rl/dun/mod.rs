@@ -1,4 +1,6 @@
-//! Procedual dungeon generation algorithms
+/*!
+Procedual dungeon generation algorithms
+*/
 
 mod cave;
 

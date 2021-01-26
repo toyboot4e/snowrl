@@ -1,4 +1,6 @@
-//! Frame-based animation states
+/*!
+Frame-based animation states
+*/
 
 use std::{collections::HashMap, time::Duration};
 

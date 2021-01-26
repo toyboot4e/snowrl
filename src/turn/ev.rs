@@ -1,12 +1,10 @@
 /*!
-
 Roguelike game events
 
 Every change to the roguelike game world should be handled as primitive event. That's good for
 visualization, flexibilities and simplicities.
 
 e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
-
 */
 
 use rlbox::rl::grid2d::*;

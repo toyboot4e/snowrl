@@ -1,4 +1,7 @@
-//! WIP: 2D camera
+/*!
+TODO: 2D camera
+TODO: transform2d
+*/
 
 // /// 2D camera
 // pub struct Cam2d {

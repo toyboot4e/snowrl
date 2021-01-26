@@ -1,4 +1,8 @@
-//! Roguelike map with Tiled backend
+/*!
+Roguelike map with Tiled backend
+
+TODO: tiled-free implementation
+*/
 
 use {
     anyhow::{Context, Result},

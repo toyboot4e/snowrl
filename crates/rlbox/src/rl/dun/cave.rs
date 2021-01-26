@@ -1,3 +1,7 @@
+/*!
+Cave generated with cellular automata
+*/
+
 #![allow(unused)]
 
 use {
@@ -10,7 +14,7 @@ use {
 
 use crate::utils::DoubleSwap;
 
-/// Cellilar automata
+/// Cellular automata
 pub fn ca_gen_cave(size: [usize; 2], prob_init_floor: usize, n_steps: usize) -> Vec<bool> {
     let mut x = CaveGenAdvance::new(size, prob_init_floor);
     for _ in 0..n_steps {

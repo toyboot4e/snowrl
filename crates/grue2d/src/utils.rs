@@ -1,4 +1,6 @@
-//! Crate-local utilities
+/*!
+Crate-local utilities
+*/
 
 /// Lifetime-free mutable reference to type `T`
 ///

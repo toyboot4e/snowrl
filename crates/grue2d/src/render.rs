@@ -1,4 +1,6 @@
-//! Renderers
+/*!
+Renderers
+*/
 
 use {
     rlbox::{render::tiled as tiled_render, utils::DoubleTrack},

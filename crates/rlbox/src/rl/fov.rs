@@ -1,4 +1,6 @@
-//! Field of view
+/*!
+Field of view
+*/
 
 use crate::rl::grid2d::Vec2i;
 

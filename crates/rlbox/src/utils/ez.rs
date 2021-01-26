@@ -1,5 +1,4 @@
 /*!
-
 Easing and tweening
 
 Easing functions are visualized in [this site] for example. They map `[0.0, 1.0]` to a different
@@ -15,7 +14,6 @@ pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
 ```
 
 Tweens are applied based on time.
-
 */
 
 use std::{

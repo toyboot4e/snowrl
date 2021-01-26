@@ -1,9 +1,7 @@
 /*!
-
 Pool with reference-counted handles
 
-`rlbox` uses [`Pool`] for [`omg`](crate::omg) UI.
-
+`rlbox` uses [`Pool`] for [`ui`](crate::ui).
 */
 
 use std::{
@@ -233,8 +231,6 @@ pub struct WeakHandle<T> {
 
 #[cfg(test)]
 mod test {
-    
-    
 
     //
 }

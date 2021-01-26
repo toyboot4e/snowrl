@@ -1,6 +1,6 @@
 /*!
 
-OMG animations
+Animations
 
 Animations hold reference-counted handles to their target nodes, so nodes will be alive until
 related animations are finished.

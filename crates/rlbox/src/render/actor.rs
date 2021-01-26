@@ -1,4 +1,6 @@
-//! Frame-based actor sprite animation
+/*!
+Frame-based actor sprite animation
+*/
 
 use std::{collections::HashMap, time::Duration};
 

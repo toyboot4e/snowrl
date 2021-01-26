@@ -1,9 +1,7 @@
 /*!
-
 Roguelike toolbox
 
 Set of utilities on top of [`snow2d`] to create SnowRL.
-
 */
 
 pub extern crate rokol;

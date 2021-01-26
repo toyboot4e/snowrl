@@ -1,4 +1,6 @@
-//! Fog of war, shadow on the map
+/*!
+Fog of war, shadow on the map
+*/
 
 use crate::rl::{
     fov::{self, FovData, FovWrite, OpacityMap},

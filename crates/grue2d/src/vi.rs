@@ -1,4 +1,6 @@
-//! The virtual inputs for SnowRL
+/*!
+The virtual inputs for SnowRL
+*/
 
 use std::time::Duration;
 

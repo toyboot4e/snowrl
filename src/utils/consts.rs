@@ -1,4 +1,6 @@
-//! Magic values (should be removed)
+/*!
+Hard-coded magic values (should be removed)
+*/
 
 use rlbox::utils::ez;
 

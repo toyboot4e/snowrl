@@ -1,4 +1,6 @@
-//! Tiled map rendering
+/*!
+Tiled map rendering
+*/
 
 use {
     snow2d::gfx::{draw::*, geom2d::*, Color},

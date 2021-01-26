@@ -1,4 +1,6 @@
-//! OMG UI nodes
+/*!
+UI nodes
+*/
 
 use snow2d::gfx::{
     draw::*,

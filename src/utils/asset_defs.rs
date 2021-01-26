@@ -1,7 +1,5 @@
 /*!
-
 Hard-coded asset definitions
-
 */
 
 use snow2d::{

@@ -1,4 +1,6 @@
-//! Generic utilities
+/*!
+Generic utilities
+*/
 
 pub mod ez;
 pub mod pool;
@@ -31,6 +33,9 @@ pub use enum_dispatch::enum_dispatch;
 
 /// [`trait_enum::trait_enum`] re-exported
 pub use trait_enum::trait_enum;
+
+/// [`inventory`] re-exported
+pub use inventory;
 
 pub mod tweak {
     //! See [inline_tweak](https://docs.rs/inline_tweak/latest/inline_tweak/)

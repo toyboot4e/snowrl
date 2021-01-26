@@ -1,7 +1,5 @@
 /*!
-
 Tiled, actors and camera
-
 */
 
 pub mod actor;

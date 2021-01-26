@@ -1,7 +1,5 @@
 /*!
-
 `grue2d` is the global game states for SnowRL
-
 */
 
 // use generator (unstable Rust)

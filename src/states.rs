@@ -1,4 +1,6 @@
-//! Stack-based game states
+/*!
+Stack-based game states
+*/
 
 use {
     rokol::gfx as rg,

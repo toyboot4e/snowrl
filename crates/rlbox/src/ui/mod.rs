@@ -1,7 +1,5 @@
 /*!
-
 User interface
-
 */
 
 pub mod anims;

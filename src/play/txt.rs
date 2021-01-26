@@ -1,4 +1,6 @@
-//! Text
+/*!
+Text
+*/
 
 use {rlbox::utils::ez, std::time::Duration};
 

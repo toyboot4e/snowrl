@@ -1,4 +1,6 @@
-//! UI scenes
+/*!
+UI scenes
+*/
 
 pub mod title;
 

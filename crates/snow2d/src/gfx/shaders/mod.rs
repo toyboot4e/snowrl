@@ -1,5 +1,7 @@
 //! Shaders
 
+#![allow(unused)]
+
 use rokol::gfx::{self as rg, BakedResource, Shader};
 
 /// Creates a null-terminated string from static string
