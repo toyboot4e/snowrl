@@ -8,7 +8,9 @@ use crate::gfx::{batch::vertex::QuadData, geom2d::*, Color};
 pub trait Texture2d {
     fn img(&self) -> rg::Image;
     /// Texture [width, height] in pixels, scale not considered
-    fn sub_tex_size(&self) -> [f32; 2];
+    fn sub_tex_size_unscaled(&self) -> [f32; 2];
+    /// Just for users
+    fn sub_tex_size_scaled(&self) -> [f32; 2];
 }
 
 /// Full-featured geometry parameters to push a quadliteral onto [`Batch`]
@@ -65,7 +67,7 @@ impl QuadParams {
     /// -> (src_rect, origin, dst_rect)
     #[inline]
     fn geometry_normalized(&self, tex: &impl Texture2d) -> (Rect2f, Rect2f) {
-        let size = tex.sub_tex_size();
+        let size = tex.sub_tex_size_unscaled();
         let inv_tex_w = 1.0 / size[0];
         let inv_tex_h = 1.0 / size[1];
 

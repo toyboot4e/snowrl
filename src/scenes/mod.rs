@@ -36,10 +36,6 @@ impl Title {
         }
     }
 
-    // pub fn init(&mut self) {
-    //     //
-    // }
-
     pub fn tick(&mut self, dt: Duration) {
         self.anims.tick(dt);
     }

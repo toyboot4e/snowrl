@@ -22,7 +22,7 @@ pub fn gen_anim_auto(
     tex: &Asset<Texture2dDrop>,
     fps: f32,
 ) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
-    let size = tex.get().unwrap().sub_tex_size();
+    let size = tex.get().unwrap().sub_tex_size_unscaled();
     if size[0] >= size[1] {
         self::gen_anim8(tex, fps)
     } else {
@@ -252,7 +252,7 @@ impl ActorImage {
     fn align(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
         let mut pos = crate::render::tiled::t2w_center(pos, &tiled);
         pos.y += tiled.tile_height as f32 / 2.0;
-        pos.y -= self.sprite().sub_tex_size()[1] / 2.0;
+        pos.y -= self.sprite().sub_tex_size_unscaled()[1] / 2.0;
         pos
     }
 

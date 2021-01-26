@@ -175,8 +175,12 @@ impl Texture2d for Texture2dDrop {
         self.img
     }
 
-    fn sub_tex_size(&self) -> [f32; 2] {
+    fn sub_tex_size_scaled(&self) -> [f32; 2] {
         [self.w as f32, self.h as f32]
+    }
+
+    fn sub_tex_size_unscaled(&self) -> [f32; 2] {
+        self.sub_tex_size_scaled()
     }
 }
 
@@ -190,14 +194,18 @@ impl Texture2d for SharedSubTexture2d {
         }
     }
 
-    fn sub_tex_size(&self) -> [f32; 2] {
+    fn sub_tex_size_unscaled(&self) -> [f32; 2] {
         if let Some(tex) = self.tex.get() {
-            let size = tex.sub_tex_size();
+            let size = tex.sub_tex_size_unscaled();
             [size[0] * self.uv_rect[2], size[1] * self.uv_rect[3]]
         } else {
             // TODO: is this OK?
             [0.0, 0.0]
         }
+    }
+
+    fn sub_tex_size_scaled(&self) -> [f32; 2] {
+        self.sub_tex_size_scaled()
     }
 }
 
@@ -212,15 +220,20 @@ impl Texture2d for SpriteData {
         }
     }
 
-    fn sub_tex_size(&self) -> [f32; 2] {
+    fn sub_tex_size_unscaled(&self) -> [f32; 2] {
         // TODO: don't lock?
         if let Some(tex) = self.tex.get() {
-            let size = tex.sub_tex_size();
+            let size = tex.sub_tex_size_unscaled();
             [size[0] * self.uv_rect[2], size[1] * self.uv_rect[3]]
         } else {
             // TODO: is this OK?
             [0.0, 0.0]
         }
+    }
+
+    fn sub_tex_size_scaled(&self) -> [f32; 2] {
+        let size = self.sub_tex_size_unscaled();
+        [size[0] * self.scales[0], size[1] * self.scales[1]]
     }
 }
 
@@ -235,14 +248,18 @@ impl Texture2d for NineSliceSprite {
         }
     }
 
-    fn sub_tex_size(&self) -> [f32; 2] {
+    fn sub_tex_size_unscaled(&self) -> [f32; 2] {
         // TODO: don't lock?
         if let Some(tex) = self.tex.get() {
-            tex.sub_tex_size()
+            tex.sub_tex_size_unscaled()
         } else {
             // TODO: is this OK?
             [0.0, 0.0]
         }
+    }
+
+    fn sub_tex_size_scaled(&self) -> [f32; 2] {
+        self.sub_tex_size_unscaled()
     }
 }
 
@@ -250,7 +267,7 @@ impl Texture2d for NineSliceSprite {
 
 impl OnSpritePush for Texture2dDrop {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
-        let size = self.sub_tex_size();
+        let size = self.sub_tex_size_unscaled();
         builder
             .src_rect_px(([0.0, 0.0], size))
             .dst_size_px(size)
@@ -260,7 +277,7 @@ impl OnSpritePush for Texture2dDrop {
 
 impl OnSpritePush for SharedSubTexture2d {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
-        let size = self.sub_tex_size();
+        let size = self.sub_tex_size_unscaled();
         builder
             .src_rect_px(([0.0, 0.0], size))
             .dst_size_px(size)
@@ -270,7 +287,7 @@ impl OnSpritePush for SharedSubTexture2d {
 
 impl OnSpritePush for SpriteData {
     fn init_quad(&self, builder: &mut impl QuadParamsBuilder) {
-        let size = self.sub_tex_size();
+        let size = self.sub_tex_size_unscaled();
         builder
             .src_rect_px(([0.0, 0.0], size))
             .dst_size_px([size[0] * self.scales[0], size[1] * self.scales[1]])
@@ -308,7 +325,7 @@ impl OnSpritePush for NineSliceSprite {
             Scaled::Px(rect) => ([rect.x, rect.y], [rect.w, rect.h]),
         };
 
-        let size = tex.sub_tex_size();
+        let size = tex.sub_tex_size_unscaled();
         let ws = {
             let w = size[0] / 3.0;
             [w, dst_size[0] - 2.0 * w, w]

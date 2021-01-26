@@ -163,7 +163,7 @@ impl GidTextureMap {
             }
 
             let id = gid - span.first_gid;
-            let tex_size = span.tex.get().unwrap().sub_tex_size();
+            let tex_size = span.tex.get().unwrap().sub_tex_size_unscaled();
 
             let n_cols = tex_size[0] as u32 / self.tile_size[0];
             let src_grid_x = id % n_cols;

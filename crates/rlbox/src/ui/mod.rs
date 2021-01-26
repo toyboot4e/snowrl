@@ -43,7 +43,6 @@ impl Ui {
     pub fn render(&mut self, draw: &mut impl DrawApi) {
         // TODO: sort nodes
         for node in self.nodes.items_mut() {
-            println!("TODO: render node {:?}", node);
             node.render(draw);
         }
     }

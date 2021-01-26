@@ -29,6 +29,11 @@ pub enum Choice {
     Exit,
 }
 
+pub struct Phased<T> {
+    pub selected: T,
+    pub not_selected: T,
+}
+
 impl Choice {
     pub fn from_usize(x: usize) -> Option<Self> {
         Some(match x {
@@ -47,11 +52,6 @@ pub struct TitleConfig {
 pub struct ItemConfig {
     pub item: Phased<Color>,
     pub bg: Phased<Color>,
-}
-
-pub struct Phased<T> {
-    pub selected: T,
-    pub not_selected: T,
 }
 
 impl Default for ItemConfig {
@@ -125,13 +125,13 @@ pub struct TitleNodes {
 }
 
 impl TitleNodes {
-    pub fn new(pool: &mut Pool<Node>, assets: &mut TitleAssets) -> Self {
-        let logo = pool.add(Draw::Sprite(assets.logo.clone()).into());
+    pub fn new(nodes: &mut Pool<Node>, assets: &mut TitleAssets) -> Self {
+        let logo = nodes.add(Draw::Sprite(assets.logo.clone()).into());
 
         let choices = [
-            pool.add(Draw::Sprite(assets.logo.clone()).into()),
-            pool.add(Draw::Sprite(assets.logo.clone()).into()),
-            pool.add(Draw::Sprite(assets.logo.clone()).into()),
+            nodes.add(Draw::Sprite(assets.logo.clone()).into()),
+            nodes.add(Draw::Sprite(assets.logo.clone()).into()),
+            nodes.add(Draw::Sprite(assets.logo.clone()).into()),
         ];
 
         Self { logo, choices }

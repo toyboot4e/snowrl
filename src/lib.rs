@@ -62,17 +62,17 @@ impl RApp for SnowRl {
         #[cfg(debug_assertions)]
         self.grue.gl.ice.audio.set_global_volume(sound_volume());
 
-        // TODO: handle plugins properly
-        if self.grue.gl.ice.frame_count % 120 == 0 {
-            use {grue2d::Plugin, hot_crate::libloading::Symbol};
+        // // TODO: handle plugins properly
+        // if self.grue.gl.ice.frame_count % 120 == 0 {
+        //     use {grue2d::Plugin, hot_crate::libloading::Symbol};
 
-            self.plugin.reload().unwrap();
+        //     self.plugin.reload().unwrap();
 
-            let load: Symbol<extern "C" fn() -> Box<dyn Plugin>> =
-                unsafe { self.plugin.get(b"load") }.unwrap();
-            println!("current plugin: {:?}", load());
-            // plugin.close().unwrap();
-        }
+        //     let load: Symbol<extern "C" fn() -> Box<dyn Plugin>> =
+        //         unsafe { self.plugin.get(b"load") }.unwrap();
+        //     println!("current plugin: {:?}", load());
+        //     // plugin.close().unwrap();
+        // }
 
         self.grue.gl.pre_update();
         self.grue.fsm.update(&mut self.grue.gl);
