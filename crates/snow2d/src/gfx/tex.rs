@@ -205,7 +205,7 @@ impl Texture2d for SharedSubTexture2d {
     }
 
     fn sub_tex_size_scaled(&self) -> [f32; 2] {
-        self.sub_tex_size_scaled()
+        self.sub_tex_size_unscaled()
     }
 }
 
