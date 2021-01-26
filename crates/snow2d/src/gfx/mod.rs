@@ -92,6 +92,9 @@ macro_rules! def_colors {
 
 def_colors!(
     // name, r, g, b, a
+    (OPAQUE, 255, 255, 255, 255),
+    (SEMI_TRANSPARENT, 255, 255, 255, 128),
+    (TRANSPARENT, 0, 0, 0, 0),
     (WHITE, 255, 255, 255, 255),
     (WHITE_SEMI_TRANSPARENT, 255, 255, 255, 128),
     (WHITE_TRANSPARENT, 255, 255, 255, 0),

@@ -1,6 +1,6 @@
 /*!
 
-OMG, UI!
+User interface
 
 */
 
@@ -14,9 +14,12 @@ use std::time::Duration;
 
 use snow2d::gfx::draw::DrawApi;
 
-use crate::utils::pool::Pool;
+use crate::utils::{arena::Arena, pool::Pool};
 
-use self::{anims::Anim, node::Node};
+use self::{
+    anims::{Anim, AnimImpl},
+    node::Node,
+};
 
 /// Collection of sprites and animations
 #[derive(Debug)]
@@ -36,8 +39,7 @@ impl Default for Ui {
 
 impl Ui {
     pub fn update(&mut self, dt: Duration) {
-        self.anims.tick(dt);
-        self.anims.run(&mut self.nodes);
+        self.anims.update(dt, &mut self.nodes);
     }
 
     pub fn render(&mut self, draw: &mut impl DrawApi) {
@@ -49,16 +51,16 @@ impl Ui {
 }
 
 #[derive(Debug)]
-pub struct AnimPool(Pool<Anim>);
+pub struct AnimPool(Arena<Anim>);
 
 impl Default for AnimPool {
     fn default() -> Self {
-        Self(Pool::with_capacity(24))
+        Self(Arena::with_capacity(16))
     }
 }
 
 impl std::ops::Deref for AnimPool {
-    type Target = Pool<Anim>;
+    type Target = Arena<Anim>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -71,13 +73,18 @@ impl std::ops::DerefMut for AnimPool {
 }
 
 impl AnimPool {
-    pub fn tick(&mut self, dt: Duration) {
-        for anim in self.0.items_mut() {
-            anim.tick(dt);
+    /// Ticks and applies tweens
+    pub fn update(&mut self, dt: Duration, nodes: &mut Pool<Node>) {
+        for (_ix, a) in self.0.iter_mut() {
+            a.tick(dt);
+            match a {
+                Anim::Seq(_x) => unimplemented!(),
+                Anim::Parallel(_x) => unimplemented!(),
+                Anim::PosTween(x) => {
+                    let n = &mut nodes[&x.node];
+                    n.geom.pos = x.tween.get();
+                }
+            }
         }
-    }
-
-    pub fn run(&mut self, nodes: &mut Pool<Node>) {
-        //
     }
 }

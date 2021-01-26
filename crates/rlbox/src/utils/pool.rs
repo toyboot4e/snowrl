@@ -165,30 +165,30 @@ impl<T> Pool<T> {
     }
 }
 
-impl<T> ops::Index<Handle<T>> for Pool<T> {
+impl<T> ops::Index<&Handle<T>> for Pool<T> {
     type Output = T;
-    fn index(&self, handle: Handle<T>) -> &Self::Output {
+    fn index(&self, handle: &Handle<T>) -> &Self::Output {
         &self.entries[handle.index as usize].item
     }
 }
 
-impl<T> ops::IndexMut<Handle<T>> for Pool<T> {
-    fn index_mut(&mut self, handle: Handle<T>) -> &mut Self::Output {
+impl<T> ops::IndexMut<&Handle<T>> for Pool<T> {
+    fn index_mut(&mut self, handle: &Handle<T>) -> &mut Self::Output {
         &mut self.entries[handle.index as usize].item
     }
 }
 
-impl<T> ops::Index<WeakHandle<T>> for Pool<T> {
+impl<T> ops::Index<&WeakHandle<T>> for Pool<T> {
     type Output = T;
-    fn index(&self, handle: WeakHandle<T>) -> &Self::Output {
+    fn index(&self, handle: &WeakHandle<T>) -> &Self::Output {
         let entry = &self.entries[handle.index as usize];
         assert!(entry.gen.is_some() && entry.gen.unwrap() == handle.gen);
         &entry.item
     }
 }
 
-impl<T> ops::IndexMut<WeakHandle<T>> for Pool<T> {
-    fn index_mut(&mut self, handle: WeakHandle<T>) -> &mut Self::Output {
+impl<T> ops::IndexMut<&WeakHandle<T>> for Pool<T> {
+    fn index_mut(&mut self, handle: &WeakHandle<T>) -> &mut Self::Output {
         let entry = &mut self.entries[handle.index as usize];
         assert!(entry.gen.is_some() && entry.gen.unwrap() == handle.gen);
         &mut entry.item
@@ -233,8 +233,8 @@ pub struct WeakHandle<T> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use std::mem::size_of;
+    
+    
 
     //
 }

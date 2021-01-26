@@ -151,7 +151,7 @@ impl<T: Lerp + Clone> Tweened<T> {
 }
 
 /// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` with easing on `get`
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct EasedDt {
     target: f32,
     accum: f32,

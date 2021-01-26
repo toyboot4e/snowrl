@@ -3,12 +3,34 @@
 pub mod ez;
 pub mod pool;
 
+/// [`arraytools::ArrayTools`] re-exported
+pub use arraytools::ArrayTools;
+
+pub mod arena {
+    /*!
+    [`thunderdome`] re-exported
+
+    The main difference from [`rlbox::utils::pool`][pool] is that arena's indices are not
+    reference-counted.
+
+    [pool]: crate::utils::pool
+    */
+
+    pub use thunderdome::*;
+}
+
 pub mod consts {
     //! TODO: remove
 
     /// Duration in seconds to change direction in 45 degrees
     pub const CHANGE_DIR_TIME: f32 = 1.0 / 60.0;
 }
+
+/// [`enum_dispatch::enum_dispatch`] re-exported
+pub use enum_dispatch::enum_dispatch;
+
+/// [`trait_enum::trait_enum`] re-exported
+pub use trait_enum::trait_enum;
 
 pub mod tweak {
     //! See [inline_tweak](https://docs.rs/inline_tweak/latest/inline_tweak/)

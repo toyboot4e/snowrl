@@ -1,7 +1,5 @@
 //! Scenes
 
-use std::time::Duration;
-
 use snow2d::{
     asset::{Asset, AssetCacheAny},
     audio,
@@ -9,11 +7,17 @@ use snow2d::{
 };
 
 use rlbox::{
-    ui::node::{Draw, Node},
+    ui::{
+        anims::*,
+        node::{Draw, Node},
+        AnimPool,
+    },
     utils::{
+        arena::Index,
         ez,
         pool::{Handle, Pool},
         tweak::*,
+        ArrayTools,
     },
 };
 
@@ -43,10 +47,6 @@ impl Choice {
             _ => return None,
         })
     }
-}
-
-pub struct TitleConfig {
-    pub item_cfg: ItemConfig,
 }
 
 pub struct ItemConfig {
@@ -121,7 +121,8 @@ impl TitleAssets {
 #[derive(Debug)]
 pub struct TitleNodes {
     pub logo: Handle<Node>,
-    pub choices: [Handle<Node>; 3],
+    /// [ [front, shadow] ]
+    pub choices: [[Handle<Node>; 2]; 3],
 }
 
 impl TitleNodes {
@@ -129,9 +130,18 @@ impl TitleNodes {
         let logo = nodes.add(Draw::Sprite(assets.logo.clone()).into());
 
         let choices = [
-            nodes.add(Draw::Sprite(assets.logo.clone()).into()),
-            nodes.add(Draw::Sprite(assets.logo.clone()).into()),
-            nodes.add(Draw::Sprite(assets.logo.clone()).into()),
+            [
+                nodes.add(Draw::Sprite(assets.choices[0].clone()).into()),
+                nodes.add(Draw::Sprite(assets.choices[0].clone()).into()),
+            ],
+            [
+                nodes.add(Draw::Sprite(assets.choices[1].clone()).into()),
+                nodes.add(Draw::Sprite(assets.choices[1].clone()).into()),
+            ],
+            [
+                nodes.add(Draw::Sprite(assets.choices[2].clone()).into()),
+                nodes.add(Draw::Sprite(assets.choices[2].clone()).into()),
+            ],
         ];
 
         Self { logo, choices }
@@ -139,34 +149,97 @@ impl TitleNodes {
 }
 
 /// TODO: put animations in pool so that the animation remain when `Title` is poped
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct TitleAnims {
-    logo: ez::Tweened<Vec2f>,
-    choice: ez::Tweened<Vec2f>,
+    logo: Index,
+    choices: [[Index; 2]; 3],
 }
 
 impl TitleAnims {
-    pub fn init(&mut self) {
-        self.logo = ez::Tweened {
-            a: [tweak!(560.0), tweak!(18.0)].into(),
-            b: [tweak!(440.0), tweak!(12.0)].into(),
-            dt: ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut),
-        };
+    pub fn init(anims: &mut AnimPool, nodes: &TitleNodes) -> Self {
+        let logo = anims.insert(Anim::PosTween(PosTween {
+            tween: ez::Tweened {
+                a: [tweak!(560.0), tweak!(18.0)].into(),
+                b: [tweak!(440.0), tweak!(12.0)].into(),
+                dt: ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut),
+            },
+            node: nodes.logo.clone(),
+        }));
 
-        self.choice = ez::Tweened {
-            a: [tweak!(200.0), tweak!(380.0)].into(),
-            b: [tweak!(80.0), tweak!(350.0)].into(),
-            dt: ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut),
-        };
+        let a = Vec2f::new(tweak!(200.0), tweak!(380.0));
+        let b = Vec2f::new(tweak!(80.0), tweak!(350.0));
+        let dt = ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut);
+
+        let choices = [
+            Self::choice_anim(
+                nodes,
+                (a, Color::TRANSPARENT),
+                (b, Color::WHITE),
+                dt.clone(),
+                0,
+            ),
+            Self::choice_anim(
+                nodes,
+                (a, Color::TRANSPARENT),
+                (b, Color::WHITE),
+                dt.clone(),
+                1,
+            ),
+            Self::choice_anim(
+                nodes,
+                (a, Color::TRANSPARENT),
+                (b, Color::WHITE),
+                dt.clone(),
+                2,
+            ),
+        ];
+
+        Self {
+            logo,
+            // thanks, ArrayTools
+            choices: choices.map(|[a, b]| [anims.insert(a), anims.insert(b)]),
+        }
     }
 
-    pub fn on_exit(&mut self) {
-        self.logo
-            .set_next_and_easing([tweak!(20.0), tweak!(400.0)].into(), ez::Ease::ExpOut);
+    fn choice_anim(
+        nodes: &TitleNodes,
+        from: (Vec2f, Color),
+        to: (Vec2f, Color),
+        dt: ez::EasedDt,
+        i: usize,
+    ) -> [Anim; 2] {
+        let delta_shadow = Vec2f::new(10.0, 6.0);
+        let delta_choices: [Vec2f; 3] = [
+            [0.0, 0.0].into(),
+            [100.0, 100.0].into(),
+            [320.0, 200.0].into(),
+        ];
+
+        let item = Anim::PosTween(PosTween {
+            tween: ez::Tweened {
+                a: from.0 + delta_choices[i],
+                b: to.0 + delta_choices[i],
+                dt,
+            },
+            node: nodes.choices[i][0].clone(),
+        });
+
+        let shadow = Anim::PosTween(PosTween {
+            tween: ez::Tweened {
+                a: delta_shadow + from.0 + delta_choices[i],
+                b: delta_shadow + to.0 + delta_choices[i],
+                dt,
+            },
+            node: nodes.choices[i][1].clone(),
+        });
+
+        // TODO: tween alpha only
+
+        [item, shadow]
     }
 
-    pub fn tick(&mut self, dt: Duration) {
-        self.logo.tick(dt);
-        self.choice.tick(dt);
-    }
+    // pub fn on_exit(&mut self) {
+    //     self.logo
+    //         .set_next_and_easing([tweak!(20.0), tweak!(400.0)].into(), ez::Ease::ExpOut);
+    // }
 }

@@ -173,7 +173,7 @@ pub struct TitleUi {
 impl TitleUi {
     pub fn new(ice: &mut Ice, ui: &mut Ui) -> Self {
         Self {
-            title: crate::scenes::Title::new(ice, &mut ui.nodes),
+            title: crate::scenes::Title::new(ice, ui),
         }
     }
 }
@@ -197,7 +197,6 @@ impl GameState for TitleUi {
         //     self.init();
         // }
 
-        self.title.tick(gl.ice.dt);
         let res = match self.title.handle_input(gl) {
             Some(res) => res,
             None => return StateReturn::NextFrame(vec![]),

@@ -78,6 +78,8 @@ impl RApp for SnowRl {
         self.grue.fsm.update(&mut self.grue.gl);
         self.grue.gl.post_update();
 
+        self.grue.gl.ui.update(self.grue.gl.ice.dt);
+
         self.grue.gl.pre_render();
         self.grue.fsm.render(&mut self.grue.gl);
 

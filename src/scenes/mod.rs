@@ -2,11 +2,9 @@
 
 pub mod title;
 
-use std::time::Duration;
-
 use snow2d::Ice;
 
-use rlbox::{rl::grid2d::*, ui::node::Node, utils::pool::Pool};
+use rlbox::{rl::grid2d::*, ui::Ui};
 
 use grue2d::Global;
 
@@ -19,14 +17,13 @@ pub struct Title {
 }
 
 impl Title {
-    pub fn new(ice: &mut Ice, pool: &mut Pool<Node>) -> Self {
+    pub fn new(ice: &mut Ice, ui: &mut Ui) -> Self {
         let assets = &mut ice.assets;
 
         let state = title::TitleState { cursor: 0 };
         let mut assets = title::TitleAssets::new(assets);
-        let nodes = title::TitleNodes::new(pool, &mut assets);
-        let mut anims = title::TitleAnims::default();
-        anims.init();
+        let nodes = title::TitleNodes::new(&mut ui.nodes, &mut assets);
+        let anims = title::TitleAnims::init(&mut ui.anims, &nodes);
 
         Self {
             state,
@@ -34,10 +31,6 @@ impl Title {
             nodes,
             anims,
         }
-    }
-
-    pub fn tick(&mut self, dt: Duration) {
-        self.anims.tick(dt);
     }
 
     pub fn handle_input(&mut self, gl: &mut Global) -> Option<title::Choice> {
@@ -68,7 +61,7 @@ impl Title {
                 .audio
                 .play(&*self.assets.se_select.get_mut().unwrap());
 
-            self.anims.on_exit();
+            // self.anims.on_exit();
 
             return Some(title::Choice::from_usize(self.state.cursor).unwrap());
         }
