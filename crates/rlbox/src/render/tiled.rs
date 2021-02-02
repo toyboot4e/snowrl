@@ -42,7 +42,7 @@ pub fn t2w(pos: impl Into<Vec2i>, tiled: &tiled::Map) -> Vec2f {
     Vec2f::new(x, y)
 }
 
-/// Tile coordinates to world coordinates (corner)
+/// Tile coordinates to world coordinates (center)
 pub fn t2w_center(pos: impl Into<Vec2i>, tiled: &tiled::Map) -> Vec2f {
     let pos = pos.into();
     let x = pos.x as f32 * tiled.tile_width as f32 + tiled.tile_width as f32 / 2.0;

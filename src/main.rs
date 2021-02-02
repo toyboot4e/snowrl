@@ -18,6 +18,7 @@ use snow2d::{
 use rlbox::{
     render::actor::ActorImage,
     rl::{grid2d::*, rlmap::TiledRlMap},
+    utils::arena::Arena,
 };
 
 use grue2d::{
@@ -132,7 +133,7 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
     let mut world = World {
         map,
         shadow: Shadow::new(radius, map_size, consts::WALK_TIME, consts::FOV_EASE),
-        entities: Vec::with_capacity(20),
+        entities: Arena::with_capacity(20),
     };
 
     self::load_actors(&mut world, ice)?;
@@ -173,7 +174,7 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
         img
     };
 
-    w.entities.push({
+    w.entities.insert({
         let pos = Vec2i::new(20, 16);
         let dir = Dir8::S;
 
@@ -207,7 +208,7 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
         )?
     };
 
-    w.entities.push({
+    w.entities.insert({
         let pos = Vec2i::new(14, 12);
         let dir = Dir8::S;
         Actor {
@@ -221,7 +222,7 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
         }
     });
 
-    w.entities.push({
+    w.entities.insert({
         let pos = Vec2i::new(25, 18);
         let dir = Dir8::S;
         Actor {

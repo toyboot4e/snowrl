@@ -29,12 +29,14 @@ use crate::utils::{
 };
 
 /// Return value of title screen
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Choice {
     NewGame,
     Continue,
     Exit,
 }
 
+#[derive(Debug, Clone)]
 pub struct Phased<T> {
     pub selected: T,
     pub not_selected: T,
@@ -51,9 +53,10 @@ impl Choice {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ItemConfig {
     pub item: Phased<Color>,
-    pub bg: Phased<Color>,
+    pub shadow: Phased<Color>,
 }
 
 impl Default for ItemConfig {
@@ -75,7 +78,7 @@ impl Default for ItemConfig {
                 },
             },
 
-            bg: Phased {
+            shadow: Phased {
                 selected: Color {
                     r: 32,
                     g: 32,
@@ -101,6 +104,7 @@ pub struct TitleState {
 
 #[derive(Debug)]
 pub struct TitleAssets {
+    pub cfg: ItemConfig,
     pub logo: SpriteData,
     pub choices: [SpriteData; 3],
     pub se_cursor: Asset<audio::src::Wav>,
@@ -109,8 +113,9 @@ pub struct TitleAssets {
 }
 
 impl TitleAssets {
-    pub fn new(assets: &mut AssetCacheAny) -> Self {
+    pub fn new(cfg: ItemConfig, assets: &mut AssetCacheAny) -> Self {
         Self {
+            cfg,
             logo: title::Logo::load(assets).unwrap(),
             choices: title::Choices::load(assets).unwrap(),
             se_cursor: assets.load_sync(paths::sound::se::CURSOR).unwrap(),
@@ -123,12 +128,12 @@ impl TitleAssets {
 #[derive(Debug)]
 pub struct TitleNodes {
     pub logo: Handle<Node>,
-    /// [ [front, shadow] ]
+    /// [ [shadow, front ] ]
     pub choices: [[Handle<Node>; 2]; 3],
 }
 
 impl TitleNodes {
-    pub fn new(nodes: &mut Pool<Node>, assets: &mut TitleAssets) -> Self {
+    pub fn new(nodes: &mut Pool<Node>, assets: &TitleAssets) -> Self {
         let logo = nodes.add(Draw::Sprite(assets.logo.clone()).into());
 
         let choices = [
@@ -146,6 +151,12 @@ impl TitleNodes {
             ],
         ];
 
+        // overwrite initial colors
+        for i in 0..choices.len() {
+            nodes[&choices[i][0]].params.color = assets.cfg.shadow.not_selected;
+            nodes[&choices[i][1]].params.color = assets.cfg.item.not_selected;
+        }
+
         Self { logo, choices }
     }
 }
@@ -153,8 +164,9 @@ impl TitleNodes {
 /// TODO: put animations in pool so that the animation remain when `Title` is poped
 #[derive(Debug)]
 pub struct TitleAnims {
-    logo: Index,
-    choices: [[Index; 2]; 3],
+    logo: Index<Anim>,
+    /// [ [shadow, front] ; 3]
+    choices: [[Index<Anim>; 2]; 3],
 }
 
 impl TitleAnims {
@@ -217,19 +229,19 @@ impl TitleAnims {
             [320.0, 200.0].into(),
         ];
 
-        let item = Anim::PosTween(PosTween {
+        let shadow = Anim::PosTween(PosTween {
             tween: ez::Tweened {
-                a: from.0 + delta_choices[i],
-                b: to.0 + delta_choices[i],
+                a: delta_shadow + from.0 + delta_choices[i],
+                b: delta_shadow + to.0 + delta_choices[i],
                 dt,
             },
             node: nodes.choices[i][0].clone(),
         });
 
-        let shadow = Anim::PosTween(PosTween {
+        let item = Anim::PosTween(PosTween {
             tween: ez::Tweened {
-                a: delta_shadow + from.0 + delta_choices[i],
-                b: delta_shadow + to.0 + delta_choices[i],
+                a: from.0 + delta_choices[i],
+                b: to.0 + delta_choices[i],
                 dt,
             },
             node: nodes.choices[i][1].clone(),

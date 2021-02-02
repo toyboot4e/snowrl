@@ -1,13 +1,9 @@
 /*!
-Roguelike toolbox
-
-Set of utilities on top of [`snow2d`] to create SnowRL.
+Roguelike toolbox based on [`snow2d`] and [`rokol`]
 */
-
-pub extern crate rokol;
-pub extern crate snow2d;
 
 pub mod render;
 pub mod rl;
+pub mod scene;
 pub mod ui;
 pub mod utils;

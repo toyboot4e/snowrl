@@ -122,9 +122,11 @@ impl Global {
 
     /// Called after updating the FSM (game state)
     pub fn post_update(&mut self) {
+        // TODO: don't hard code
+        let player = &self.world.entities.get_by_slot(0).unwrap().1;
         self.world
             .shadow
-            .post_update(self.ice.dt, &self.world.map.rlmap, &self.world.entities[0]);
+            .post_update(self.ice.dt, &self.world.map.rlmap, player);
 
         self.world_render.post_update(&self.world, self.ice.dt);
     }

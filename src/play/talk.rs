@@ -3,7 +3,7 @@ Talk
 */
 
 use {
-    rlbox::utils::{ez, tweak::*},
+    rlbox::utils::{arena::Index, ez, tweak::*},
     rokol::fons::{FontBook, FontConfig},
     std::{borrow::Cow, time::Duration},
 };
@@ -19,7 +19,7 @@ use snow2d::{
     Ice,
 };
 
-use grue2d::rl::{turn::tick::ActorIx, world::World};
+use grue2d::rl::world::{actor::Actor, World};
 
 use crate::{
     play::txt::PlayText,
@@ -30,8 +30,8 @@ use crate::{
 #[derive(Debug)]
 pub struct TalkCommand<'a> {
     pub txt: Cow<'a, str>,
-    pub from: ActorIx,
-    pub to: ActorIx,
+    pub from: Index<Actor>,
+    pub to: Index<Actor>,
     pub cfg: TalkConfig,
 }
 
@@ -78,8 +78,8 @@ impl<'a> TalkCommand<'a> {
         self.layout_impl(tcfg, fb, fcfg, pos)
     }
 
-    fn base_pos(world: &World, actor: ActorIx) -> Vec2f {
-        let actor = &world.entities[actor.0];
+    fn base_pos(world: &World, actor: Index<Actor>) -> Vec2f {
+        let actor = &world.entities[actor];
         let mut pos = actor.img.pos_screen(&world.map.tiled);
         pos.y -= world.map.tiled.tile_height as f32;
         pos

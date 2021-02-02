@@ -12,7 +12,9 @@ use {
     std::{collections::VecDeque, fmt, time::Duration},
 };
 
-use crate::rl::{turn::tick::ActorIx, world::World};
+use rlbox::utils::arena::Index;
+
+use crate::rl::world::{actor::Actor, World};
 
 /// TODO: rm
 const WALK_TIME: f32 = 8.0 / 60.0;
@@ -167,11 +169,11 @@ impl Anim for Wait {
 pub struct WalkAnim {
     pub dt: Duration,
     /// Batch walk animations
-    pub actors: Vec<ActorIx>,
+    pub actors: Vec<Index<Actor>>,
 }
 
 impl WalkAnim {
-    pub fn new(actor: ActorIx) -> Self {
+    pub fn new(actor: Index<Actor>) -> Self {
         Self {
             dt: Duration::new(0, 0),
             actors: {
@@ -193,13 +195,11 @@ impl Anim for WalkAnim {
     fn on_start(&mut self, ucx: &mut AnimUpdateContext) {
         // log::trace!("{:?}", self.actors);
 
-        if self.actors.iter().all(|a| a.0 != 0) {
-            // return if the player do not walk
-            return;
+        // TODO: don't hard code player detection
+        if self.actors.iter().any(|a| a.slot() == 0) {
+            // update Player FoV in this frame
+            ucx.world.shadow.make_dirty();
         }
-
-        // update Player FoV in this frame
-        ucx.world.shadow.make_dirty();
     }
 
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {

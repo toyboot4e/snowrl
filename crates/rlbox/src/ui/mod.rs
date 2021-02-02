@@ -80,7 +80,7 @@ impl AnimPool {
                 Anim::Parallel(_x) => unimplemented!(),
                 Anim::PosTween(x) => {
                     let n = &mut nodes[&x.node];
-                    n.geom.pos = x.tween.get();
+                    n.params.pos = x.tween.get();
                 }
             }
         }

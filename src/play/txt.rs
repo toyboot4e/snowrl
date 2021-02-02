@@ -14,7 +14,7 @@ pub struct PlayText {
     txt: String,
     n_chars: usize,
     pos: Vec2f,
-    dt: ez::LerpDt,
+    dt: ez::LinearDt,
 }
 
 impl PlayText {
@@ -36,7 +36,7 @@ impl PlayText {
             .filter(|c| !matches!(*c, '\n' | '\t'))
             .count();
 
-        self.dt = ez::LerpDt::new(self.n_chars as f32 / consts::CHARS_PER_SEC);
+        self.dt = ez::LinearDt::new(self.n_chars as f32 / consts::CHARS_PER_SEC);
     }
 
     pub fn update(&mut self, dt: Duration) {

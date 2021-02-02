@@ -1,11 +1,10 @@
 /*!
-Easing and tweening
+[Easing] and tweening
 
-Easing functions are visualized in [this site] for example. They map `[0.0, 1.0]` to a different
-curve in the same range `[0.0, 1.0]`. They can be applied to other types that are linearly
-interpolatable:
+[easing]: https://easings.net/
 
-[this site]: https://easings.net/
+Easing functions map `[0.0, 1.0]` to a different curve in the same range `[0.0, 1.0]`. They can be
+applied to other types that are linearly interpolatable:
 
 ```no_run
 pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
@@ -13,7 +12,7 @@ pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
 }
 ```
 
-Tweens are applied based on time.
+Tweens are applied based on time, so there are timing utilities:  [`LinearDt`] and [`EasedDt`].
 */
 
 use std::{
@@ -23,7 +22,7 @@ use std::{
 
 use crate::rl::grid2d::Dir8;
 
-/// Linearly interpolatable, which can be [`Tweened`]
+/// Linearly interpolatable; can be [`Tweened`]
 pub trait Lerp {
     /// t: [0.0, 1.0] → t': [a, b]
     fn lerp(a: Self, b: Self, t: f32) -> Self;
@@ -83,6 +82,12 @@ impl Lerp for Dir8 {
     }
 }
 
+/// Interpolates [`Lerp`] types
+pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
+    T::lerp(a, b, ease.map(t))
+}
+
+/// Interpolates [`Dir8`] with smallast number of frames considering rotation
 pub fn tween_dirs(a: Dir8, b: Dir8, time_per_pattern: f32) -> Tweened<Dir8> {
     let n_steps = (b as u8 + 8 - a as u8) % 8;
 
@@ -94,10 +99,6 @@ pub fn tween_dirs(a: Dir8, b: Dir8, time_per_pattern: f32) -> Tweened<Dir8> {
         b,
         dt: EasedDt::new(time_per_pattern * n_steps as f32, Ease::Linear),
     }
-}
-
-pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
-    T::lerp(a, b, ease.map(t))
 }
 
 /// Generates tweened values
@@ -127,11 +128,12 @@ impl<T: Lerp + Clone> Tweened<T> {
         T::lerp(self.a.clone(), self.b.clone(), self.dt.get())
     }
 
+    /// Interpolation value
     pub fn t(&self) -> f32 {
         self.dt.get()
     }
 
-    /// Begins new tween from the end (meaning `t = 1.0`) of the last tween
+    /// Begins new tween from the ending value (meaning `t = 1.0`) of the last tween
     pub fn set_next(&mut self, x: T) {
         self.a = self.b.clone();
         self.b = x;
@@ -143,6 +145,7 @@ impl<T: Lerp + Clone> Tweened<T> {
         self.dt.ease = ease;
     }
 
+    /// Overwrites target duration in seconds
     pub fn set_duration_secs(&mut self, target: f32) {
         self.dt.target = target;
     }
@@ -201,12 +204,12 @@ impl EasedDt {
 
 /// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` on `get`
 #[derive(Debug, Clone, Default)]
-pub struct LerpDt {
+pub struct LinearDt {
     target: f32,
     accum: f32,
 }
 
-impl LerpDt {
+impl LinearDt {
     pub fn new(target_secs: f32) -> Self {
         Self {
             target: target_secs,
@@ -235,7 +238,7 @@ impl LerpDt {
     }
 }
 
-/// Easing function
+/// Easing function dispatched dynamically
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Ease {
     Linear,

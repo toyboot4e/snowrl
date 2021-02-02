@@ -360,8 +360,8 @@ impl WorldRenderer {
     fn actors(&mut self, screen: &mut impl DrawApi, world: &World, dt: Duration) {
         // FIXME: separate update and render
         // TODO: y sort + culling
-        for (i, e) in world.entities.iter().enumerate() {
-            let x = &mut self.actor_visibilities[i];
+        for (i, e) in world.entities.iter() {
+            let x = &mut self.actor_visibilities[i.slot() as usize];
 
             let is_visible = world.shadow.fov.a.is_in_view(e.pos);
             if is_visible != x.a {

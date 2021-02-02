@@ -17,7 +17,7 @@ use snow2d::{
 use rlbox::{
     rl::grid2d::*,
     ui::Ui,
-    utils::{ez, tweak::*},
+    utils::{arena::Index, ez, tweak::*},
 };
 
 use grue2d::{
@@ -27,8 +27,9 @@ use grue2d::{
         turn::{
             anim::{AnimResult, AnimUpdateContext},
             ev,
-            tick::{ActorIx, AnimContext, GameLoop, TickResult},
+            tick::{AnimContext, GameLoop, TickResult},
         },
+        world::actor::Actor,
     },
     GameState, Global, StateCommand, StateReturn,
 };
@@ -56,7 +57,8 @@ impl GameState for Roguelike {
 
             match res {
                 TickResult::TakeTurn(actor) => {
-                    if actor.0 == 0 {
+                    // TODO: don't hard code player detection
+                    if actor.slot() == 0 {
                         // NOTE: if we handle "change direction" animation, it can results in an
                         // infinite loop:
                         // run batched walk animation if it's player's turn
@@ -478,8 +480,8 @@ pub struct PlayTalkState {
 }
 
 impl PlayTalkState {
-    pub fn new(gl: &mut Global, txt: String, from: ActorIx, to: ActorIx) -> Self {
-        let (a, b) = (&gl.world.entities[from.0], &gl.world.entities[to.0]);
+    pub fn new(gl: &mut Global, txt: String, from: Index<Actor>, to: Index<Actor>) -> Self {
+        let (a, b) = (&gl.world.entities[from], &gl.world.entities[to]);
 
         let talk = play::talk::TalkCommand {
             txt: Cow::Owned(txt),

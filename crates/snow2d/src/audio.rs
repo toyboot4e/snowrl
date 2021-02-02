@@ -1,5 +1,4 @@
 /*!
-
 [`soloud-rs`] re-exported with additional types and [`snow2d::asset`] integration
 
 [`soloud-rs`]: https://github.com/MoAlyousef/soloud-rs
@@ -8,7 +7,6 @@
 [SoLoud] is an easy to use, free, portable c/c++ audio engine for games.
 
 [SoLoud]: https://sol.gfxile.net/soloud/
-
 */
 
 pub use soloud::{audio as src, filter, prelude, Handle, Soloud as AudioDrop};

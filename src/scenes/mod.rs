@@ -23,7 +23,7 @@ impl Title {
         let assets = &mut ice.assets;
 
         let state = title::TitleState { cursor: 0 };
-        let mut assets = title::TitleAssets::new(assets);
+        let mut assets = title::TitleAssets::new(Default::default(), assets);
         let nodes = title::TitleNodes::new(&mut ui.nodes, &mut assets);
         let anims = title::TitleAnims::init(&mut ui.anims, &nodes);
 

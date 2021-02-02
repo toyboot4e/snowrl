@@ -15,7 +15,7 @@ use crate::utils::pool::Handle;
 pub struct Node {
     pub draw: Draw,
     /// Geometry data that can be tweened
-    pub geom: Geom,
+    pub params: DrawParams,
     pub children: Vec<Handle<Self>>,
     /// Drawing order (1.0 is top, 0.0 is bottom)
     pub z: f32,
@@ -23,7 +23,7 @@ pub struct Node {
 
 impl From<Draw> for Node {
     fn from(draw: Draw) -> Self {
-        let geom = Geom {
+        let params = DrawParams {
             size: match draw {
                 Draw::Sprite(ref x) => x.sub_tex_size_scaled().into(),
 
@@ -34,7 +34,7 @@ impl From<Draw> for Node {
 
         Node {
             draw,
-            geom,
+            params,
             children: vec![],
             z: 0.0,
         }
@@ -45,18 +45,18 @@ impl Node {
     pub fn render(&mut self, draw: &mut impl DrawApi) {
         match self.draw {
             Draw::Sprite(ref x) => {
-                self.geom.build(&mut draw.sprite(x));
+                self.params.build(&mut draw.sprite(x));
             }
             Draw::NineSlice(ref x) => {
-                self.geom.build(&mut draw.sprite(x));
+                self.params.build(&mut draw.sprite(x));
             }
         }
     }
 }
 
-/// Common geometry information
+/// Common geometry information to draw a [`Node`]
 #[derive(Debug, Clone, Default)]
-pub struct Geom {
+pub struct DrawParams {
     pub pos: Vec2f,
     pub size: Vec2f,
     pub color: Color,
@@ -65,7 +65,7 @@ pub struct Geom {
     // pub scales: Vec2f,
 }
 
-impl Geom {
+impl DrawParams {
     pub fn build<'a, 'b: 'a, B: QuadParamsBuilder>(&self, builder: &'b mut B) -> &'a mut B {
         builder
             .dst_pos_px(self.pos)
@@ -74,7 +74,7 @@ impl Geom {
     }
 }
 
-// Everything is drawn as a [`Node`] with a [`Surface`]
+// Everything is drawn as a [`Node`] with [`Draw`]
 #[derive(Debug, Clone)]
 pub enum Draw {
     Sprite(SpriteData),

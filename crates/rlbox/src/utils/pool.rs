@@ -1,7 +1,26 @@
 /*!
 Pool with reference-counted handles
 
-`rlbox` uses [`Pool`] for [`ui`](crate::ui).
+# About
+
+`usize` index for `Vec<T>` has some limitations:
+
+1. The position of the item at the index can change on removing other items
+2. The item at the index might be already deleted and another new item can be there (ABA problem)
+3. The `usize` index can be used for unintentional `Vec<T>`
+
+[`Pool`] handles these problems:
+
+1. Invalidating an item don't change other items' positions
+2. [`Handle`] is always valid because items have reference-counted lifetimes with them.
+[`WeakHandle`] identifies their interested item with generational indices.
+3. Handles have type parameters so the chances to use incorrect [`Pool`] reduce. (This is not
+perfect as handles can be used for non-original pools).
+
+Another approach would be using non-reference-counted [`Index`] in [`arena`].
+
+[`arena`]: crate::utils::arena
+[`Index`]: crate::utils::arena::Index
 */
 
 use std::{
@@ -193,7 +212,7 @@ impl<T> ops::IndexMut<&WeakHandle<T>> for Pool<T> {
     }
 }
 
-/// Reference-counted index of a [`Pool`]
+/// Owing index to an item in a [`Pool`]
 ///
 /// The identity is NOT guaranteed if you have two `Pools` of the same type.
 #[derive(Debug)]
@@ -222,7 +241,7 @@ impl<T> Drop for Handle<T> {
     }
 }
 
-/// [`Handle`] without reference counting
+/// Non-owing index to an item in a [`Pool`] with generational index that can the interested item
 pub struct WeakHandle<T> {
     index: Index,
     gen: Gen,

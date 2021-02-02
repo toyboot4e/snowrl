@@ -11,11 +11,14 @@ TODO: remove non-primitive events
 
 */
 
-use rlbox::rl::grid2d::*;
+use rlbox::{rl::grid2d::*, utils::arena::Index};
 
-use crate::rl::turn::{
-    anim::{self, Anim},
-    tick::{ActorIx, AnimContext, Event, EventContext, EventResult, GenAnim},
+use crate::rl::{
+    turn::{
+        anim::{self, Anim},
+        tick::{AnimContext, Event, EventContext, EventResult, GenAnim},
+    },
+    world::actor::Actor,
 };
 
 pub enum Response {
@@ -42,12 +45,13 @@ const PLAYER: usize = 0;
 /// FIXME: unintentional side effects
 #[derive(Debug)]
 pub struct NotConsumeTurn {
-    pub actor: ActorIx,
+    pub actor: Index<Actor>,
 }
 
 impl GenAnim for NotConsumeTurn {
     fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
-        if self.actor.0 == PLAYER {
+        // TODO: don't hard code
+        if self.actor.slot() as usize == PLAYER {
             // wait for one frame so that we won't enter inifinite loop
             Some(Box::new(anim::Wait { frames: 1 }))
         } else {
@@ -58,7 +62,7 @@ impl GenAnim for NotConsumeTurn {
 
 impl Event for NotConsumeTurn {
     fn run(&self, _ecx: &mut EventContext) -> EventResult {
-        if self.actor.0 == PLAYER {
+        if self.actor.slot() as usize == PLAYER {
             // TODO: require one frame wait
             EventResult::chain(PlayerTurn { actor: self.actor })
         } else {
@@ -75,7 +79,7 @@ impl Event for NotConsumeTurn {
 
 #[derive(Debug)]
 pub struct RestOneTurn {
-    pub actor: ActorIx,
+    pub actor: Index<Actor>,
 }
 
 impl GenAnim for RestOneTurn {
@@ -93,7 +97,7 @@ impl Event for RestOneTurn {
 /// Just change direction
 #[derive(Debug)]
 pub struct ChangeDir {
-    pub actor: ActorIx,
+    pub actor: Index<Actor>,
     pub dir: Dir8,
 }
 
@@ -106,7 +110,7 @@ impl GenAnim for ChangeDir {
 
 impl Event for ChangeDir {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let actor = &mut ecx.world.entities[self.actor.0];
+        let actor = &mut ecx.world.entities[self.actor];
         actor.dir = self.dir;
 
         // FIXME: it's dangerous..
@@ -124,7 +128,7 @@ pub enum MoveContext {
 /// Change in actor's position and direction
 #[derive(Debug)]
 pub struct Move {
-    pub actor: ActorIx,
+    pub actor: Index<Actor>,
     pub mcx: MoveContext,
     pub from_pos: Vec2i,
     pub from_dir: Dir8,
@@ -141,7 +145,7 @@ impl GenAnim for Move {
 impl Event for Move {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
         if !ecx.world.is_blocked(self.to_pos) {
-            let actor = &mut ecx.world.entities[self.actor.0];
+            let actor = &mut ecx.world.entities[self.actor];
             actor.dir = self.to_dir;
             actor.pos = self.to_pos;
             EventResult::Finish
@@ -160,7 +164,7 @@ impl Event for Move {
 // /// TODO: Attack in direction
 // #[derive(Debug)]
 // pub struct Attack {
-//     pub actor: ActorIx,
+//     pub actor: Index<Actor>,
 //     pub dir: Dir8,
 // }
 
@@ -171,8 +175,8 @@ impl Event for Move {
 
 #[derive(Debug)]
 pub struct Talk {
-    pub from: ActorIx,
-    pub to: ActorIx,
+    pub from: Index<Actor>,
+    pub to: Index<Actor>,
 }
 
 impl GenAnim for Talk {}
@@ -190,7 +194,7 @@ impl Event for Talk {
 /// Walk or change direction and chain [`PlayerTurn`]
 #[derive(Debug)]
 pub struct PlayerWalk {
-    pub actor: ActorIx,
+    pub actor: Index<Actor>,
     pub dir: Dir8,
 }
 
@@ -200,7 +204,7 @@ impl Event for PlayerWalk {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
         let EventContext { world, vi } = ecx;
 
-        let actor = &mut world.entities[self.actor.0];
+        let actor = &mut world.entities[self.actor];
         let pos = actor.pos + Vec2i::from(self.dir.signs_i32());
         drop(actor);
 
@@ -212,7 +216,7 @@ impl Event for PlayerWalk {
                 dir: self.dir,
             })
         } else {
-            let actor = &world.entities[self.actor.0];
+            let actor = &world.entities[self.actor];
 
             EventResult::chain(Move {
                 actor: self.actor,
@@ -229,7 +233,7 @@ impl Event for PlayerWalk {
 // TODO: impl Interact delegating the process to FSM
 #[derive(Debug)]
 pub struct Interact {
-    pub actor: ActorIx,
+    pub actor: Index<Actor>,
     pub dir: Dir8,
 }
 
@@ -237,20 +241,19 @@ impl GenAnim for Interact {}
 
 impl Event for Interact {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let actor = &ecx.world.entities[self.actor.0];
+        let actor = &ecx.world.entities[self.actor];
         let pos = actor.pos + Vec2i::from(self.dir);
 
         if let Some(target) = ecx
             .world
             .entities
             .iter()
-            .enumerate()
             .find(|(_i, e)| e.pos == pos)
             .map(|(i, _e)| i)
         {
             EventResult::chain(Talk {
                 from: self.actor,
-                to: ActorIx(target),
+                to: target,
             })
         } else {
             EventResult::chain(NotConsumeTurn { actor: self.actor })
@@ -264,7 +267,7 @@ impl Event for Interact {
 /// Interactive command for player input
 #[derive(Debug)]
 pub struct PlayerTurn {
-    pub actor: ActorIx,
+    pub actor: Index<Actor>,
 }
 
 impl GenAnim for PlayerTurn {}
@@ -274,8 +277,8 @@ impl PlayerTurn {
     fn find_only_neighbor(&self, ecx: &EventContext) -> Option<Dir8> {
         let mut res = Option::<Dir8>::None;
 
-        let origin = ecx.world.entities[self.actor.0].pos;
-        for e in &ecx.world.entities {
+        let origin = ecx.world.entities[self.actor].pos;
+        for (_ix, e) in &ecx.world.entities {
             let dvec = e.pos - origin;
             if dvec.len_king() != 1 {
                 continue;
@@ -302,7 +305,7 @@ impl Event for PlayerTurn {
         );
 
         if select {
-            let dir = ecx.world.entities[self.actor.0].dir;
+            let dir = ecx.world.entities[self.actor].dir;
 
             return EventResult::chain(Interact {
                 actor: self.actor,
@@ -336,7 +339,7 @@ impl Event for PlayerTurn {
 
 #[derive(Debug)]
 pub struct RandomWalk {
-    pub actor: ActorIx,
+    pub actor: Index<Actor>,
 }
 
 impl GenAnim for RandomWalk {}

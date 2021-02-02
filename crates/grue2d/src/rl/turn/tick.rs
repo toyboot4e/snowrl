@@ -13,13 +13,14 @@ use std::{
 
 use {
     downcast_rs::{impl_downcast, Downcast},
+    rlbox::utils::arena::Index,
     snow2d::Ice,
 };
 
 use crate::{
     rl::{
         turn::{anim::Anim, ev},
-        world::World,
+        world::{actor::Actor, World},
     },
     utils::Cheat,
     vi::VInput,
@@ -42,15 +43,11 @@ struct TickContext {
     vi: Cheat<VInput>,
 }
 
-/// Index of an actor that can bse used to retrieve `&mut`
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ActorIx(pub usize);
-
 /// Return value of [`GameLoop::tick`]
 #[derive(Debug)]
 pub enum TickResult {
     /// Yielded when an actor takes turn
-    TakeTurn(ActorIx),
+    TakeTurn(Index<Actor>),
     /// Yielded when a new [`Event`] is emitted
     Event(Rc<dyn Event>),
     /// Yielded when processing a command takes greater than or equal to one frame
@@ -117,16 +114,20 @@ impl GameLoop {
 /// Internal game loop implemented as a generator
 fn game_loop() -> Gen {
     Box::new(|mut tcx: TickContext| {
-        let mut actor_ix = 0;
+        let mut actor_slot = 0;
 
         loop {
-            let actor = ActorIx(actor_ix);
-            yield TickResult::TakeTurn(actor);
+            let (actor_index, _) = match tcx.world.entities.get_by_slot(actor_slot) {
+                Some(index) => index,
+                None => continue,
+            };
+
+            yield TickResult::TakeTurn(actor_index);
 
             // TODO: do not hard code entity actions
-            let mut ev: Rc<dyn Event> = match actor.0 {
-                PLAYER => Rc::new(ev::PlayerTurn { actor }),
-                _ => Rc::new(ev::RandomWalk { actor }),
+            let mut ev: Rc<dyn Event> = match actor_index.slot() as usize {
+                PLAYER => Rc::new(ev::PlayerTurn { actor: actor_index }),
+                _ => Rc::new(ev::RandomWalk { actor: actor_index }),
             };
 
             // process command
@@ -146,8 +147,8 @@ fn game_loop() -> Gen {
                     }
                     EventResult::Finish => {
                         // go to next actor
-                        actor_ix += 1;
-                        actor_ix %= tcx.world.entities.len();
+                        actor_slot += 1;
+                        actor_slot %= tcx.world.entities.len() as u32;
                         break;
                     }
                     EventResult::Chain(new_ev) => {

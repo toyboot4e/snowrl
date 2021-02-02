@@ -4,10 +4,15 @@ Script integration
 
 */
 
-use crate::rl::turn::tick::ActorIx;
+use rlbox::utils::arena::Index;
+
+use crate::rl::world::actor::Actor;
 
 /// Refers to a specifc script
 #[derive(Debug, Clone, Copy)]
 pub enum ScriptRef {
-    Interact { from: ActorIx, to: ActorIx },
+    Interact {
+        from: Index<Actor>,
+        to: Index<Actor>,
+    },
 }

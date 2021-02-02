@@ -13,7 +13,7 @@ use rlbox::{
         grid2d::*,
         rlmap::TiledRlMap,
     },
-    utils::{ez, Double},
+    utils::{arena::Arena, ez, Double},
 };
 
 use self::actor::*;
@@ -25,13 +25,14 @@ use self::actor::*;
 pub struct World {
     pub map: TiledRlMap,
     pub shadow: Shadow,
-    pub entities: Vec<Actor>,
+    pub entities: Arena<Actor>,
 }
 
 /// Lifecycle
 impl World {
     pub fn update(&mut self, ice: &mut Ice) {
-        for e in &mut self.entities {
+        // FIXME: impl Into itermut
+        for (_ix, e) in &mut self.entities {
             e.img.update(ice.dt, e.pos, e.dir);
         }
     }
@@ -40,11 +41,13 @@ impl World {
 /// API
 impl World {
     pub fn player(&self) -> &Actor {
-        &self.entities[0]
+        let (ix, _) = self.entities.get_by_slot(0).unwrap();
+        &self.entities[ix]
     }
 
     pub fn player_mut(&mut self) -> &mut Actor {
-        &mut self.entities[0]
+        let (ix, _) = self.entities.get_by_slot_mut(0).unwrap();
+        &mut self.entities[ix]
     }
 
     pub fn is_blocked(&mut self, pos: Vec2i) -> bool {
@@ -52,7 +55,7 @@ impl World {
             return true;
         }
 
-        for e in &self.entities {
+        for (_ix, e) in &self.entities {
             if e.pos == pos {
                 return true;
             }
