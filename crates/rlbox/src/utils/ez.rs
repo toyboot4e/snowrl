@@ -33,7 +33,7 @@ macro_rules! impl_simple_lerp {
         $(
             impl Lerp for $ty {
                 fn lerp(a: Self, b: Self, t: f32) -> Self {
-                    (a as f32 + t * (b - a) as f32) as Self
+                    (a as f32 * t + b as f32 * (1.0 - t)) as Self
                 }
             }
         )*
@@ -133,6 +133,10 @@ impl<T: Lerp + Clone> Tweened<T> {
         self.dt.get()
     }
 
+    pub fn is_end(&self) -> bool {
+        self.dt.is_end()
+    }
+
     /// Begins new tween from the ending value (meaning `t = 1.0`) of the last tween
     pub fn set_next(&mut self, x: T) {
         self.a = self.b.clone();
@@ -197,6 +201,10 @@ impl EasedDt {
         }
     }
 
+    pub fn is_end(&self) -> bool {
+        self.accum > self.target
+    }
+
     pub fn get(&self) -> f32 {
         self.ease.map(self.accum / self.target)
     }
@@ -228,12 +236,16 @@ impl LinearDt {
         }
     }
 
+    pub fn is_end(&self) -> bool {
+        self.accum > self.target
+    }
+
     /// Interpolation vaule in range `[0.0, 1.0]`
     pub fn get(&self) -> f32 {
         self.accum / self.target
     }
 
-    pub fn eased(&self, ease: Ease) -> f32 {
+    pub fn get_eased(&self, ease: Ease) -> f32 {
         ease.map(self.get())
     }
 }
