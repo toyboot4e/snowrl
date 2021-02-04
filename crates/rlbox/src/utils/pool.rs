@@ -31,8 +31,11 @@ use std::{
 
 type Gen = std::num::NonZeroU32;
 type GenCounter = u32;
-type Index = u32;
 type RefCount = u16;
+
+/// Newtype of `U32`
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Index(u32);
 
 /// Message for reference counting (New | Drop)
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -104,9 +107,11 @@ impl<T> Pool<T> {
 
     /// Adds an item and returns a reference-counted [`Handle`] for it
     pub fn add(&mut self, item: T) -> Handle<T> {
+        let gen = Gen::new(self.gen_count);
+
         let entry = PoolEntry {
             item,
-            gen: Gen::new(self.gen_count),
+            gen,
             ref_count: 1,
         };
 
@@ -131,10 +136,16 @@ impl<T> Pool<T> {
         };
 
         Handle {
-            index: index as Index,
+            index: Index(index as u32),
+            gen: gen.unwrap(),
             sender: self.sender.clone(),
             _phantom: Default::default(),
         }
+    }
+
+    /// Invalidaes the entry
+    pub fn remove(&mut self, handle: &Index) {
+        self.entries[handle.0 as usize].gen = None;
     }
 
     /// Update reference counting of internal items
@@ -142,13 +153,13 @@ impl<T> Pool<T> {
         while let Ok(mes) = self.receiver.try_recv() {
             match mes {
                 Message::New(ix) => {
-                    self.entries[ix as usize].ref_count += 1;
+                    self.entries[ix.0 as usize].ref_count += 1;
                 }
                 Message::Drop(ix) => {
-                    self.entries[ix as usize].ref_count -= 1;
-                    if self.entries[ix as usize].ref_count == 0 {
+                    self.entries[ix.0 as usize].ref_count -= 1;
+                    if self.entries[ix.0 as usize].ref_count == 0 {
                         // invalidate the entry
-                        self.entries[ix as usize].gen = None;
+                        self.entries[ix.0 as usize].gen = None;
                     }
                 }
             }
@@ -159,7 +170,7 @@ impl<T> Pool<T> {
     ///
     /// Use indexer for strong [`Handle`]s
     pub fn get(&self, weak_handle: &WeakHandle<T>) -> Option<&T> {
-        let entry = &self.entries[weak_handle.index as usize];
+        let entry = &self.entries[weak_handle.index.0 as usize];
         if let Some(gen) = entry.gen {
             if gen == weak_handle.gen {
                 return Some(&entry.item);
@@ -172,7 +183,7 @@ impl<T> Pool<T> {
     ///
     /// Use indexer for strong [`Handle`]s
     pub fn get_mut(&mut self, weak_handle: &WeakHandle<T>) -> Option<&mut T> {
-        let entry = &mut self.entries[weak_handle.index as usize];
+        let entry = &mut self.entries[weak_handle.index.0 as usize];
         if let Some(gen) = entry.gen {
             if gen == weak_handle.gen {
                 return Some(&mut entry.item);
@@ -185,20 +196,20 @@ impl<T> Pool<T> {
 impl<T> ops::Index<&Handle<T>> for Pool<T> {
     type Output = T;
     fn index(&self, handle: &Handle<T>) -> &Self::Output {
-        &self.entries[handle.index as usize].item
+        &self.entries[handle.index.0 as usize].item
     }
 }
 
 impl<T> ops::IndexMut<&Handle<T>> for Pool<T> {
     fn index_mut(&mut self, handle: &Handle<T>) -> &mut Self::Output {
-        &mut self.entries[handle.index as usize].item
+        &mut self.entries[handle.index.0 as usize].item
     }
 }
 
 impl<T> ops::Index<&WeakHandle<T>> for Pool<T> {
     type Output = T;
     fn index(&self, handle: &WeakHandle<T>) -> &Self::Output {
-        let entry = &self.entries[handle.index as usize];
+        let entry = &self.entries[handle.index.0 as usize];
         assert!(entry.gen.is_some() && entry.gen.unwrap() == handle.gen);
         &entry.item
     }
@@ -206,7 +217,7 @@ impl<T> ops::Index<&WeakHandle<T>> for Pool<T> {
 
 impl<T> ops::IndexMut<&WeakHandle<T>> for Pool<T> {
     fn index_mut(&mut self, handle: &WeakHandle<T>) -> &mut Self::Output {
-        let entry = &mut self.entries[handle.index as usize];
+        let entry = &mut self.entries[handle.index.0 as usize];
         assert!(entry.gen.is_some() && entry.gen.unwrap() == handle.gen);
         &mut entry.item
     }
@@ -218,8 +229,19 @@ impl<T> ops::IndexMut<&WeakHandle<T>> for Pool<T> {
 #[derive(Debug)]
 pub struct Handle<T> {
     index: Index,
+    gen: Gen,
     sender: Sender<Message>,
     _phantom: PhantomData<T>,
+}
+
+impl<T> Handle<T> {
+    pub fn downgrade(self) -> WeakHandle<T> {
+        WeakHandle {
+            index: self.index,
+            gen: self.gen,
+            _phantom: PhantomData,
+        }
+    }
 }
 
 impl<T> Clone for Handle<T> {
@@ -228,6 +250,7 @@ impl<T> Clone for Handle<T> {
         self.sender.send(Message::New(self.index)).unwrap();
         Self {
             index: self.index,
+            gen: self.gen,
             sender: self.sender.clone(),
             _phantom: Default::default(),
         }
@@ -236,8 +259,8 @@ impl<T> Clone for Handle<T> {
 
 impl<T> Drop for Handle<T> {
     fn drop(&mut self) {
-        // TODO: fix it because it dies if the pool is already dead?
-        self.sender.send(Message::Drop(self.index)).unwrap();
+        // fails if the pool is already dead
+        self.sender.send(Message::Drop(self.index)).ok();
     }
 }
 
@@ -248,8 +271,12 @@ pub struct WeakHandle<T> {
     _phantom: PhantomData<T>,
 }
 
-#[cfg(test)]
-mod test {
-
-    //
+impl<T> From<Handle<T>> for WeakHandle<T> {
+    fn from(h: Handle<T>) -> Self {
+        Self {
+            index: h.index,
+            gen: h.gen,
+            _phantom: PhantomData,
+        }
+    }
 }
