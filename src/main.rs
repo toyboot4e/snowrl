@@ -5,20 +5,9 @@ use rokol::{
     Rokol,
 };
 
-use snow2d::{
-    asset::AssetCacheT,
-    audio,
-    gfx::{
-        tex::{Texture2dDrop, TextureLoader},
-        Snow2d,
-    },
-    Ice,
-};
-
 use rlbox::{
     render::actor::ActorImage,
     rl::{grid2d::*, rlmap::TiledRlMap},
-    utils::arena::Arena,
 };
 
 use grue2d::{
@@ -27,11 +16,10 @@ use grue2d::{
         turn::anim::AnimPlayer,
         world::{actor::Actor, Shadow, World},
     },
-    vi::VInput,
-    Global, GlueRl,
 };
 
 use snowrl::{
+    prelude::*,
     states,
     utils::{consts, paths},
     SnowRl,
@@ -109,11 +97,11 @@ fn new_game(rokol: Rokol) -> GlueRl {
         fsm.insert_default::<states::Animation>();
 
         // fsm.insert(states::Title::new(&mut gl.ice));
-        fsm.insert(states::TitleUi::new(&mut gl.ice, &mut gl.ui));
+        fsm.insert(states::Title::new(&mut gl.ice, &mut gl.ui));
         fsm.insert(states::PlayScript::new(&mut gl.ice.assets));
 
         fsm.push::<states::Roguelike>(&mut gl);
-        fsm.push::<states::TitleUi>(&mut gl);
+        fsm.push::<states::Title>(&mut gl);
 
         fsm
     };

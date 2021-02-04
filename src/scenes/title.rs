@@ -2,31 +2,17 @@
 Scenes
 */
 
-use snow2d::{
-    asset::{Asset, AssetCacheAny},
-    audio,
-    gfx::{geom2d::*, tex::*, Color},
+use snow2d::audio::src::Wav;
+
+use rlbox::ui::{
+    anims::*,
+    node::{Draw, Node},
+    AnimPool, Ui,
 };
 
-use rlbox::{
-    ui::{
-        anims::*,
-        node::{Draw, Node},
-        AnimPool,
-    },
-    utils::{
-        arena::Index,
-        ez,
-        pool::{Handle, Pool},
-        tweak::*,
-        ArrayTools,
-    },
-};
+use crate::utils::asset_defs::{title, AssetDef};
 
-use crate::utils::{
-    asset_defs::{title, AssetDef},
-    paths,
-};
+use crate::prelude::*;
 
 /// Return value of title screen
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -80,9 +66,9 @@ impl Default for ItemConfig {
 
             shadow: Phased {
                 selected: Color {
-                    r: 32,
-                    g: 32,
-                    b: 32,
+                    r: 24,
+                    g: 24,
+                    b: 24,
                     a: 255,
                 },
 
@@ -107,8 +93,8 @@ pub struct TitleAssets {
     pub cfg: ItemConfig,
     pub logo: SpriteData,
     pub choices: [SpriteData; 3],
-    pub se_cursor: Asset<audio::src::Wav>,
-    pub se_select: Asset<audio::src::Wav>,
+    pub se_cursor: Asset<Wav>,
+    pub se_select: Asset<Wav>,
     pub bgm: Asset<audio::src::WavStream>,
 }
 
@@ -165,63 +151,146 @@ impl TitleNodes {
 #[derive(Debug)]
 pub struct TitleAnims {
     logo: Index<Anim>,
-    /// [ [shadow, front] ; 3]
-    choices: [[Index<Anim>; 2]; 3],
+    choices: Vec<Index<Anim>>,
 }
 
 impl TitleAnims {
-    pub fn init(anims: &mut AnimPool, nodes: &TitleNodes) -> Self {
-        let logo = anims.insert(Anim::PosTween(PosTween {
+    pub fn init(cfg: &ItemConfig, anims: &mut AnimPool, nodes: &TitleNodes, cursor: usize) -> Self {
+        let dt = ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut);
+
+        let logo = anims.insert(PosTween {
             tween: ez::Tweened {
                 a: [tweak!(560.0), tweak!(18.0)].into(),
                 b: [tweak!(440.0), tweak!(12.0)].into(),
-                dt: ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut),
+                dt,
             },
             node: nodes.logo.clone(),
-        }));
+        });
+
+        anims.insert(ColorTween {
+            tween: ez::Tweened {
+                a: Color::TRANSPARENT,
+                b: Color::OPAQUE,
+                dt,
+            },
+            node: nodes.logo.clone(),
+        });
 
         let a = Vec2f::new(tweak!(200.0), tweak!(380.0));
         let b = Vec2f::new(tweak!(80.0), tweak!(350.0));
         let dt = ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut);
 
-        let choices = [
-            Self::choice_anim(
-                nodes,
-                (a, Color::TRANSPARENT),
-                (b, Color::WHITE),
-                dt.clone(),
-                0,
-            ),
-            Self::choice_anim(
-                nodes,
-                (a, Color::TRANSPARENT),
-                (b, Color::WHITE),
-                dt.clone(),
-                1,
-            ),
-            Self::choice_anim(
-                nodes,
-                (a, Color::TRANSPARENT),
-                (b, Color::WHITE),
-                dt.clone(),
-                2,
-            ),
-        ];
+        let mut choices = vec![];
 
-        Self {
-            logo,
-            // thanks, ArrayTools
-            choices: choices.map(|[a, b]| [anims.insert(a), anims.insert(b)]),
+        for i in 0..3 {
+            let [[a, b], [c, d]] = Self::choice_anim(
+                cfg,
+                nodes,
+                (a, Color::TRANSPARENT),
+                (b, Color::WHITE),
+                dt.clone(),
+                i,
+                cursor,
+            );
+
+            choices.push(anims.insert(a));
+            choices.push(anims.insert(b));
+            choices.push(anims.insert(c));
+            choices.push(anims.insert(d));
         }
+
+        Self { logo, choices }
     }
 
+    pub fn select(
+        &mut self,
+        cfg: &ItemConfig,
+        nodes: &TitleNodes,
+        anims: &mut AnimPool,
+        from: usize,
+        to: usize,
+    ) {
+        let dt = EasedDt::new(6.0 / 60.0, Ease::Linear);
+
+        // items
+        let fade_out = ColorTween {
+            tween: ez::Tweened {
+                a: cfg.item.selected,
+                b: cfg.item.not_selected,
+                dt,
+            },
+            node: nodes.choices[from][1].clone(),
+        };
+
+        let fade_in = ColorTween {
+            tween: ez::Tweened {
+                a: cfg.item.not_selected,
+                b: cfg.item.selected,
+                dt,
+            },
+            node: nodes.choices[to][1].clone(),
+        };
+
+        anims.insert(fade_out);
+        anims.insert(fade_in);
+
+        // shadows
+        let fade_out = ColorTween {
+            tween: ez::Tweened {
+                a: cfg.shadow.selected,
+                b: cfg.shadow.not_selected,
+                dt,
+            },
+            node: nodes.choices[from][0].clone(),
+        };
+
+        let fade_in = ColorTween {
+            tween: ez::Tweened {
+                a: cfg.shadow.not_selected,
+                b: cfg.shadow.selected,
+                dt,
+            },
+            node: nodes.choices[to][0].clone(),
+        };
+
+        anims.insert(fade_out);
+        anims.insert(fade_in);
+    }
+
+    pub fn on_exit(&mut self, ui: &mut Ui, nodes: &TitleNodes) {
+        let dt = ez::EasedDt::new(24.0 / 60.0, ez::Ease::SinOut);
+
+        ui.anims.insert(PosTween {
+            tween: ez::Tweened {
+                a: [tweak!(440.0), tweak!(18.0)].into(),
+                b: [tweak!(320.0), tweak!(6.0)].into(),
+                dt,
+            },
+            node: nodes.logo.clone(),
+        });
+
+        ui.anims.insert(ColorTween {
+            tween: ez::Tweened {
+                // TODO: x or y only tween
+                a: Color::OPAQUE,
+                b: Color::TRANSPARENT,
+                dt,
+            },
+            node: nodes.logo.clone(),
+        });
+    }
+}
+
+impl TitleAnims {
     fn choice_anim(
+        cfg: &ItemConfig,
         nodes: &TitleNodes,
         from: (Vec2f, Color),
         to: (Vec2f, Color),
         dt: ez::EasedDt,
         i: usize,
-    ) -> [Anim; 2] {
+        cursor: usize,
+    ) -> [[Anim; 2]; 2] {
         let delta_shadow = Vec2f::new(10.0, 6.0);
         let delta_choices: [Vec2f; 3] = [
             [0.0, 0.0].into(),
@@ -229,31 +298,53 @@ impl TitleAnims {
             [320.0, 200.0].into(),
         ];
 
-        let shadow = Anim::PosTween(PosTween {
+        let shadow_pos = PosTween {
             tween: ez::Tweened {
                 a: delta_shadow + from.0 + delta_choices[i],
                 b: delta_shadow + to.0 + delta_choices[i],
                 dt,
             },
             node: nodes.choices[i][0].clone(),
-        });
+        };
 
-        let item = Anim::PosTween(PosTween {
+        let shadow_color = ColorTween {
+            tween: ez::Tweened {
+                a: Color::TRANSPARENT,
+                b: if i == cursor {
+                    cfg.shadow.selected
+                } else {
+                    cfg.shadow.not_selected
+                },
+                dt,
+            },
+            node: nodes.choices[i][0].clone(),
+        };
+
+        let item_pos = PosTween {
             tween: ez::Tweened {
                 a: from.0 + delta_choices[i],
                 b: to.0 + delta_choices[i],
                 dt,
             },
             node: nodes.choices[i][1].clone(),
-        });
+        };
 
-        // TODO: tween alpha only
+        let item_color = ColorTween {
+            tween: ez::Tweened {
+                a: Color::TRANSPARENT,
+                b: if i == cursor {
+                    cfg.item.selected
+                } else {
+                    cfg.item.not_selected
+                },
+                dt,
+            },
+            node: nodes.choices[i][1].clone(),
+        };
 
-        [item, shadow]
+        [
+            [shadow_pos.into(), shadow_color.into()],
+            [item_pos.into(), item_color.into()],
+        ]
     }
-
-    // pub fn on_exit(&mut self) {
-    //     self.logo
-    //         .set_next_and_easing([tweak!(20.0), tweak!(400.0)].into(), ez::Ease::ExpOut);
-    // }
 }

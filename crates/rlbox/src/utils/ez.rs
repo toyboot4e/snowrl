@@ -33,7 +33,7 @@ macro_rules! impl_simple_lerp {
         $(
             impl Lerp for $ty {
                 fn lerp(a: Self, b: Self, t: f32) -> Self {
-                    (a as f32 * t + b as f32 * (1.0 - t)) as Self
+                    (a as f32 * (1.0-t) + b as f32 * t) as Self
                 }
             }
         )*
@@ -202,7 +202,7 @@ impl EasedDt {
     }
 
     pub fn is_end(&self) -> bool {
-        self.accum > self.target
+        self.accum >= self.target
     }
 
     pub fn get(&self) -> f32 {

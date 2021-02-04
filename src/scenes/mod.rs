@@ -25,7 +25,8 @@ impl Title {
         let state = title::TitleState { cursor: 0 };
         let mut assets = title::TitleAssets::new(Default::default(), assets);
         let nodes = title::TitleNodes::new(&mut ui.nodes, &mut assets);
-        let anims = title::TitleAnims::init(&mut ui.anims, &nodes);
+        let cursor = 0;
+        let anims = title::TitleAnims::init(&assets.cfg, &mut ui.anims, &nodes, cursor);
 
         Self {
             state,
@@ -45,17 +46,31 @@ impl Title {
                     .play(&*self.assets.se_cursor.get_mut().unwrap());
             }
 
+            let mut pos = self.state.cursor;
             match y_sign {
                 Sign::Pos => {
-                    self.state.cursor += self.nodes.choices.len() - 1;
-                    self.state.cursor %= self.nodes.choices.len();
+                    pos += self.nodes.choices.len() - 1;
+                    pos %= self.nodes.choices.len();
                 }
                 Sign::Neg => {
-                    self.state.cursor += 1;
-                    self.state.cursor %= self.nodes.choices.len();
+                    pos += 1;
+                    pos %= self.nodes.choices.len();
                 }
                 Sign::Neutral => {}
+            };
+
+            if pos != self.state.cursor {
+                self.anims.select(
+                    &self.assets.cfg,
+                    &self.nodes,
+                    &mut gl.ui.anims,
+                    self.state.cursor,
+                    pos,
+                );
+                self.state.cursor = pos;
             }
+
+            return None;
         }
 
         if gl.vi.select.is_pressed() {
@@ -63,8 +78,7 @@ impl Title {
                 .audio
                 .play(&*self.assets.se_select.get_mut().unwrap());
 
-            // self.anims.on_exit();
-
+            self.anims.on_exit(&mut gl.ui, &self.nodes);
             return Some(title::Choice::from_usize(self.state.cursor).unwrap());
         }
 

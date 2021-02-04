@@ -25,7 +25,7 @@ Another approach would be using non-reference-counted [`Index`] in [`arena`].
 
 use std::{
     marker::PhantomData,
-    ops,
+    ops, slice,
     sync::mpsc::{channel, Receiver, Sender},
 };
 
@@ -45,7 +45,7 @@ enum Message {
 }
 
 #[derive(Debug, Clone)]
-struct PoolEntry<T> {
+pub(crate) struct PoolEntry<T> {
     item: T,
     /// None if this entry is invalid
     gen: Option<Gen>,
@@ -79,19 +79,23 @@ impl<T> Pool<T> {
     }
 
     /// Iterator of valid items in this pool
-    pub fn items(&self) -> impl Iterator<Item = &T> {
-        self.entries
-            .iter()
-            .filter(|e| e.gen.is_some())
-            .map(|e| &e.item)
+    pub fn iter(&self) -> impl Iterator<Item = &T>
+    where
+        T: 'static,
+    {
+        iters::Iter {
+            entries: self.entries.iter(),
+        }
     }
 
     /// Mutable iterator of valid items in this pool
-    pub fn items_mut(&mut self) -> impl Iterator<Item = &mut T> {
-        self.entries
-            .iter_mut()
-            .filter(|e| e.gen.is_some())
-            .map(|e| &mut e.item)
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T>
+    where
+        T: 'static,
+    {
+        iters::IterMut {
+            entries: self.entries.iter_mut(),
+        }
     }
 
     fn find_slot(&mut self) -> Option<usize> {
@@ -143,13 +147,8 @@ impl<T> Pool<T> {
         }
     }
 
-    /// Invalidaes the entry
-    pub fn remove(&mut self, handle: &Index) {
-        self.entries[handle.0 as usize].gen = None;
-    }
-
     /// Update reference counting of internal items
-    pub fn sync_refcount(&mut self) {
+    pub fn sync_refcounts(&mut self) {
         while let Ok(mes) = self.receiver.try_recv() {
             match mes {
                 Message::New(ix) => {
@@ -157,6 +156,7 @@ impl<T> Pool<T> {
                 }
                 Message::Drop(ix) => {
                     self.entries[ix.0 as usize].ref_count -= 1;
+                    // TODO: is this right
                     if self.entries[ix.0 as usize].ref_count == 0 {
                         // invalidate the entry
                         self.entries[ix.0 as usize].gen = None;
@@ -277,6 +277,68 @@ impl<T> From<Handle<T>> for WeakHandle<T> {
             index: h.index,
             gen: h.gen,
             _phantom: PhantomData,
+        }
+    }
+}
+
+pub mod iters {
+    use super::*;
+
+    pub struct Iter<'a, T: 'static> {
+        // TODO: len: u32,
+        pub(crate) entries: slice::Iter<'a, PoolEntry<T>>,
+    }
+
+    impl<'a, T: 'static> Iterator for Iter<'a, T> {
+        type Item = &'a T;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            loop {
+                let e = self.entries.next()?;
+                if e.gen.is_none() {
+                    continue;
+                }
+                return Some(&e.item);
+            }
+        }
+    }
+
+    pub struct IterMut<'a, T: 'static> {
+        // TODO: len: u32,
+        pub(crate) entries: slice::IterMut<'a, PoolEntry<T>>,
+    }
+
+    impl<'a, T: 'static> Iterator for IterMut<'a, T> {
+        type Item = &'a mut T;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            loop {
+                let e = self.entries.next()?;
+                if e.gen.is_none() {
+                    continue;
+                }
+                return Some(&mut e.item);
+            }
+        }
+    }
+
+    impl<'a, T: 'static> IntoIterator for &'a Pool<T> {
+        type Item = &'a T;
+        type IntoIter = Iter<'a, T>;
+        fn into_iter(self) -> Self::IntoIter {
+            Iter {
+                entries: self.entries.iter(),
+            }
+        }
+    }
+
+    impl<'a, T: 'static> IntoIterator for &'a mut Pool<T> {
+        type Item = &'a mut T;
+        type IntoIter = IterMut<'a, T>;
+        fn into_iter(self) -> Self::IntoIter {
+            IterMut {
+                entries: self.entries.iter_mut(),
+            }
         }
     }
 }

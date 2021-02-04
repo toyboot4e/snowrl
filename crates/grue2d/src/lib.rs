@@ -129,6 +129,8 @@ impl Global {
             .post_update(self.ice.dt, &self.world.map.rlmap, player);
 
         self.world_render.post_update(&self.world, self.ice.dt);
+
+        self.ui.update(self.ice.dt);
     }
 
     pub fn pre_render(&mut self) {

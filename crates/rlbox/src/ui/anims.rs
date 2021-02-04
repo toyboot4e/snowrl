@@ -20,7 +20,6 @@ use crate::{
 #[enum_dispatch]
 pub trait AnimImpl: std::fmt::Debug + Clone {
     fn tick(&mut self, dt: Duration);
-    /// TODO: remove end animations automatically
     fn is_end(&self) -> bool;
 }
 
@@ -31,6 +30,9 @@ pub enum Anim {
     Seq,
     Parallel,
     PosTween,
+    ColorTween,
+    AlphaTween,
+    // ParamsTween,
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +49,7 @@ impl AnimImpl for Seq {
     }
 
     fn is_end(&self) -> bool {
+        // TODO:
         false
     }
 }
@@ -58,12 +61,14 @@ pub struct Parallel {
 
 impl AnimImpl for Parallel {
     fn tick(&mut self, dt: Duration) {
+        // TODO:
         for a in &mut *self.anims {
             a.tick(dt);
         }
     }
 
     fn is_end(&self) -> bool {
+        // TODO:
         false
     }
 }
@@ -80,7 +85,7 @@ impl AnimImpl for PosTween {
     }
 
     fn is_end(&self) -> bool {
-        false
+        self.tween.is_end()
     }
 }
 
@@ -90,10 +95,30 @@ pub struct ColorTween {
     pub node: Handle<Node>,
 }
 
+impl AnimImpl for ColorTween {
+    fn tick(&mut self, dt: Duration) {
+        self.tween.tick(dt);
+    }
+
+    fn is_end(&self) -> bool {
+        self.tween.is_end()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct AlphaTween {
-    pub tween: ez::Tweened<f32>,
+    pub tween: ez::Tweened<u8>,
     pub node: Handle<Node>,
+}
+
+impl AnimImpl for AlphaTween {
+    fn tick(&mut self, dt: Duration) {
+        self.tween.tick(dt);
+    }
+
+    fn is_end(&self) -> bool {
+        self.tween.is_end()
+    }
 }
 
 // pub struct PatternAnim<T>

@@ -2,23 +2,9 @@
 Stack-based game states
 */
 
-use {
-    rokol::gfx as rg,
-    std::{any::TypeId, borrow::Cow, time::Duration},
-};
+use std::{any::TypeId, borrow::Cow};
 
-use snow2d::{
-    asset::{Asset, AssetCacheAny},
-    audio,
-    gfx::{draw::*, geom2d::*, tex::*, Color, PassConfig},
-    Ice,
-};
-
-use rlbox::{
-    rl::grid2d::*,
-    ui::Ui,
-    utils::{arena::Index, ez, tweak::*},
-};
+use rlbox::{ui::Ui, utils::arena::Index};
 
 use grue2d::{
     render::WorldRenderFlag,
@@ -34,13 +20,7 @@ use grue2d::{
     GameState, Global, StateCommand, StateReturn,
 };
 
-use crate::{
-    play,
-    utils::{
-        asset_defs::{title, AssetDef},
-        paths,
-    },
-};
+use crate::{play, prelude::*, utils::paths};
 
 /// Roguelike game state
 #[derive(Debug, Default)]
@@ -131,6 +111,9 @@ impl GameState for Roguelike {
     fn render(&mut self, gl: &mut Global) {
         let flags = WorldRenderFlag::ALL;
         gl.world_render.render(&gl.world, &mut gl.ice, flags);
+
+        let mut screen = gl.ice.rdr.screen(PassConfig::default());
+        gl.ui.render(&mut screen);
     }
 }
 
@@ -165,16 +148,19 @@ impl GameState for Animation {
     fn render(&mut self, gl: &mut Global) {
         let flags = WorldRenderFlag::ALL;
         gl.world_render.render(&gl.world, &mut gl.ice, flags);
+
+        let mut screen = gl.ice.rdr.screen(PassConfig::default());
+        gl.ui.render(&mut screen);
     }
 }
 
 /// Title screen
 #[derive(Debug)]
-pub struct TitleUi {
+pub struct Title {
     title: crate::scenes::Title,
 }
 
-impl TitleUi {
+impl Title {
     pub fn new(ice: &mut Ice, ui: &mut Ui) -> Self {
         Self {
             title: crate::scenes::Title::new(ice, ui),
@@ -182,7 +168,7 @@ impl TitleUi {
     }
 }
 
-impl GameState for TitleUi {
+impl GameState for Title {
     fn on_enter(&mut self, gl: &mut Global) {
         // self.title.init();
 
@@ -224,198 +210,8 @@ impl GameState for TitleUi {
         let flags = WorldRenderFlag::ALL;
         gl.world_render.render(&gl.world, &mut gl.ice, flags);
 
-        let mut screen = gl.ice.rdr.screen(PassConfig {
-            pa: &rg::PassAction::NONE,
-            tfm: None,
-            pip: None,
-        });
-
+        let mut screen = gl.ice.rdr.screen(PassConfig::default());
         gl.ui.render(&mut screen);
-    }
-}
-
-/// Title screen
-#[derive(Debug)]
-pub struct Title {
-    logo: SpriteData,
-    logo_pos: ez::Tweened<Vec2f>,
-    // TODO: impl selections
-    choices: [SpriteData; 3],
-    choice_pos: ez::Tweened<Vec2f>,
-    cursor: usize,
-    se_cursor: Asset<audio::src::Wav>,
-    se_select: Asset<audio::src::Wav>,
-}
-
-impl Title {
-    pub fn new(ice: &mut Ice) -> Self {
-        let cache = &mut ice.assets;
-        Self {
-            logo: title::Logo::load(cache).unwrap(),
-            logo_pos: Default::default(),
-            choice_pos: Default::default(),
-            choices: title::Choices::load(cache).unwrap(),
-            cursor: 0,
-            se_cursor: cache.load_sync(paths::sound::se::CURSOR).unwrap(),
-            se_select: cache.load_sync(paths::sound::se::SELECT).unwrap(),
-        }
-    }
-
-    fn init(&mut self) {
-        self.logo_pos = ez::Tweened {
-            a: [tweak!(560.0), tweak!(18.0)].into(),
-            b: [tweak!(440.0), tweak!(12.0)].into(),
-            dt: ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut),
-        };
-
-        self.choice_pos = ez::Tweened {
-            a: [tweak!(200.0), tweak!(380.0)].into(),
-            b: [tweak!(80.0), tweak!(350.0)].into(),
-            dt: ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut),
-        };
-    }
-
-    fn tick(&mut self, dt: Duration) {
-        self.logo_pos.tick(dt);
-        self.choice_pos.tick(dt);
-    }
-
-    fn handle_input(&mut self, gl: &mut Global) -> StateReturn {
-        if let Some(dir) = gl.vi.dir.dir4_pressed() {
-            match dir.y_sign() {
-                Sign::Pos => {
-                    self.cursor += self.choices.len() - 1;
-                    self.cursor %= self.choices.len();
-                    gl.ice.audio.play(&*self.se_cursor.get_mut().unwrap());
-                }
-                Sign::Neg => {
-                    self.cursor += 1;
-                    self.cursor %= self.choices.len();
-                    gl.ice.audio.play(&*self.se_cursor.get_mut().unwrap());
-                }
-                Sign::Neutral => {}
-            }
-        }
-
-        if gl.vi.select.is_pressed() {
-            gl.ice.audio.play(&*self.se_select.get_mut().unwrap());
-            StateReturn::ThisFrame(vec![StateCommand::PopAndRemove])
-        } else {
-            // TODO: fade out
-            StateReturn::NextFrame(vec![])
-        }
-    }
-}
-
-impl Title {
-    const SELECTED: Color = Color {
-        r: 24,
-        g: 160,
-        b: 120,
-        a: 255,
-    };
-
-    const UNSELECTED: Color = Color {
-        r: 85,
-        g: 40,
-        b: 40,
-        a: 255,
-    };
-
-    const SHADOW_SELECTED: Color = Color {
-        r: 32,
-        g: 32,
-        b: 32,
-        a: 255,
-    };
-
-    const SHADOW_UNSELECTED: Color = Color {
-        r: 16,
-        g: 16,
-        b: 16,
-        a: 255,
-    };
-}
-
-impl GameState for Title {
-    fn on_enter(&mut self, gl: &mut Global) {
-        self.init();
-
-        let song = gl
-            .ice
-            .assets
-            .load_sync(paths::sound::bgm::FOREST_02)
-            .unwrap();
-        gl.ice.music_player.play_song(song);
-    }
-
-    fn update(&mut self, gl: &mut Global) -> StateReturn {
-        // if debug
-        #[cfg(debug_assertions)]
-        if gl.ice.input.kbd.is_key_pressed(snow2d::input::Key::R) {
-            self.init();
-        }
-
-        self.tick(gl.ice.dt);
-        self.handle_input(gl)
-    }
-
-    fn render(&mut self, gl: &mut Global) {
-        let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.ice, flags);
-
-        let mut screen = gl.ice.rdr.screen(PassConfig {
-            pa: &rg::PassAction::NONE,
-            tfm: None,
-            pip: None,
-        });
-
-        // title logo
-        let alpha = (255.0 * self.logo_pos.t()) as u8;
-        screen
-            .sprite(&self.logo)
-            .dst_pos_px(self.logo_pos.get())
-            .color(Color::WHITE.with_alpha(alpha));
-
-        // choices (TODO: animate selection transition)
-        let pos = {
-            let pos = self.choice_pos.get();
-            let delta_y = tweak!(100.0);
-            [
-                pos,
-                pos + Vec2f::new(tweak!(100.0), delta_y),
-                pos + Vec2f::new(tweak!(320.0), delta_y * 2.0),
-            ]
-        };
-        let alpha = (255.0 * self.choice_pos.t()) as u8;
-
-        for i in 0..3 {
-            let color = if i == self.cursor {
-                Self::SHADOW_SELECTED
-            } else {
-                Self::SHADOW_UNSELECTED
-            }
-            .with_alpha(alpha);
-
-            // shadow
-            screen
-                .sprite(&self.choices[i])
-                .dst_pos_px(pos[i] + Vec2f::new(8.0, 6.0))
-                .color(color);
-
-            let color = if i == self.cursor {
-                Self::SELECTED
-            } else {
-                Self::UNSELECTED
-            }
-            .with_alpha(alpha);
-
-            // logo
-            screen
-                .sprite(&self.choices[i])
-                .dst_pos_px(pos[i])
-                .color(color);
-        }
     }
 }
 
@@ -519,6 +315,7 @@ impl GameState for PlayTalkState {
     fn render(&mut self, gl: &mut Global) {
         let flags = WorldRenderFlag::ALL;
         gl.world_render.render(&gl.world, &mut gl.ice, flags);
+
         let mut screen = gl.ice.rdr.screen(Default::default());
         self.data.render(&mut screen);
     }

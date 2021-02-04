@@ -12,7 +12,7 @@ pub use arraytools::ArrayTools;
 
 pub mod arena {
     /*!
-    [`thunderdome`] re-exported. Note that [`Index`] is not reference-counted.
+    Fork of [`thunderdome`] re-exported. Note that [`Index`] is not reference-counted.
     */
 
     pub use thunderdome::*;

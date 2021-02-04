@@ -38,11 +38,12 @@ impl Default for Ui {
 impl Ui {
     pub fn update(&mut self, dt: Duration) {
         self.anims.update(dt, &mut self.nodes);
+        self.nodes.sync_refcounts();
     }
 
     pub fn render(&mut self, draw: &mut impl DrawApi) {
         // TODO: sort nodes
-        for node in self.nodes.items_mut() {
+        for node in self.nodes.iter_mut() {
             node.render(draw);
         }
     }
@@ -73,16 +74,41 @@ impl std::ops::DerefMut for AnimPool {
 impl AnimPool {
     /// Ticks and applies tweens
     pub fn update(&mut self, dt: Duration, nodes: &mut Pool<Node>) {
-        for (_ix, a) in self.0.iter_mut() {
+        let mut removals = vec![];
+
+        for (ix, a) in self.0.iter_mut() {
+            if a.is_end() {
+                removals.push(ix);
+                continue;
+            }
+
             a.tick(dt);
+
             match a {
-                Anim::Seq(_x) => unimplemented!(),
-                Anim::Parallel(_x) => unimplemented!(),
+                Anim::Seq(_x) => {
+                    unimplemented!()
+                }
+                Anim::Parallel(_x) => {
+                    unimplemented!()
+                }
                 Anim::PosTween(x) => {
                     let n = &mut nodes[&x.node];
                     n.params.pos = x.tween.get();
                 }
+                Anim::ColorTween(x) => {
+                    let n = &mut nodes[&x.node];
+                    n.params.color = x.tween.get();
+                }
+                Anim::AlphaTween(x) => {
+                    let n = &mut nodes[&x.node];
+                    n.params.color.a = x.tween.get();
+                }
             }
+        }
+
+        for ix in removals {
+            log::trace!("remove animation at {:?}", ix);
+            self.0.remove(ix);
         }
     }
 }
