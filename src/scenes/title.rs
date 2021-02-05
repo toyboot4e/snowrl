@@ -5,10 +5,8 @@ Scenes
 use snow2d::audio::src::Wav;
 
 use rlbox::ui::{
-    anims::*,
-    builder::animate,
     node::{Draw, Node},
-    AnimPool, Ui,
+    AnimPool,
 };
 
 use crate::utils::asset_defs::{title, AssetDef};
@@ -60,35 +58,12 @@ impl Default for ItemConfig {
     fn default() -> Self {
         Self {
             item: Phased {
-                selected: Color {
-                    r: 24,
-                    g: 160,
-                    b: 120,
-                    a: 255,
-                },
-
-                not_selected: Color {
-                    r: 85,
-                    g: 40,
-                    b: 40,
-                    a: 255,
-                },
+                selected: [24, 160, 120].into(),
+                not_selected: [85, 40, 40].into(),
             },
-
             shadow: Phased {
-                selected: Color {
-                    r: 24,
-                    g: 24,
-                    b: 24,
-                    a: 255,
-                },
-
-                not_selected: Color {
-                    r: 16,
-                    g: 16,
-                    b: 16,
-                    a: 255,
-                },
+                selected: [24, 24, 24].into(),
+                not_selected: [16, 16, 16].into(),
             },
         }
     }
@@ -101,7 +76,6 @@ pub struct TitleState {
 
 #[derive(Debug)]
 pub struct TitleAssets {
-    pub cfg: ItemConfig,
     pub logo: SpriteData,
     pub choices: [SpriteData; 3],
     pub se_cursor: Asset<Wav>,
@@ -110,9 +84,9 @@ pub struct TitleAssets {
 }
 
 impl TitleAssets {
-    pub fn new(cfg: ItemConfig, assets: &mut AssetCacheAny) -> Self {
+    /// TODO: use derive macro to load it
+    pub fn new(assets: &mut AssetCacheAny) -> Self {
         Self {
-            cfg,
             logo: title::Logo::load(assets).unwrap(),
             choices: title::Choices::load(assets).unwrap(),
             se_cursor: assets.load_sync(paths::sound::se::CURSOR).unwrap(),
@@ -130,7 +104,7 @@ pub struct TitleNodes {
 }
 
 impl TitleNodes {
-    pub fn new(nodes: &mut Pool<Node>, assets: &TitleAssets) -> Self {
+    pub fn new(cfg: &ItemConfig, nodes: &mut Pool<Node>, assets: &TitleAssets) -> Self {
         let logo = nodes.add(Draw::Sprite(assets.logo.clone()).into());
 
         let choices = [
@@ -150,8 +124,8 @@ impl TitleNodes {
 
         // overwrite initial colors
         for i in 0..choices.len() {
-            nodes[&choices[i][0]].params.color = assets.cfg.shadow.not_selected;
-            nodes[&choices[i][1]].params.color = assets.cfg.item.not_selected;
+            nodes[&choices[i][0]].params.color = cfg.shadow.not_selected;
+            nodes[&choices[i][1]].params.color = cfg.item.not_selected;
         }
 
         Self { logo, choices }
@@ -163,6 +137,17 @@ impl TitleNodes {
 pub struct TitleAnims {}
 
 impl TitleAnims {
+    const DELTA_SHADOW: [f32; 2] = [10.0, 6.0];
+    const DELTA_CHOICES: [[f32; 2]; 3] = [[0.0, 0.0], [100.0, 100.0], [320.0, 200.0]];
+
+    fn logo_pos() -> Vec2f {
+        [tweak!(440.0), tweak!(12.0)].into()
+    }
+
+    fn choice_pos(i: usize) -> Vec2f {
+        Vec2f::new(tweak!(80.0), tweak!(350.0)).offset(Self::DELTA_CHOICES[i])
+    }
+
     pub fn init(cfg: &ItemConfig, anims: &mut AnimPool, nodes: &TitleNodes, cursor: usize) -> Self {
         let dt = ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut);
 
@@ -170,30 +155,23 @@ impl TitleAnims {
             .builder()
             .node(&nodes.logo)
             .dt(dt)
-            .pos([(tweak!(560.0), tweak!(18.0)), (tweak!(440.0), tweak!(12.0))])
+            .pos([Self::logo_pos().offset([120.0, 6.0]), Self::logo_pos()])
             .color([Color::TRANSPARENT, Color::OPAQUE]);
-
-        let from = Vec2f::new(tweak!(200.0), tweak!(380.0));
-        let to = Vec2f::new(tweak!(80.0), tweak!(350.0));
-
-        let delta_shadow = Vec2f::new(10.0, 6.0);
-        let delta_choices: [Vec2f; 3] = [
-            [0.0, 0.0].into(),
-            [100.0, 100.0].into(),
-            [320.0, 200.0].into(),
-        ];
 
         for i in 0..3 {
             // offset
-            let from = from + delta_choices[i];
-            let to = to + delta_choices[i];
+            let from = Self::choice_pos(i).offset([tweak!(-120.0), tweak!(-30.0)]);
+            let to = Self::choice_pos(i);
 
             let mut b = anims.builder();
             b.dt(dt);
 
             // shadow
             b.node(&nodes.choices[i][0])
-                .pos([from + delta_shadow, to + delta_shadow])
+                .pos([
+                    from + Vec2f::from(Self::DELTA_SHADOW),
+                    to + Vec2f::from(Self::DELTA_SHADOW),
+                ])
                 .color([Color::TRANSPARENT, cfg.shadow.get(i == cursor)]);
 
             // text
@@ -234,9 +212,25 @@ impl TitleAnims {
         b.dt(ez::EasedDt::new(24.0 / 60.0, ez::Ease::SinOut));
 
         b.node(&nodes.logo)
-            .pos([(tweak!(440.0), tweak!(18.0)), (tweak!(320.0), tweak!(6.0))])
+            .pos([
+                Self::logo_pos(),
+                Self::logo_pos().offset([tweak!(-120.0), tweak!(-6.0)]),
+            ])
             .color([Color::OPAQUE, Color::TRANSPARENT]);
 
-        // TODO: tween texts
+        for i in 0..3 {
+            let pos = Self::choice_pos(i);
+
+            // text
+            b.node(&nodes.choices[i][1])
+                .pos([pos, pos.offset([40.0, 20.0])])
+                .alpha([255, 0]);
+
+            // shadow
+            let pos = pos + Vec2f::from(Self::DELTA_SHADOW);
+            b.node(&nodes.choices[i][1])
+                .pos([pos, pos.offset(Self::DELTA_SHADOW).offset([40.0, 20.0])])
+                .alpha([255, 0]);
+        }
     }
 }

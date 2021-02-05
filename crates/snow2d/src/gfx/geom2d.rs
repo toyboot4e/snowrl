@@ -117,6 +117,10 @@ impl Vec2f {
         self.y = self.y.round();
     }
 
+    pub fn offset(&self, x: impl Into<Self>) -> Self {
+        self + x.into()
+    }
+
     pub fn scale(&self, scale: impl Into<Vec2f>) -> Self {
         let scale = scale.into();
 
