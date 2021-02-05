@@ -6,6 +6,7 @@ use snow2d::audio::src::Wav;
 
 use rlbox::ui::{
     anims::*,
+    builder::animate,
     node::{Draw, Node},
     AnimPool, Ui,
 };
@@ -26,6 +27,16 @@ pub enum Choice {
 pub struct Phased<T> {
     pub selected: T,
     pub not_selected: T,
+}
+
+impl<T: Clone> Phased<T> {
+    fn get(&self, is_selected: bool) -> T {
+        if is_selected {
+            self.selected.clone()
+        } else {
+            self.not_selected.clone()
+        }
+    }
 }
 
 impl Choice {
@@ -149,57 +160,49 @@ impl TitleNodes {
 
 /// TODO: put animations in pool so that the animation remain when `Title` is poped
 #[derive(Debug)]
-pub struct TitleAnims {
-    logo: Index<Anim>,
-    choices: Vec<Index<Anim>>,
-}
+pub struct TitleAnims {}
 
 impl TitleAnims {
     pub fn init(cfg: &ItemConfig, anims: &mut AnimPool, nodes: &TitleNodes, cursor: usize) -> Self {
         let dt = ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut);
 
-        let logo = anims.insert(PosTween {
-            tween: ez::Tweened {
-                a: [tweak!(560.0), tweak!(18.0)].into(),
-                b: [tweak!(440.0), tweak!(12.0)].into(),
-                dt,
-            },
-            node: nodes.logo.clone(),
-        });
+        anims
+            .builder()
+            .node(&nodes.logo)
+            .dt(dt)
+            .pos([(tweak!(560.0), tweak!(18.0)), (tweak!(440.0), tweak!(12.0))])
+            .color([Color::TRANSPARENT, Color::OPAQUE]);
 
-        anims.insert(ColorTween {
-            tween: ez::Tweened {
-                a: Color::TRANSPARENT,
-                b: Color::OPAQUE,
-                dt,
-            },
-            node: nodes.logo.clone(),
-        });
+        let from = Vec2f::new(tweak!(200.0), tweak!(380.0));
+        let to = Vec2f::new(tweak!(80.0), tweak!(350.0));
 
-        let a = Vec2f::new(tweak!(200.0), tweak!(380.0));
-        let b = Vec2f::new(tweak!(80.0), tweak!(350.0));
-        let dt = ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut);
-
-        let mut choices = vec![];
+        let delta_shadow = Vec2f::new(10.0, 6.0);
+        let delta_choices: [Vec2f; 3] = [
+            [0.0, 0.0].into(),
+            [100.0, 100.0].into(),
+            [320.0, 200.0].into(),
+        ];
 
         for i in 0..3 {
-            let [[a, b], [c, d]] = Self::choice_anim(
-                cfg,
-                nodes,
-                (a, Color::TRANSPARENT),
-                (b, Color::WHITE),
-                dt.clone(),
-                i,
-                cursor,
-            );
+            // offset
+            let from = from + delta_choices[i];
+            let to = to + delta_choices[i];
 
-            choices.push(anims.insert(a));
-            choices.push(anims.insert(b));
-            choices.push(anims.insert(c));
-            choices.push(anims.insert(d));
+            let mut b = anims.builder();
+            b.dt(dt);
+
+            // shadow
+            b.node(&nodes.choices[i][0])
+                .pos([from + delta_shadow, to + delta_shadow])
+                .color([Color::TRANSPARENT, cfg.shadow.get(i == cursor)]);
+
+            // text
+            b.node(&nodes.choices[i][1])
+                .pos([from, to])
+                .color([Color::TRANSPARENT, cfg.item.get(i == cursor)]);
         }
 
-        Self { logo, choices }
+        Self {}
     }
 
     pub fn select(
@@ -210,141 +213,30 @@ impl TitleAnims {
         from: usize,
         to: usize,
     ) {
-        let dt = EasedDt::new(6.0 / 60.0, Ease::Linear);
+        let mut b = anims.builder();
+        b.dt(EasedDt::new(6.0 / 60.0, Ease::Linear));
 
         // items
-        let fade_out = ColorTween {
-            tween: ez::Tweened {
-                a: cfg.item.selected,
-                b: cfg.item.not_selected,
-                dt,
-            },
-            node: nodes.choices[from][1].clone(),
-        };
-
-        let fade_in = ColorTween {
-            tween: ez::Tweened {
-                a: cfg.item.not_selected,
-                b: cfg.item.selected,
-                dt,
-            },
-            node: nodes.choices[to][1].clone(),
-        };
-
-        anims.insert(fade_out);
-        anims.insert(fade_in);
+        b.node(&nodes.choices[from][1])
+            .color([cfg.item.selected, cfg.item.not_selected]);
+        b.node(&nodes.choices[to][1])
+            .color([cfg.item.not_selected, cfg.item.selected]);
 
         // shadows
-        let fade_out = ColorTween {
-            tween: ez::Tweened {
-                a: cfg.shadow.selected,
-                b: cfg.shadow.not_selected,
-                dt,
-            },
-            node: nodes.choices[from][0].clone(),
-        };
-
-        let fade_in = ColorTween {
-            tween: ez::Tweened {
-                a: cfg.shadow.not_selected,
-                b: cfg.shadow.selected,
-                dt,
-            },
-            node: nodes.choices[to][0].clone(),
-        };
-
-        anims.insert(fade_out);
-        anims.insert(fade_in);
+        b.node(&nodes.choices[from][0])
+            .color([cfg.shadow.selected, cfg.shadow.not_selected]);
+        b.node(&nodes.choices[to][0])
+            .color([cfg.shadow.not_selected, cfg.shadow.selected]);
     }
 
-    pub fn on_exit(&mut self, ui: &mut Ui, nodes: &TitleNodes) {
-        let dt = ez::EasedDt::new(24.0 / 60.0, ez::Ease::SinOut);
+    pub fn on_exit(&mut self, anims: &mut AnimPool, nodes: &TitleNodes) {
+        let mut b = anims.builder();
+        b.dt(ez::EasedDt::new(24.0 / 60.0, ez::Ease::SinOut));
 
-        ui.anims.insert(PosTween {
-            tween: ez::Tweened {
-                a: [tweak!(440.0), tweak!(18.0)].into(),
-                b: [tweak!(320.0), tweak!(6.0)].into(),
-                dt,
-            },
-            node: nodes.logo.clone(),
-        });
+        b.node(&nodes.logo)
+            .pos([(tweak!(440.0), tweak!(18.0)), (tweak!(320.0), tweak!(6.0))])
+            .color([Color::OPAQUE, Color::TRANSPARENT]);
 
-        ui.anims.insert(ColorTween {
-            tween: ez::Tweened {
-                // TODO: x or y only tween
-                a: Color::OPAQUE,
-                b: Color::TRANSPARENT,
-                dt,
-            },
-            node: nodes.logo.clone(),
-        });
-    }
-}
-
-impl TitleAnims {
-    fn choice_anim(
-        cfg: &ItemConfig,
-        nodes: &TitleNodes,
-        from: (Vec2f, Color),
-        to: (Vec2f, Color),
-        dt: ez::EasedDt,
-        i: usize,
-        cursor: usize,
-    ) -> [[Anim; 2]; 2] {
-        let delta_shadow = Vec2f::new(10.0, 6.0);
-        let delta_choices: [Vec2f; 3] = [
-            [0.0, 0.0].into(),
-            [100.0, 100.0].into(),
-            [320.0, 200.0].into(),
-        ];
-
-        let shadow_pos = PosTween {
-            tween: ez::Tweened {
-                a: delta_shadow + from.0 + delta_choices[i],
-                b: delta_shadow + to.0 + delta_choices[i],
-                dt,
-            },
-            node: nodes.choices[i][0].clone(),
-        };
-
-        let shadow_color = ColorTween {
-            tween: ez::Tweened {
-                a: Color::TRANSPARENT,
-                b: if i == cursor {
-                    cfg.shadow.selected
-                } else {
-                    cfg.shadow.not_selected
-                },
-                dt,
-            },
-            node: nodes.choices[i][0].clone(),
-        };
-
-        let item_pos = PosTween {
-            tween: ez::Tweened {
-                a: from.0 + delta_choices[i],
-                b: to.0 + delta_choices[i],
-                dt,
-            },
-            node: nodes.choices[i][1].clone(),
-        };
-
-        let item_color = ColorTween {
-            tween: ez::Tweened {
-                a: Color::TRANSPARENT,
-                b: if i == cursor {
-                    cfg.item.selected
-                } else {
-                    cfg.item.not_selected
-                },
-                dt,
-            },
-            node: nodes.choices[i][1].clone(),
-        };
-
-        [
-            [shadow_pos.into(), shadow_color.into()],
-            [item_pos.into(), item_color.into()],
-        ]
+        // TODO: tween texts
     }
 }

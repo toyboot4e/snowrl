@@ -78,7 +78,7 @@ impl Title {
                 .audio
                 .play(&*self.assets.se_select.get_mut().unwrap());
 
-            self.anims.on_exit(&mut gl.ui, &self.nodes);
+            self.anims.on_exit(&mut gl.ui.anims, &self.nodes);
             return Some(title::Choice::from_usize(self.state.cursor).unwrap());
         }
 

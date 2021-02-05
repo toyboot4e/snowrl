@@ -3,6 +3,7 @@ User interface
 */
 
 pub mod anims;
+pub mod builder;
 pub mod node;
 
 // TODO: scenes
@@ -72,6 +73,10 @@ impl std::ops::DerefMut for AnimPool {
 }
 
 impl AnimPool {
+    pub fn builder(&mut self) -> builder::AnimBuilder {
+        builder::AnimBuilder::new(self)
+    }
+
     /// Ticks and applies tweens
     pub fn update(&mut self, dt: Duration, nodes: &mut Pool<Node>) {
         let mut removals = vec![];
@@ -107,7 +112,7 @@ impl AnimPool {
         }
 
         for ix in removals {
-            log::trace!("remove animation at {:?}", ix);
+            // log::trace!("remove animation at {:?}", ix);
             self.0.remove(ix);
         }
     }

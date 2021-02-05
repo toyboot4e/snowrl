@@ -190,15 +190,15 @@ impl EasedDt {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.accum = 0.0;
-    }
-
     pub fn tick(&mut self, dt: Duration) {
         self.accum += dt.as_secs_f32();
         if self.accum > self.target {
             self.accum = self.target;
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.accum = 0.0;
     }
 
     pub fn is_end(&self) -> bool {
@@ -207,6 +207,10 @@ impl EasedDt {
 
     pub fn get(&self) -> f32 {
         self.ease.map(self.accum / self.target)
+    }
+
+    pub fn set_target(&mut self, secs: f32) {
+        self.target = secs;
     }
 }
 
