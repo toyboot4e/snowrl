@@ -14,13 +14,18 @@ use snow2d::gfx::{geom2d::Vec2f, Color};
 
 use crate::{
     ui::node::Node,
-    utils::{ez, pool::Handle},
+    utils::{
+        ez,
+        pool::{Handle, Pool},
+    },
 };
 
 #[enum_dispatch]
 pub trait AnimImpl: std::fmt::Debug + Clone {
     fn tick(&mut self, dt: Duration);
     fn is_end(&self) -> bool;
+    fn apply(&self, nodes: &mut Pool<Node>);
+    fn set_accum_norm(&mut self, t: f32);
 }
 
 /// Any kind of animation
@@ -52,6 +57,14 @@ impl AnimImpl for Seq {
         // TODO:
         false
     }
+
+    fn apply(&self, _nodes: &mut Pool<Node>) {
+        unimplemented!()
+    }
+
+    fn set_accum_norm(&mut self, _t: f32) {
+        unimplemented!()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -71,6 +84,14 @@ impl AnimImpl for Parallel {
         // TODO:
         false
     }
+
+    fn apply(&self, _nodes: &mut Pool<Node>) {
+        unimplemented!()
+    }
+
+    fn set_accum_norm(&mut self, _t: f32) {
+        unimplemented!()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -86,6 +107,15 @@ impl AnimImpl for PosTween {
 
     fn is_end(&self) -> bool {
         self.tween.is_end()
+    }
+
+    fn apply(&self, nodes: &mut Pool<Node>) {
+        let n = &mut nodes[&self.node];
+        n.params.pos = self.tween.get();
+    }
+
+    fn set_accum_norm(&mut self, t: f32) {
+        self.tween.set_accum_norm(t);
     }
 }
 
@@ -103,6 +133,15 @@ impl AnimImpl for ColorTween {
     fn is_end(&self) -> bool {
         self.tween.is_end()
     }
+
+    fn apply(&self, nodes: &mut Pool<Node>) {
+        let n = &mut nodes[&self.node];
+        n.params.color = self.tween.get();
+    }
+
+    fn set_accum_norm(&mut self, t: f32) {
+        self.tween.set_accum_norm(t);
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -118,6 +157,15 @@ impl AnimImpl for AlphaTween {
 
     fn is_end(&self) -> bool {
         self.tween.is_end()
+    }
+
+    fn apply(&self, nodes: &mut Pool<Node>) {
+        let n = &mut nodes[&self.node];
+        n.params.color.a = self.tween.get();
+    }
+
+    fn set_accum_norm(&mut self, t: f32) {
+        self.tween.set_accum_norm(t);
     }
 }
 

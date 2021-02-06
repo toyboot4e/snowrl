@@ -5,8 +5,9 @@ Scenes
 use snow2d::audio::src::Wav;
 
 use rlbox::ui::{
+    anims::{Anim, AnimImpl},
     node::{Draw, Node},
-    AnimPool,
+    AnimArena, Ui,
 };
 
 use crate::utils::asset_defs::{title, AssetDef};
@@ -49,12 +50,12 @@ impl Choice {
 }
 
 #[derive(Debug, Clone)]
-pub struct ItemConfig {
+pub struct ColorConfig {
     pub item: Phased<Color>,
     pub shadow: Phased<Color>,
 }
 
-impl Default for ItemConfig {
+impl Default for ColorConfig {
     fn default() -> Self {
         Self {
             item: Phased {
@@ -104,7 +105,7 @@ pub struct TitleNodes {
 }
 
 impl TitleNodes {
-    pub fn new(cfg: &ItemConfig, nodes: &mut Pool<Node>, assets: &TitleAssets) -> Self {
+    pub fn new(cfg: &ColorConfig, nodes: &mut Pool<Node>, assets: &TitleAssets) -> Self {
         let logo = nodes.add(Draw::Sprite(assets.logo.clone()).into());
 
         let choices = [
@@ -134,7 +135,9 @@ impl TitleNodes {
 
 /// TODO: put animations in pool so that the animation remain when `Title` is poped
 #[derive(Debug)]
-pub struct TitleAnims {}
+pub struct TitleAnims {
+    init_choices: Vec<Index<Anim>>,
+}
 
 impl TitleAnims {
     const DELTA_SHADOW: [f32; 2] = [10.0, 6.0];
@@ -148,29 +151,34 @@ impl TitleAnims {
         Vec2f::new(tweak!(80.0), tweak!(350.0)).offset(Self::DELTA_CHOICES[i])
     }
 
-    pub fn init(cfg: &ItemConfig, anims: &mut AnimPool, nodes: &TitleNodes, cursor: usize) -> Self {
+    pub fn init(
+        cfg: &ColorConfig,
+        anims: &mut AnimArena,
+        nodes: &TitleNodes,
+        cursor: usize,
+    ) -> Self {
         let dt = ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut);
 
-        anims
-            .builder()
-            .node(&nodes.logo)
+        let mut b = anims.builder();
+        b.node(&nodes.logo)
             .dt(dt)
             .pos([Self::logo_pos().offset([120.0, 6.0]), Self::logo_pos()])
             .color([Color::TRANSPARENT, Color::OPAQUE]);
+
+        b.clear_log();
 
         for i in 0..3 {
             // offset
             let from = Self::choice_pos(i).offset([tweak!(-120.0), tweak!(-30.0)]);
             let to = Self::choice_pos(i);
 
-            let mut b = anims.builder();
             b.dt(dt);
 
             // shadow
             b.node(&nodes.choices[i][0])
                 .pos([
-                    from + Vec2f::from(Self::DELTA_SHADOW),
-                    to + Vec2f::from(Self::DELTA_SHADOW),
+                    from.offset(Self::DELTA_SHADOW),
+                    to.offset(Self::DELTA_SHADOW),
                 ])
                 .color([Color::TRANSPARENT, cfg.shadow.get(i == cursor)]);
 
@@ -180,18 +188,30 @@ impl TitleAnims {
                 .color([Color::TRANSPARENT, cfg.item.get(i == cursor)]);
         }
 
-        Self {}
+        Self {
+            init_choices: b.built,
+        }
     }
 
     pub fn select(
         &mut self,
-        cfg: &ItemConfig,
+        cfg: &ColorConfig,
         nodes: &TitleNodes,
-        anims: &mut AnimPool,
+        ui: &mut Ui,
         from: usize,
         to: usize,
     ) {
-        let mut b = anims.builder();
+        // invalidate the previous animations
+        for ix in &self.init_choices {
+            let anim = &mut ui.anims[*ix];
+            anim.set_accum_norm(1.0);
+            anim.apply(&mut ui.nodes);
+        }
+        for ix in self.init_choices.drain(0..) {
+            ui.anims.remove(ix);
+        }
+
+        let mut b = ui.anims.builder();
         b.dt(EasedDt::new(6.0 / 60.0, Ease::Linear));
 
         // items
@@ -207,7 +227,7 @@ impl TitleAnims {
             .color([cfg.shadow.not_selected, cfg.shadow.selected]);
     }
 
-    pub fn on_exit(&mut self, anims: &mut AnimPool, nodes: &TitleNodes) {
+    pub fn on_exit(&mut self, anims: &mut AnimArena, nodes: &TitleNodes) {
         let mut b = anims.builder();
         b.dt(ez::EasedDt::new(24.0 / 60.0, ez::Ease::SinOut));
 

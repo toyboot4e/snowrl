@@ -138,7 +138,6 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
     let cache = ice.assets.cache_mut::<Texture2dDrop>().unwrap();
 
     // player
-
     let tex = cache.load_sync(paths::CHICKEN).unwrap();
 
     let img = {
@@ -154,6 +153,7 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
             dir,
         )?;
 
+        // FIXME: consider offsets
         for frame_sprite in img.frames_mut() {
             frame_sprite.scales[0] = 2.0;
             frame_sprite.scales[1] = 2.0;

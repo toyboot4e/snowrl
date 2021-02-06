@@ -1,8 +1,8 @@
 use snow2d::gfx::{geom2d::Vec2f, Color};
 
 use crate::{
-    ui::{anims::*, node::Node, AnimPool},
-    utils::{ez, pool::Handle},
+    ui::{anims::*, node::Node, AnimArena},
+    utils::{arena::Index, ez, pool::Handle},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -31,23 +31,30 @@ impl<T, U: Into<T>> From<[U; 2]> for Delta<T> {
     }
 }
 
-pub fn animate(anims: &mut AnimPool) -> AnimBuilder<'_> {
+pub fn animate(anims: &mut AnimArena) -> AnimBuilder<'_> {
     AnimBuilder::new(anims)
 }
 
 pub struct AnimBuilder<'a> {
-    pub anims: &'a mut AnimPool,
-    pub node: Option<Handle<Node>>,
-    pub dt: ez::EasedDt,
+    anims: &'a mut AnimArena,
+    node: Option<Handle<Node>>,
+    dt: ez::EasedDt,
+    /// Built animation handles
+    pub built: Vec<Index<Anim>>,
 }
 
 impl<'a> AnimBuilder<'a> {
-    pub fn new(anims: &'a mut AnimPool) -> Self {
+    pub fn new(anims: &'a mut AnimArena) -> Self {
         Self {
             anims,
             node: None,
             dt: ez::EasedDt::new(0.0, ez::Ease::Linear),
+            built: Vec::with_capacity(4),
         }
+    }
+
+    pub fn clear_log(&mut self) {
+        self.built.clear();
     }
 
     pub fn node<'x>(&mut self, node: &Handle<Node>) -> &mut Self {
@@ -73,7 +80,7 @@ impl<'a> AnimBuilder<'a> {
     pub fn color(&mut self, delta: impl Into<Delta<Color>>) -> &mut Self {
         let delta = delta.into();
 
-        let _index = self.anims.insert(ColorTween {
+        let index = self.anims.insert(ColorTween {
             tween: ez::Tweened {
                 a: delta.a,
                 b: delta.b,
@@ -81,6 +88,7 @@ impl<'a> AnimBuilder<'a> {
             },
             node: self.node.clone().unwrap(),
         });
+        self.built.push(index);
 
         self
     }
@@ -88,7 +96,7 @@ impl<'a> AnimBuilder<'a> {
     pub fn alpha(&mut self, delta: impl Into<Delta<u8>>) -> &mut Self {
         let delta = delta.into();
 
-        let _index = self.anims.insert(AlphaTween {
+        let index = self.anims.insert(AlphaTween {
             tween: ez::Tweened {
                 a: delta.a,
                 b: delta.b,
@@ -96,6 +104,7 @@ impl<'a> AnimBuilder<'a> {
             },
             node: self.node.clone().unwrap(),
         });
+        self.built.push(index);
 
         self
     }
@@ -103,7 +112,7 @@ impl<'a> AnimBuilder<'a> {
     pub fn pos(&mut self, delta: impl Into<Delta<Vec2f>>) -> &mut Self {
         let delta = delta.into();
 
-        self.anims.insert(PosTween {
+        let index = self.anims.insert(PosTween {
             tween: ez::Tweened {
                 a: delta.a,
                 b: delta.b,
@@ -111,6 +120,8 @@ impl<'a> AnimBuilder<'a> {
             },
             node: self.node.clone().unwrap(),
         });
+        self.built.push(index);
+
         self
     }
 }

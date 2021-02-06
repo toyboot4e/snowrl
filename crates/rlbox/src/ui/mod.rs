@@ -24,14 +24,14 @@ use self::{
 #[derive(Debug)]
 pub struct Ui {
     pub nodes: Pool<Node>,
-    pub anims: AnimPool,
+    pub anims: AnimArena,
 }
 
 impl Default for Ui {
     fn default() -> Self {
         Self {
             nodes: Pool::with_capacity(16),
-            anims: AnimPool::default(),
+            anims: AnimArena::default(),
         }
     }
 }
@@ -51,28 +51,28 @@ impl Ui {
 }
 
 #[derive(Debug)]
-pub struct AnimPool(Arena<Anim>);
+pub struct AnimArena(Arena<Anim>);
 
-impl Default for AnimPool {
+impl Default for AnimArena {
     fn default() -> Self {
         Self(Arena::with_capacity(16))
     }
 }
 
-impl std::ops::Deref for AnimPool {
+impl std::ops::Deref for AnimArena {
     type Target = Arena<Anim>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl std::ops::DerefMut for AnimPool {
+impl std::ops::DerefMut for AnimArena {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl AnimPool {
+impl AnimArena {
     pub fn builder(&mut self) -> builder::AnimBuilder {
         builder::AnimBuilder::new(self)
     }
@@ -88,27 +88,7 @@ impl AnimPool {
             }
 
             a.tick(dt);
-
-            match a {
-                Anim::Seq(_x) => {
-                    unimplemented!()
-                }
-                Anim::Parallel(_x) => {
-                    unimplemented!()
-                }
-                Anim::PosTween(x) => {
-                    let n = &mut nodes[&x.node];
-                    n.params.pos = x.tween.get();
-                }
-                Anim::ColorTween(x) => {
-                    let n = &mut nodes[&x.node];
-                    n.params.color = x.tween.get();
-                }
-                Anim::AlphaTween(x) => {
-                    let n = &mut nodes[&x.node];
-                    n.params.color.a = x.tween.get();
-                }
-            }
+            a.apply(nodes);
         }
 
         for ix in removals {

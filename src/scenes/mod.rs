@@ -12,7 +12,7 @@ use grue2d::Global;
 
 #[derive(Debug)]
 pub struct Title {
-    cfg: title::ItemConfig,
+    cfg: title::ColorConfig,
     state: title::TitleState,
     assets: title::TitleAssets,
     nodes: title::TitleNodes,
@@ -23,7 +23,7 @@ impl Title {
     pub fn new(ice: &mut Ice, ui: &mut Ui) -> Self {
         let assets = &mut ice.assets;
 
-        let cfg = title::ItemConfig::default();
+        let cfg = title::ColorConfig::default();
         let state = title::TitleState { cursor: 0 };
         let mut assets = title::TitleAssets::new(assets);
         let nodes = title::TitleNodes::new(&cfg, &mut ui.nodes, &mut assets);
@@ -63,13 +63,8 @@ impl Title {
             };
 
             if pos != self.state.cursor {
-                self.anims.select(
-                    &self.cfg,
-                    &self.nodes,
-                    &mut gl.ui.anims,
-                    self.state.cursor,
-                    pos,
-                );
+                self.anims
+                    .select(&self.cfg, &self.nodes, &mut gl.ui, self.state.cursor, pos);
                 self.state.cursor = pos;
             }
 

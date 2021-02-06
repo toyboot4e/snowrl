@@ -149,9 +149,14 @@ impl<T: Lerp + Clone> Tweened<T> {
         self.dt.ease = ease;
     }
 
-    /// Overwrites target duration in seconds
+    /// Overwrites the target duration in seconds
     pub fn set_duration_secs(&mut self, target: f32) {
         self.dt.target = target;
+    }
+
+    /// Overwrites the accumulated duration
+    pub fn set_accum_norm(&mut self, t: f32) {
+        self.dt.accum = self.dt.target * t;
     }
 }
 
