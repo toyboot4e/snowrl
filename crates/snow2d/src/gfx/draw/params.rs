@@ -2,7 +2,7 @@
 
 use rokol::gfx as rg;
 
-use crate::gfx::{batch::vertex::QuadData, geom2d::*, Color};
+use crate::gfx::{batch::QuadData, geom2d::*, Color};
 
 /// Texture with size data. Used by [`QuadParams`]
 pub trait Texture2d {

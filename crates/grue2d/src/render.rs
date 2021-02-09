@@ -4,24 +4,18 @@ Renderers
 
 use {
     rlbox::{render::tiled as tiled_render, utils::DoubleTrack},
-    rokol::{
-        app as ra,
-        gfx::{self as rg, BakedResource},
-    },
+    rokol::{app as ra, gfx as rg},
     snow2d::{
         gfx::{
-            batch::{mesh::DynamicMesh, vertex::VertexData},
-            draw::*,
-            geom2d::*,
-            tex::RenderTexture,
-            Color, PassConfig, Snow2d,
+            draw::*, geom2d::*, mesh::StaticMesh, shaders, shaders::PosUvVert, tex::RenderTexture,
+            Color, PassConfig, Shader, Snow2d,
         },
         Ice,
     },
     std::time::{Duration, Instant},
 };
 
-use crate::{rl::world::World, Global};
+use crate::rl::world::World;
 
 /// TODO: remove
 const WALK_TIME: f32 = 8.0 / 60.0;
@@ -39,30 +33,15 @@ pub enum RenderLayer {
 pub struct ShadowRenderer {
     /// Shadow textures for gaussian blur
     shadows: [RenderTexture; 2],
-    /// Pipeline object for off-screen rendering with gausssian blur
-    pip_gauss_ofs: rg::Pipeline,
+    /// Shader program for off-screen rendering with gausssian blur
+    gauss_shd: Shader,
 }
 
 impl Default for ShadowRenderer {
     fn default() -> Self {
         Self {
             shadows: [Self::create_shadow(), Self::create_shadow()],
-            pip_gauss_ofs: rg::Pipeline::create(&rg::PipelineDesc {
-                shader: snow2d::gfx::shaders::gauss(),
-                index_type: rg::IndexType::UInt16 as u32,
-                layout: VertexData::layout_desc(),
-                blend: rg::BlendState {
-                    // for off-screen rendering:
-                    depth_format: rg::PixelFormat::Depth as u32,
-                    ..Default::default()
-                },
-                rasterizer: rg::RasterizerState {
-                    // NOTE: our renderer may output backward triangle
-                    cull_mode: rg::CullMode::None as u32,
-                    ..Default::default()
-                },
-                ..Default::default()
-            }),
+            gauss_shd: shaders::gauss(),
         }
     }
 }
@@ -85,7 +64,7 @@ impl ShadowRenderer {
             PassConfig {
                 pa: &rg::PassAction::NONE,
                 tfm: None,
-                pip: None,
+                shd: None,
             },
         );
 
@@ -130,7 +109,7 @@ impl ShadowRenderer {
             PassConfig {
                 pa: &rg::PassAction::NONE,
                 tfm: None,
-                pip: Some(self.pip_gauss_ofs),
+                shd: Some(&self.gauss_shd),
             },
         );
 
@@ -153,7 +132,7 @@ impl ShadowRenderer {
         let mut screen = rdr.screen(PassConfig {
             pa: &rg::PassAction::NONE,
             tfm: None,
-            pip: None,
+            shd: None,
         });
 
         self.blend_to_target(&mut screen);
@@ -169,25 +148,9 @@ impl ShadowRenderer {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-#[repr(C)]
-struct PosUvVert {
-    pub pos: [f32; 2],
-    pub uv: [f32; 2],
-}
-
-impl PosUvVert {
-    pub fn layout_desc() -> rg::LayoutDesc {
-        let mut desc = rg::LayoutDesc::default();
-        desc.attrs[0].format = rg::VertexFormat::Float2 as u32;
-        desc.attrs[1].format = rg::VertexFormat::Float2 as u32;
-        desc
-    }
-}
-
 #[derive(Debug)]
 pub struct SnowRenderer {
-    pip_snow: rg::Pipeline,
+    shd: Shader,
     start_time: Instant,
     mesh: StaticMesh<PosUvVert>,
 }
@@ -211,26 +174,7 @@ impl Default for SnowRenderer {
         ];
 
         Self {
-            pip_snow: rg::Pipeline::create(&rg::PipelineDesc {
-                shader: snow2d::gfx::shaders::snow(),
-                index_type: rg::IndexType::UInt16 as u32,
-                layout: PosUvVert::layout_desc(),
-                blend: rg::BlendState {
-                    // alpha blending for on-screen rendering
-                    enabled: true,
-                    src_factor_rgb: rg::BlendFactor::SrcAlpha as u32,
-                    dst_factor_rgb: rg::BlendFactor::OneMinusSrcAlpha as u32,
-                    src_factor_alpha: rg::BlendFactor::One as u32,
-                    dst_factor_alpha: rg::BlendFactor::Zero as u32,
-                    ..Default::default()
-                },
-                rasterizer: rg::RasterizerState {
-                    // NOTE: our renderer may output backward triangle
-                    cull_mode: rg::CullMode::None as u32,
-                    ..Default::default()
-                },
-                ..Default::default()
-            }),
+            shd: shaders::snow(),
             start_time: Instant::now(),
             mesh: StaticMesh::new_16(&verts, &[0, 1, 2]),
         }
@@ -240,20 +184,22 @@ impl Default for SnowRenderer {
 impl SnowRenderer {
     pub fn render(&mut self) {
         rg::begin_default_pass(&rg::PassAction::NONE, ra::width(), ra::height());
-        rg::apply_pipeline(self.pip_snow);
+        self.shd.apply_pip();
 
-        // set uniforms
-        unsafe {
-            // FS
-            let res = glam::Vec2::from(ra::size_scaled());
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Fs, 0, &res);
-
-            let time = (Instant::now() - self.start_time).as_secs_f32();
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Fs, 1, &time);
-
-            let mouse = glam::Vec2::new(ra::width() as f32, ra::height() as f32);
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Fs, 2, &mouse);
+        fn as_bytes<T>(x: &T) -> &[u8] {
+            unsafe {
+                std::slice::from_raw_parts(x as *const _ as *const _, std::mem::size_of::<T>())
+            }
         }
+
+        let size = glam::Vec2::from(ra::size_scaled());
+        self.shd.set_fs_uniform(0, as_bytes(&size));
+
+        let time = (Instant::now() - self.start_time).as_secs_f32();
+        self.shd.set_fs_uniform(1, as_bytes(&time));
+
+        let mouse = glam::Vec2::new(ra::width() as f32, ra::height() as f32);
+        self.shd.set_fs_uniform(2, as_bytes(&mouse));
 
         // just draw a fullscreen triangle
         self.mesh.draw();
@@ -308,7 +254,7 @@ impl WorldRenderer {
             let mut screen = ice.rdr.screen(PassConfig {
                 pa: &self.pa_blue,
                 tfm: None,
-                pip: None,
+                shd: None,
             });
 
             if flags.contains(WorldRenderFlag::MAP) {

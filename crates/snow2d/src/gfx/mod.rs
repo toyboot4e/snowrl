@@ -11,20 +11,18 @@ Same as OpenGL or school math (left-handed and column-major).
 pub mod batch;
 pub mod draw;
 pub mod geom2d;
+pub mod mesh;
 pub mod shaders;
 pub mod tex;
 
 use rokol::{
     app as ra,
     fons::FontBook,
-    gfx::{self as rg, BakedResource, Pipeline},
+    gfx::{self as rg, BakedResource},
 };
 
 use self::{
-    batch::{
-        vertex::{QuadData, VertexData},
-        Batch, BatchData,
-    },
+    batch::{Batch, BatchData, QuadData},
     draw::*,
     geom2d::*,
     tex::RenderTexture,
@@ -130,6 +128,37 @@ impl From<&[u8; 3]> for Color {
     }
 }
 
+#[derive(Debug)]
+pub struct Shader {
+    pub shd: rg::Shader,
+    pub pip: rg::Pipeline,
+}
+
+impl std::ops::Drop for Shader {
+    fn drop(&mut self) {
+        rg::Shader::destroy(self.shd);
+        rg::Pipeline::destroy(self.pip);
+    }
+}
+
+impl Shader {
+    pub fn new(shd: rg::Shader, pip: rg::Pipeline) -> Self {
+        Self { shd, pip }
+    }
+
+    pub fn set_vs_uniform(&self, ix: usize, bytes: &[u8]) {
+        rg::apply_uniforms(rg::ShaderStage::Vs, ix as u32, bytes);
+    }
+
+    pub fn set_fs_uniform(&self, ix: usize, bytes: &[u8]) {
+        rg::apply_uniforms(rg::ShaderStage::Fs, ix as u32, bytes);
+    }
+
+    pub fn apply_pip(&self) {
+        rg::apply_pipeline(self.pip);
+    }
+}
+
 // TODO: define operators
 const M_INV_Y: glam::Mat4 = glam::const_mat4!(
     [1.0, 0.0, 0.0, 0.0],
@@ -137,21 +166,6 @@ const M_INV_Y: glam::Mat4 = glam::const_mat4!(
     [0.0, 0.0, 1.0, 0.0],
     [0.0, 0.0, 0.0, 1.0]
 );
-
-const ALPHA_BLEND: rg::BlendState = rg::BlendState {
-    enabled: true,
-    src_factor_rgb: rg::BlendFactor::SrcAlpha as u32,
-    dst_factor_rgb: rg::BlendFactor::OneMinusSrcAlpha as u32,
-    op_rgb: 0,
-    src_factor_alpha: rg::BlendFactor::One as u32,
-    dst_factor_alpha: rg::BlendFactor::Zero as u32,
-    op_alpha: 0,
-    color_write_mask: 0,
-    color_attachment_count: 1,
-    color_format: 0,
-    depth_format: 0,
-    blend_color: [0.0; 4],
-};
 
 /// Parameter to [`Snow2d::screen`] or [`Snow2d::offscreen`]
 ///
@@ -161,7 +175,7 @@ pub struct PassConfig<'a> {
     pub pa: &'a rg::PassAction,
     /// uniform matrix = orthographic * transform
     pub tfm: Option<glam::Mat4>,
-    pub pip: Option<rg::Pipeline>,
+    pub shd: Option<&'a Shader>,
 }
 
 impl<'a> Default for PassConfig<'a> {
@@ -169,7 +183,7 @@ impl<'a> Default for PassConfig<'a> {
         Self {
             pa: &rg::PassAction::NONE,
             tfm: None,
-            pip: None,
+            shd: None,
         }
     }
 }
@@ -180,10 +194,10 @@ pub struct Snow2d {
     /// Vertex/index buffer and images slots
     batch: Batch,
     pub fontbook: FontBook,
-    /// Default pipeline object for on-screen rendering
-    screen_pip: rg::Pipeline,
-    /// Default pipeline object for off-screen rendering
-    ofs_pip: rg::Pipeline,
+    /// Shader program for on-screen rendering
+    ons_shd: Shader,
+    /// Shader program for off-screen rendering
+    ofs_shd: Shader,
 }
 
 impl Snow2d {
@@ -192,34 +206,11 @@ impl Snow2d {
         // create white dot image
         crate::gfx::draw::init();
 
-        let mut desc = rg::PipelineDesc {
-            shader: self::shaders::tex_1(),
-            index_type: rg::IndexType::UInt16 as u32,
-            layout: VertexData::layout_desc(),
-            blend: ALPHA_BLEND,
-            rasterizer: rg::RasterizerState {
-                // NOTE: our renderer may output backward triangle
-                cull_mode: rg::CullMode::None as u32,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-
-        let screen_pip = Pipeline::create(&desc);
-
-        let ofs_pip = Pipeline::create({
-            desc.blend = ALPHA_BLEND;
-            desc.blend.depth_format = rg::PixelFormat::Depth as u32;
-            // TODO: sample_count? (also on internal image of render texture)
-            desc.rasterizer.sample_count = 1;
-            &desc
-        });
-
         Self {
             batch: Batch::default(),
             fontbook: FontBook::new(256, 256),
-            screen_pip,
-            ofs_pip,
+            ons_shd: shaders::default_screen(),
+            ofs_shd: shaders::default_offscreen(),
         }
     }
 
@@ -236,9 +227,10 @@ impl Snow2d {
     pub fn screen(&mut self, cfg: PassConfig<'_>) -> RenderPass<'_> {
         rg::begin_default_pass(cfg.pa, ra::width(), ra::height());
 
-        // FIXME: pipeline should set uniform by themselves
-        rg::apply_pipeline(cfg.pip.unwrap_or(self.screen_pip));
+        let shd = cfg.shd.unwrap_or(&self.ons_shd);
+        shd.apply_pip();
 
+        // FIXME: projection matrix should be set shaders by themselves
         // left, right, top, bottom, near, far
         let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
 
@@ -246,10 +238,13 @@ impl Snow2d {
             proj = proj * tfm;
         }
 
-        // FIXME: projection matrix should be set shaders by themselves
-        unsafe {
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
-        }
+        let bytes: &[u8] = unsafe {
+            std::slice::from_raw_parts(
+                &proj as *const _ as *const _,
+                std::mem::size_of::<glam::Mat4>(),
+            )
+        };
+        shd.set_vs_uniform(0, bytes);
 
         RenderPass { snow: self }
     }
@@ -258,9 +253,10 @@ impl Snow2d {
     pub fn offscreen(&mut self, ofs: &RenderTexture, cfg: PassConfig<'_>) -> RenderPass<'_> {
         rg::begin_pass(ofs.pass(), cfg.pa);
 
-        // FIXME: pipeline should set uniform by themselves
-        rg::apply_pipeline(cfg.pip.unwrap_or(self.ofs_pip));
+        let shd = cfg.shd.unwrap_or(&self.ofs_shd);
+        shd.apply_pip();
 
+        // FIXME: projection matrix should be set shaders by themselves
         // left, right, top, bottom, near, far
         let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
 
@@ -271,9 +267,13 @@ impl Snow2d {
         // [OpenGL] invert y
         proj = M_INV_Y * proj;
 
-        unsafe {
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
-        }
+        let bytes: &[u8] = unsafe {
+            std::slice::from_raw_parts(
+                &proj as *const _ as *const _,
+                std::mem::size_of::<glam::Mat4>(),
+            )
+        };
+        shd.set_vs_uniform(0, bytes);
 
         RenderPass { snow: self }
     }

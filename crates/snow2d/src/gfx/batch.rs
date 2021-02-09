@@ -1,17 +1,41 @@
 //! Quad batcher under the hood
 
-pub mod mesh;
-pub mod vertex;
-
 use rokol::gfx as rg;
 
-use crate::gfx::{
-    batch::{
-        mesh::DynamicMesh,
-        vertex::{QuadData, N_QUADS},
-    },
-    draw::*,
-};
+use crate::gfx::{draw::*, mesh::DynamicMesh, shaders::VertexData};
+
+pub const N_QUADS: usize = 2048 * 4;
+
+/// `snow2d` quad data type
+#[derive(Debug, Clone, Default)]
+#[repr(C)]
+pub struct QuadData(pub [VertexData; 4]);
+
+impl std::ops::Index<usize> for QuadData {
+    type Output = VertexData;
+
+    fn index(&self, ix: usize) -> &Self::Output {
+        &self.0[ix]
+    }
+}
+
+impl std::ops::IndexMut<usize> for QuadData {
+    fn index_mut(&mut self, ix: usize) -> &mut Self::Output {
+        &mut self.0[ix]
+    }
+}
+
+impl From<[VertexData; 4]> for QuadData {
+    fn from(data: [VertexData; 4]) -> Self {
+        Self(data)
+    }
+}
+
+impl From<&[VertexData; 4]> for QuadData {
+    fn from(data: &[VertexData; 4]) -> Self {
+        Self(data.clone())
+    }
+}
 
 /// Creates index buffer for quadliterals
 ///
