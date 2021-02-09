@@ -61,15 +61,16 @@ fn gen(
     Shader::new(shd, pip)
 }
 
+/// Position, color and uv
 #[derive(Debug, Clone, Default)]
 #[repr(C)]
-pub struct VertexData {
+pub struct DefaultVertex {
     pub pos: [f32; 2],
     pub color: [u8; 4],
     pub uv: [f32; 2],
 }
 
-impl<Pos, Color, Uv> From<(Pos, Color, Uv)> for VertexData
+impl<Pos, Color, Uv> From<(Pos, Color, Uv)> for DefaultVertex
 where
     Pos: Into<[f32; 2]>,
     Color: Into<[u8; 4]>,
@@ -84,7 +85,7 @@ where
     }
 }
 
-impl VertexData {
+impl DefaultVertex {
     pub fn layout_desc() -> rg::LayoutDesc {
         let mut desc = rg::LayoutDesc::default();
         desc.attrs[0].format = rg::VertexFormat::Float2 as u32;
@@ -134,7 +135,7 @@ pub fn default_screen() -> Shader {
         },
         &mut rg::PipelineDesc {
             index_type: rg::IndexType::UInt16 as u32,
-            layout: VertexData::layout_desc(),
+            layout: DefaultVertex::layout_desc(),
             blend: ALPHA_BLEND,
             rasterizer: rg::RasterizerState {
                 // NOTE: our renderer may output backward triangle
@@ -171,7 +172,7 @@ pub fn default_offscreen() -> Shader {
         },
         &mut rg::PipelineDesc {
             index_type: rg::IndexType::UInt16 as u32,
-            layout: VertexData::layout_desc(),
+            layout: DefaultVertex::layout_desc(),
             blend: rg::BlendState {
                 depth_format: rg::PixelFormat::Depth as u32,
                 ..ALPHA_BLEND
@@ -228,7 +229,7 @@ pub fn gauss() -> Shader {
         },
         &mut rg::PipelineDesc {
             index_type: rg::IndexType::UInt16 as u32,
-            layout: VertexData::layout_desc(),
+            layout: DefaultVertex::layout_desc(),
             blend: rg::BlendState {
                 depth_format: rg::PixelFormat::Depth as u32,
                 ..Default::default()

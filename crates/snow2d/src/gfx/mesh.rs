@@ -1,8 +1,13 @@
+/*!
+Fluent API to [`rokol::gfx::Bindings`], i.e, vertex/index buffers and image slots
+*/
+
 use {
     rokol::gfx::{self as rg, BakedResource},
     std::marker::PhantomData,
 };
 
+/// Wrapper of immutable buffers
 #[derive(Debug, Clone, Default)]
 pub struct StaticMesh<V> {
     bind: rg::Bindings,
@@ -37,6 +42,11 @@ impl<V> StaticMesh<V> {
         Self::new(verts, indices)
     }
 
+    /// slot: [0, 12)
+    pub fn bind_image(&mut self, img: rg::Image, slot: usize) {
+        self.bind.fs_images[slot] = img;
+    }
+
     /// Draws all the elements
     pub fn draw(&self) {
         rg::apply_bindings(&self.bind);
@@ -44,7 +54,7 @@ impl<V> StaticMesh<V> {
     }
 }
 
-/// Fluent API to [`rokol::gfx::Bindings`], i.e, vertex/index buffers and image slots
+/// Wrapper of dynamic buffers
 #[derive(Debug, Clone, Default)]
 pub struct DynamicMesh<V> {
     pub bind: rg::Bindings,

@@ -1,7 +1,7 @@
 /*!
 `snow2d` ❄️
 
-`snow2d` is a  2D framework built on top of [`rokol`].
+A 2D framework built on top of [`rokol`].
 */
 
 pub mod asset;

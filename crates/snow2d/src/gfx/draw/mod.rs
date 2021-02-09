@@ -20,6 +20,7 @@ pub(crate) fn init() {
     WHITE_DOT.set(tex).unwrap();
 }
 
+/// Peekable iterator of [`QuadData`] just for quad builder
 pub trait QuadIter {
     /// Used for implementing the provided methods
     fn peek_quad_mut(&mut self, img: rg::Image) -> &mut QuadData;
