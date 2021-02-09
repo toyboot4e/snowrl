@@ -490,3 +490,329 @@ impl Into<[f32; 4]> for &Rect2f {
         [self.x, self.y, self.w, self.h]
     }
 }
+
+/// Column-major 2x3 matrix, which represents 3x3 matrix
+///
+/// ```txt
+///  m[0] m[1]  ...  |  scale_x  sin       0
+///  m[2] m[3]  ...  |  cos      scale_y   0
+///  m[4] m[5]  ...  |  trans_x  trans_y   1
+/// ```
+///
+/// TODO: assert on zero division (NAN)?
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Mat2f {
+    /// Scale x
+    pub m11: f32,
+    /// Rotation component
+    pub m12: f32,
+    /// Translate x
+    pub m13: f32,
+    /// Rotation component
+    pub m21: f32,
+    /// Scale y
+    pub m22: f32,
+    /// Translate y
+    pub m23: f32,
+}
+
+impl Mat2f {
+    pub const IDENTITY: Self = Self {
+        m11: 1.0,
+        m12: 0.0,
+        m13: 0.0,
+        m21: 0.0,
+        m22: 1.0,
+        m23: 0.0,
+    };
+
+    /// Position component
+    pub fn tr(&self) -> Vec2f {
+        Vec2f::new(self.m13, self.m23)
+    }
+
+    /// Rotation in radians
+    pub fn rot(&self) -> f32 {
+        self.m11.atan2(self.m22)
+    }
+
+    /// Rotation in radians
+    pub fn scale(&self) -> Vec2f {
+        Vec2f::new(self.m11, self.m22)
+    }
+
+    pub fn from_tr(tr: impl Into<[f32; 2]>) -> Self {
+        let tr = tr.into();
+        Self {
+            m13: tr[0],
+            m23: tr[1],
+            ..Default::default()
+        }
+    }
+
+    pub fn from_rot(rot: f32) -> Self {
+        let (cos, sin) = (rot.cos(), rot.sin());
+        Self {
+            m11: cos,
+            m12: sin,
+            m21: -sin,
+            m22: cos,
+            ..Default::default()
+        }
+    }
+
+    pub fn from_scale(scale: impl Into<[f32; 2]>) -> Self {
+        let scale = scale.into();
+        Self {
+            m11: scale[0],
+            m22: scale[1],
+            ..Default::default()
+        }
+    }
+
+    pub fn det(&self) -> f32 {
+        self.m11 * self.m22 - self.m12 * self.m21
+    }
+
+    pub fn inv(&self) -> Self {
+        let inv_det = 1.0 / self.det();
+        Self {
+            m11: self.m22 * inv_det,
+            m12: -self.m12 * inv_det,
+            m13: -(self.m12 * self.m23 - self.m13 * self.m22) * inv_det,
+            m21: self.m22 * inv_det,
+            m22: self.m11 * inv_det,
+            m23: -(self.m11 * self.m23 - self.m13 * self.m22) * inv_det,
+        }
+    }
+
+    pub fn mul(&self, other: impl std::borrow::Borrow<Self>) -> Self {
+        let other = other.borrow();
+        Self {
+            m11: self.m11 * other.m11 + self.m12 * other.m21,
+            m12: self.m11 * other.m12 + self.m12 * other.m22,
+            m13: self.m11 * other.m13 + self.m12 * other.m23 + self.m13,
+            m21: self.m21 * other.m11 + self.m22 * other.m21,
+            m22: self.m21 * other.m12 + self.m22 * other.m22,
+            m23: self.m21 * other.m13 + self.m22 * other.m23 + self.m23,
+        }
+    }
+}
+
+// Mat2f, Mat2f
+impl_op_ex!(+ |lhs: &Mat2f, rhs: &Mat2f| -> Mat2f {
+    Mat2f {
+        m11: lhs.m11 + rhs.m11,
+        m12: lhs.m12 + rhs.m12,
+        m13: lhs.m13 + rhs.m13,
+        m21: lhs.m21 + rhs.m21,
+        m22: lhs.m22 + rhs.m22,
+        m23: lhs.m23 + rhs.m23,
+    }
+});
+
+impl_op_ex!(-|lhs: &Mat2f, rhs: &Mat2f| -> Mat2f {
+    Mat2f {
+        m11: lhs.m11 - rhs.m11,
+        m12: lhs.m12 - rhs.m12,
+        m13: lhs.m13 - rhs.m13,
+        m21: lhs.m21 - rhs.m21,
+        m22: lhs.m22 - rhs.m22,
+        m23: lhs.m23 - rhs.m23,
+    }
+});
+
+impl_op_ex!(*|lhs: &Mat2f, rhs: &Mat2f| -> Mat2f {
+    Mat2f {
+        m11: lhs.m11 * rhs.m11,
+        m12: lhs.m12 * rhs.m12,
+        m13: lhs.m13 * rhs.m13,
+        m21: lhs.m21 * rhs.m21,
+        m22: lhs.m22 * rhs.m22,
+        m23: lhs.m23 * rhs.m23,
+    }
+});
+
+impl_op_ex!(/|lhs: &Mat2f, rhs: &Mat2f| -> Mat2f {
+    Mat2f {
+        m11: lhs.m11 / rhs.m11,
+        m12: lhs.m12 / rhs.m12,
+        m13: lhs.m13 / rhs.m13,
+        m21: lhs.m21 / rhs.m21,
+        m22: lhs.m22 / rhs.m22,
+        m23: lhs.m23 / rhs.m23,
+    }
+});
+
+impl_op_ex!(+= |lhs: &mut Mat2f, rhs: &Mat2f| {
+    lhs.m11 += rhs.m11;
+    lhs.m12 += rhs.m12;
+    lhs.m13 += rhs.m13;
+    lhs.m21 += rhs.m21;
+    lhs.m22 += rhs.m22;
+    lhs.m23 += rhs.m23;
+});
+
+impl_op_ex!(-= |lhs: &mut Mat2f, rhs: &Mat2f| {
+    lhs.m11 -= rhs.m11;
+    lhs.m12 -= rhs.m12;
+    lhs.m13 -= rhs.m13;
+    lhs.m21 -= rhs.m21;
+    lhs.m22 -= rhs.m22;
+    lhs.m23 -= rhs.m23;
+});
+
+impl_op_ex!(*= |lhs: &mut Mat2f, rhs: &Mat2f| {
+    lhs.m11 *= rhs.m11;
+    lhs.m12 *= rhs.m12;
+    lhs.m13 *= rhs.m13;
+    lhs.m21 *= rhs.m21;
+    lhs.m22 *= rhs.m22;
+    lhs.m23 *= rhs.m23;
+});
+
+impl_op_ex!(/= |lhs: &mut Mat2f, rhs: &Mat2f| {
+    lhs.m11 /= rhs.m11;
+    lhs.m12 /= rhs.m12;
+    lhs.m13 /= rhs.m13;
+    lhs.m21 /= rhs.m21;
+    lhs.m22 /= rhs.m22;
+    lhs.m23 /= rhs.m23;
+});
+
+// Mat2f, f32
+impl_op_ex!(+ |lhs: &Mat2f, rhs: &f32| -> Mat2f {
+    Mat2f {
+        m11: lhs.m11 + rhs,
+        m12: lhs.m12 + rhs,
+        m13: lhs.m13 + rhs,
+        m21: lhs.m21 + rhs,
+        m22: lhs.m22 + rhs,
+        m23: lhs.m23 + rhs,
+    }
+});
+
+impl_op_ex!(-|lhs: &Mat2f, rhs: &f32| -> Mat2f {
+    Mat2f {
+        m11: lhs.m11 - rhs,
+        m12: lhs.m12 - rhs,
+        m13: lhs.m13 - rhs,
+        m21: lhs.m21 - rhs,
+        m22: lhs.m22 - rhs,
+        m23: lhs.m23 - rhs,
+    }
+});
+
+impl_op_ex!(*|lhs: &Mat2f, rhs: &f32| -> Mat2f {
+    Mat2f {
+        m11: lhs.m11 * rhs,
+        m12: lhs.m12 * rhs,
+        m13: lhs.m13 * rhs,
+        m21: lhs.m21 * rhs,
+        m22: lhs.m22 * rhs,
+        m23: lhs.m23 * rhs,
+    }
+});
+
+impl_op_ex!(/|lhs: &Mat2f, rhs: &f32| -> Mat2f {
+    Mat2f {
+        m11: lhs.m11 / rhs,
+        m12: lhs.m12 / rhs,
+        m13: lhs.m13 / rhs,
+        m21: lhs.m21 / rhs,
+        m22: lhs.m22 / rhs,
+        m23: lhs.m23 / rhs,
+    }
+});
+
+impl_op_ex!(+= |lhs: &mut Mat2f, rhs: &f32| {
+    lhs.m11 += rhs;
+    lhs.m12 += rhs;
+    lhs.m13 += rhs;
+    lhs.m21 += rhs;
+    lhs.m22 += rhs;
+    lhs.m23 += rhs;
+});
+
+impl_op_ex!(-= |lhs: &mut Mat2f, rhs: &f32| {
+    lhs.m11 -= rhs;
+    lhs.m12 -= rhs;
+    lhs.m13 -= rhs;
+    lhs.m21 -= rhs;
+    lhs.m22 -= rhs;
+    lhs.m23 -= rhs;
+});
+
+impl_op_ex!(*= |lhs: &mut Mat2f, rhs: &f32| {
+    lhs.m11 *= rhs;
+    lhs.m12 *= rhs;
+    lhs.m13 *= rhs;
+    lhs.m21 *= rhs;
+    lhs.m22 *= rhs;
+    lhs.m23 *= rhs;
+});
+
+impl_op_ex!(/= |lhs: &mut Mat2f, rhs: &f32| {
+    lhs.m11 /= rhs;
+    lhs.m12 /= rhs;
+    lhs.m13 /= rhs;
+    lhs.m21 /= rhs;
+    lhs.m22 /= rhs;
+    lhs.m23 /= rhs;
+});
+
+// Mat2f, Vec2f
+impl_op_ex!(*|lhs: &Mat2f, rhs: &Vec2f| -> Vec2f {
+    Vec2f::new(
+        rhs.x * lhs.m11 + rhs.y * lhs.m12 + lhs.m13,
+        rhs.x * lhs.m21 + rhs.y * lhs.m22 + lhs.m23,
+    )
+});
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::f32::consts::PI;
+
+    fn mat_eq(m1: &Mat2f, m2: &Mat2f) {
+        assert!(m1.m11 - m2.m11 < 1.0e-6);
+        assert!(m1.m12 - m2.m12 < 1.0e-6);
+        assert!(m1.m13 - m2.m13 < 1.0e-6);
+        assert!(m1.m21 - m2.m21 < 1.0e-6);
+        assert!(m1.m22 - m2.m22 < 1.0e-6);
+        assert!(m1.m23 - m2.m23 < 1.0e-6);
+    }
+
+    #[test]
+    fn mat() {
+        let m1 = Mat2f {
+            m11: 1.0,
+            m12: 2.0,
+            m13: 5.0,
+            m21: 2.0,
+            m22: 2.0,
+            m23: 4.0,
+        };
+
+        assert_eq!(m1.det(), -2.0);
+
+        let m2 = Mat2f {
+            m11: -1.0,
+            m12: 1.0,
+            m13: 1.0,
+            m21: 1.0,
+            m22: -0.5,
+            m23: -3.0,
+        };
+
+        mat_eq(&m1.inv(), &m2);
+    }
+
+    #[test]
+    fn rot() {
+        let m1 = Mat2f::from_rot(PI / 4.0);
+        let m2 = Mat2f::from_rot(PI / 2.0);
+        let m3 = Mat2f::from_rot(PI / 4.0 * 3.0);
+        mat_eq(&m2.mul(m1), &m3);
+    }
+}
