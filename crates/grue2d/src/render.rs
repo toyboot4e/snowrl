@@ -21,14 +21,22 @@ use {
     std::time::{Duration, Instant},
 };
 
-use crate::rl::world::World;
+use crate::{rl::world::World, Global};
 
 /// TODO: remove
 const WALK_TIME: f32 = 8.0 / 60.0;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RenderLayer {
+    Map,
+    Actors,
+    Shadow,
+    Snow,
+    Ui,
+}
+
 #[derive(Debug)]
 pub struct ShadowRenderer {
-    pa_trans: rg::PassAction,
     /// Shadow textures for gaussian blur
     shadows: [RenderTexture; 2],
     /// Pipeline object for off-screen rendering with gausssian blur
@@ -38,7 +46,6 @@ pub struct ShadowRenderer {
 impl Default for ShadowRenderer {
     fn default() -> Self {
         Self {
-            pa_trans: rg::PassAction::clear(Color::BLACK.to_normalized_array()),
             shadows: [Self::create_shadow(), Self::create_shadow()],
             pip_gauss_ofs: rg::Pipeline::create(&rg::PipelineDesc {
                 shader: snow2d::gfx::shaders::gauss(),
@@ -76,7 +83,7 @@ impl ShadowRenderer {
         let mut offscreen = rdr.offscreen(
             &self.shadows[0],
             PassConfig {
-                pa: &self.pa_trans,
+                pa: &rg::PassAction::NONE,
                 tfm: None,
                 pip: None,
             },
@@ -108,11 +115,9 @@ impl ShadowRenderer {
         for _ in 0..5 {
             // pingpong blur
             for ix in 0..2 {
-                // source shadow index
+                // (i, j) = (source, target)
                 let i = ix % 2;
-                // target shadow index
                 let j = (ix + 1) % 2;
-
                 self.blur(rdr, ix == 0, i, j);
             }
         }
@@ -164,44 +169,52 @@ impl ShadowRenderer {
     }
 }
 
-/// Position-ony vertex data
 #[derive(Debug, Clone, Default)]
 #[repr(C)]
-struct PosVert {
+struct PosUvVert {
     pub pos: [f32; 2],
+    pub uv: [f32; 2],
 }
 
-impl PosVert {
+impl PosUvVert {
     pub fn layout_desc() -> rg::LayoutDesc {
         let mut desc = rg::LayoutDesc::default();
         desc.attrs[0].format = rg::VertexFormat::Float2 as u32;
+        desc.attrs[1].format = rg::VertexFormat::Float2 as u32;
         desc
     }
 }
 
-const M_INV_Y: glam::Mat4 = glam::const_mat4!(
-    [1.0, 0.0, 0.0, 0.0],
-    [0.0, -1.0, 0.0, 0.0],
-    [0.0, 0.0, 1.0, 0.0],
-    [0.0, 0.0, 0.0, 1.0]
-);
-
 #[derive(Debug)]
 pub struct SnowRenderer {
-    pa_trans: rg::PassAction,
     pip_snow: rg::Pipeline,
     start_time: Instant,
-    mesh: DynamicMesh<PosVert>,
+    mesh: StaticMesh<PosUvVert>,
 }
 
 impl Default for SnowRenderer {
     fn default() -> Self {
+        // NOTE: this is only for OpenGL
+        let verts = vec![
+            PosUvVert {
+                pos: [-1.0, -1.0],
+                uv: [0.0, 0.0],
+            },
+            PosUvVert {
+                pos: [3.0, -1.0],
+                uv: [2.0, 0.0],
+            },
+            PosUvVert {
+                pos: [-1.0, 3.0],
+                uv: [0.0, 2.0],
+            },
+        ];
+
         Self {
-            pa_trans: rg::PassAction::clear(Color::BLACK.to_normalized_array()),
             pip_snow: rg::Pipeline::create(&rg::PipelineDesc {
                 shader: snow2d::gfx::shaders::snow(),
                 index_type: rg::IndexType::UInt16 as u32,
-                layout: PosVert::layout_desc(),
+                layout: PosUvVert::layout_desc(),
                 blend: rg::BlendState {
                     // alpha blending for on-screen rendering
                     enabled: true,
@@ -219,7 +232,7 @@ impl Default for SnowRenderer {
                 ..Default::default()
             }),
             start_time: Instant::now(),
-            mesh: DynamicMesh::new_16(vec![PosVert::default(); 4], &[0, 1, 2, 3, 1, 2]),
+            mesh: StaticMesh::new_16(&verts, &[0, 1, 2]),
         }
     }
 }
@@ -231,12 +244,6 @@ impl SnowRenderer {
 
         // set uniforms
         unsafe {
-            // VS
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &{
-                let proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
-                M_INV_Y * proj
-            });
-
             // FS
             let res = glam::Vec2::from(ra::size_scaled());
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Fs, 0, &res);
@@ -248,25 +255,10 @@ impl SnowRenderer {
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Fs, 2, &mouse);
         }
 
-        self.draw();
+        // just draw a fullscreen triangle
+        self.mesh.draw();
 
         rg::end_pass();
-    }
-
-    /// Just draw a fullscreen quad
-    fn draw(&mut self) {
-        let w = ra::width() as f32;
-        let h = ra::height() as f32;
-
-        self.mesh.verts[0].pos = [0.0, 0.0];
-        self.mesh.verts[1].pos = [w, 0.0];
-        self.mesh.verts[2].pos = [0.0, h];
-        self.mesh.verts[3].pos = [w, h];
-
-        unsafe {
-            self.mesh.upload_all_verts();
-        }
-        self.mesh.draw(0, 6);
     }
 }
 

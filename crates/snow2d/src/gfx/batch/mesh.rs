@@ -3,6 +3,47 @@ use {
     std::marker::PhantomData,
 };
 
+#[derive(Debug, Clone, Default)]
+pub struct StaticMesh<V> {
+    bind: rg::Bindings,
+    n_indices: usize,
+    _phantom: PhantomData<V>,
+}
+
+impl<V> StaticMesh<V> {
+    fn new<T>(verts: &[V], indices: &[T]) -> Self {
+        Self {
+            bind: rg::Bindings {
+                index_buffer: rg::Buffer::create(&rg::ibuf_desc_immutable(indices, "")),
+                vertex_buffers: {
+                    let mut xs = [Default::default(); 8];
+                    xs[0] = rg::Buffer::create(&rg::vbuf_desc_immutable(verts, ""));
+                    xs
+                },
+                ..Default::default()
+            },
+            n_indices: indices.len(),
+            _phantom: PhantomData,
+        }
+    }
+
+    /// New mesh with `u16` indices
+    pub fn new_16(verts: &[V], indices: &[u16]) -> Self {
+        Self::new(verts, indices)
+    }
+
+    /// New mesh with `u32` indices
+    pub fn new_32(verts: &[V], indices: &[u32]) -> Self {
+        Self::new(verts, indices)
+    }
+
+    /// Draws all the elements
+    pub fn draw(&self) {
+        rg::apply_bindings(&self.bind);
+        rg::draw(0, self.n_indices as u32, 1);
+    }
+}
+
 /// Fluent API to [`rokol::gfx::Bindings`], i.e, vertex/index buffers and image slots
 #[derive(Debug, Clone, Default)]
 pub struct DynamicMesh<V> {

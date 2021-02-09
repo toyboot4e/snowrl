@@ -13,7 +13,7 @@ uniform vec2 iResolution;
 uniform float iTime;
 uniform vec2 iMouse;
 
-in vec2 fragCoord;
+in vec2 fs_uv;
 out vec4 fragColor;
 
 #define LIGHT_SNOW
@@ -46,7 +46,8 @@ void main() {
 	vec2 uv = iMouse.xy / iResolution.xy + vec2(
         1.0,
         iResolution.y / iResolution.x
-    ) * fragCoord.xy / iResolution.xy;
+    ) * fs_uv.xy;
+    // ) * fs_uv.xy / iResolution.xy;
 
 	vec3 acc = vec3(0.0);
 	float dof = 5.0 * sin(iTime * 0.1);
@@ -73,6 +74,5 @@ void main() {
 		acc += vec3(smoothstep(edge, -edge, d) * (r.x / (1.0 + 0.02 * fi * DEPTH)));
 	}
 
-	// fragColor = vec4(vec3(acc), 1.0);
 	fragColor = vec4(1.0, 1.0, 1.0, acc);
 }

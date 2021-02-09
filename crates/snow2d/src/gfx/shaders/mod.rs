@@ -114,19 +114,6 @@ pub fn gauss() -> rokol::gfx::Shader {
 
 pub fn snow() -> rokol::gfx::Shader {
     gen(&def_shd!("snow"), |desc| {
-        desc.vs.uniform_blocks[0] = {
-            let mut block = rg::ShaderUniformBlockDesc::default();
-
-            block.uniforms[0] = rg::ShaderUniformDesc {
-                type_: rg::UniformType::Mat4 as u32,
-                name: c_str!("transform").as_ptr() as *const _,
-                ..Default::default()
-            };
-            block.size += std::mem::size_of::<glam::Mat4>() as i32;
-
-            block
-        };
-
         desc.fs.uniform_blocks[0] = {
             let mut block = rg::ShaderUniformBlockDesc::default();
 

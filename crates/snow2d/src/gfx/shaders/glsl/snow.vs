@@ -1,15 +1,11 @@
 #version 330
 
-uniform mat4 transform;
+layout(location=0) in vec2 vs_pos;
+layout(location=1) in vec2 vs_uv;
 
-layout(location=0) in vec2 vert_pos;
-
-out vec2 fragCoord;
+out vec2 fs_uv;
 
 void main() {
-    // gl_Position = vec4(vert_pos / 2.0 - vec2(0.0, 1.0), 0.0, 1.0);
-    gl_Position = transform * vec4(vert_pos, 0.0, 1.0);
-
-    // send coordinates in pixels
-    fragCoord = vec2(vert_pos.x, vert_pos.y);
+    gl_Position = vec4(vs_pos, 0, 1);
+    fs_uv = vs_uv;
 }
