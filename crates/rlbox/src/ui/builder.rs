@@ -124,4 +124,20 @@ impl<'a> AnimBuilder<'a> {
 
         self
     }
+
+    pub fn size(&mut self, delta: impl Into<Delta<Vec2f>>) -> &mut Self {
+        let delta = delta.into();
+
+        let index = self.anims.insert(SizeTween {
+            tween: ez::Tweened {
+                a: delta.a,
+                b: delta.b,
+                dt: self.dt,
+            },
+            node: self.node.clone().unwrap(),
+        });
+        self.built.push(index);
+
+        self
+    }
 }
