@@ -4,35 +4,32 @@ Talk
 
 use {
     rokol::fons::{FontBook, FontConfig},
-    std::{borrow::Cow, time::Duration},
+    std::borrow::Cow,
 };
 
 use snow2d::{
     asset::AssetCacheAny,
     gfx::{
-        draw::*,
         geom2d::*,
         tex::{NineSliceSprite, SpriteData},
-        Color, RenderPass,
     },
-    Ice,
 };
 
 use rlbox::{
-    ui::{anim::Anim, node::Node},
-    utils::{arena::Index, ez, tweak::*},
+    ui::node::*,
+    utils::{arena::Index, ez, pool::Handle, tweak::*},
 };
 
-use grue2d::rl::world::{actor::Actor, World};
-
-use crate::{
-    play::txt::PlayText,
-    utils::{consts, paths},
+use grue2d::{
+    rl::world::{actor::Actor, World},
+    Global,
 };
 
-/// Talk command description
+use crate::utils::{consts, paths};
+
+/// Talk view description
 #[derive(Debug)]
-pub struct TalkCommand<'a> {
+pub struct TalkViewCommand<'a> {
     pub txt: Cow<'a, str>,
     pub from: Index<Actor>,
     pub to: Index<Actor>,
@@ -70,7 +67,7 @@ struct TalkLayout {
     pub baloon: Vec2f,
 }
 
-impl<'a> TalkCommand<'a> {
+impl<'a> TalkViewCommand<'a> {
     fn layout(
         &self,
         tcfg: &TalkConfig,
@@ -129,6 +126,7 @@ impl<'a> TalkCommand<'a> {
     }
 }
 
+/// Renderer-agnostic talk surface
 #[derive(Debug)]
 struct TalkSurface {
     layout: TalkLayout,
@@ -196,62 +194,60 @@ impl TalkSurface {
     }
 }
 
+#[derive(Debug)]
+struct TalkNodes {
+    win: Handle<Node>,
+    txt: Handle<Node>,
+    baloon: Handle<Node>,
+}
+
 /// State to play talk
 #[derive(Debug)]
 pub struct PlayTalk {
     cfg: TalkConfig,
     surface: TalkSurface,
-    dt_win: ez::EasedDt,
-    txt: PlayText,
+    nodes: TalkNodes,
 }
 
 impl PlayTalk {
-    pub fn new(talk: TalkCommand<'_>, ice: &mut Ice, world: &World) -> Self {
-        let layout = talk.layout(&talk.cfg, &ice.rdr.fontbook, &ice.font_cfg, world);
-        let txt = PlayText::new(talk.txt, layout.txt);
-        let surface = TalkSurface::new(layout, &mut ice.assets);
+    pub fn new(talk: TalkViewCommand<'_>, gl: &mut Global) -> Self {
+        let layout = talk.layout(&talk.cfg, &gl.ice.rdr.fontbook, &gl.ice.font_cfg, &gl.world);
+        let surface = TalkSurface::new(layout, &mut gl.ice.assets);
+
+        let nodes = TalkNodes {
+            win: gl.ui.nodes.add({
+                let mut win = Node::from(surface.win());
+                win.params.pos = surface.layout.win.left_up().into();
+                win
+            }),
+            txt: gl.ui.nodes.add({
+                let mut txt = Node::from(Text {
+                    txt: talk.txt.into_owned(),
+                });
+                txt.params.pos = surface.layout.txt.into();
+                txt
+            }),
+            baloon: gl.ui.nodes.add({
+                let mut baloon = Node::from(surface.baloon(&talk.cfg));
+                baloon.params.pos = surface.layout.baloon.into();
+                baloon
+            }),
+        };
+
+        let dt = ez::EasedDt::new(consts::TALK_WIN_ANIM_TIME, consts::TALK_WIN_EASE);
+        let mut b = gl.ui.anims.builder();
+
+        let rect = &surface.layout.win;
+        b.dt(dt)
+            .node(&nodes.win)
+            .pos([(rect.x + rect.w / 2.0, rect.y), (rect.x, rect.y)])
+            .size(([0.0, rect.h], rect.size()));
+        b.node(&nodes.baloon).alpha([0, 255]);
 
         Self {
             cfg: talk.cfg,
             surface,
-            txt,
-            dt_win: ez::EasedDt::new(consts::TALK_WIN_ANIM_TIME, consts::TALK_WIN_EASE),
+            nodes,
         }
-    }
-
-    // /// Initializes `self` for next text play
-    // pub fn init(&mut self, gl: &mut Global, talk: TalkCommand<'_>) {
-    //     self.surface.layout = talk.layout(&gl.ice.rdr.fontbook, &gl.ice.font_cfg, &gl.world);
-    //     self.txt.init(talk.txt, self.surface.layout.txt);
-    // }
-
-    pub fn update(&mut self, dt: Duration) {
-        self.txt.update(dt);
-        self.dt_win.tick(dt);
-    }
-
-    pub fn render(&mut self, screen: &mut RenderPass<'_>) {
-        // consider tween
-        let t = self.dt_win.get();
-
-        // TODO: refactor with more generic tween
-        let rect = &self.surface.layout.win;
-        screen.sprite(self.surface.win()).dst_rect_px([
-            // because our window is aligned to left-up,
-            // we manually align our window to the center
-            rect.x + rect.w * (1.0 - t) / 2.0,
-            rect.y,
-            rect.w * t,
-            rect.h,
-        ]);
-
-        self.txt.render(screen);
-
-        // baloon
-        let color = Color::WHITE.with_alpha((255.0 * t) as u8);
-        screen
-            .sprite(self.surface.baloon(&self.cfg))
-            .dst_pos_px(self.surface.layout.baloon)
-            .color(color);
     }
 }

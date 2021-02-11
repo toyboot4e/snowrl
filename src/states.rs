@@ -250,7 +250,7 @@ impl PlayTalkState {
     pub fn new(gl: &mut Global, txt: String, from: Index<Actor>, to: Index<Actor>) -> Self {
         let (a, b) = (&gl.world.entities[from], &gl.world.entities[to]);
 
-        let talk = play::talk::TalkCommand {
+        let talk = play::talk::TalkViewCommand {
             txt: Cow::Owned(txt),
             from,
             to,
@@ -266,15 +266,13 @@ impl PlayTalkState {
         };
 
         Self {
-            data: play::talk::PlayTalk::new(talk, &mut gl.ice, &gl.world),
+            data: play::talk::PlayTalk::new(talk, gl),
         }
     }
 }
 
 impl GameState for PlayTalkState {
     fn update(&mut self, gl: &mut Global) -> StateReturn {
-        self.data.update(gl.ice.dt);
-
         if gl.vi.select.is_pressed() {
             // Exit on enter
             StateReturn::NextFrame(vec![StateCommand::PopAndRemove, StateCommand::Pop])

@@ -106,20 +106,20 @@ pub struct TitleNodes {
 
 impl TitleNodes {
     pub fn new(cfg: &ColorConfig, nodes: &mut Pool<Node>, assets: &TitleAssets) -> Self {
-        let logo = nodes.add(Draw::Sprite(assets.logo.clone()).into());
+        let logo = nodes.add(Draw::Sprite(assets.logo.clone()));
 
         let choices = [
             [
-                nodes.add(Draw::Sprite(assets.choices[0].clone()).into()),
-                nodes.add(Draw::Sprite(assets.choices[0].clone()).into()),
+                nodes.add(Draw::Sprite(assets.choices[0].clone())),
+                nodes.add(Draw::Sprite(assets.choices[0].clone())),
             ],
             [
-                nodes.add(Draw::Sprite(assets.choices[1].clone()).into()),
-                nodes.add(Draw::Sprite(assets.choices[1].clone()).into()),
+                nodes.add(Draw::Sprite(assets.choices[1].clone())),
+                nodes.add(Draw::Sprite(assets.choices[1].clone())),
             ],
             [
-                nodes.add(Draw::Sprite(assets.choices[2].clone()).into()),
-                nodes.add(Draw::Sprite(assets.choices[2].clone()).into()),
+                nodes.add(Draw::Sprite(assets.choices[2].clone())),
+                nodes.add(Draw::Sprite(assets.choices[2].clone())),
             ],
         ];
 

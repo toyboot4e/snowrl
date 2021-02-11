@@ -11,7 +11,7 @@ pub mod stage;
 
 use std::time::Duration;
 
-use snow2d::gfx::draw::DrawApi;
+use snow2d::{gfx::PassConfig, Ice};
 
 use crate::utils::{arena::Arena, pool::Pool};
 
@@ -42,10 +42,11 @@ impl Ui {
         self.nodes.sync_refcounts();
     }
 
-    pub fn render(&mut self, draw: &mut impl DrawApi) {
+    pub fn render(&mut self, ice: &mut Ice) {
         // TODO: sort nodes
+        let mut screen = ice.rdr.screen(PassConfig::default());
         for node in self.nodes.iter_mut() {
-            node.render(draw);
+            node.render(&mut screen);
         }
     }
 }

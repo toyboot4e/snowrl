@@ -6,7 +6,7 @@ use snow2d::gfx::{
     draw::*,
     geom2d::*,
     tex::{NineSliceSprite, SpriteData},
-    Color,
+    Color, RenderPass,
 };
 
 use crate::utils::pool::Handle;
@@ -14,10 +14,10 @@ use crate::utils::pool::Handle;
 #[derive(Debug, Clone)]
 pub struct Node {
     pub draw: Draw,
-    /// Geometry data that can be tweened
+    /// Common geometry data that can be tweened
     pub params: DrawParams,
     pub children: Vec<Handle<Self>>,
-    /// Drawing order (1.0 is top, 0.0 is bottom)
+    /// TODO: Drawing order (1.0 is top, 0.0 is bottom)
     pub z: f32,
 }
 
@@ -28,6 +28,8 @@ impl From<Draw> for Node {
                 Draw::Sprite(ref x) => x.sub_tex_size_scaled().into(),
 
                 Draw::NineSlice(ref x) => x.sub_tex_size_scaled().into(),
+                // FIXME: measure text size?
+                Draw::Text(ref _x) => [1.0, 1.0].into(),
             },
             ..Default::default()
         };
@@ -42,19 +44,23 @@ impl From<Draw> for Node {
 }
 
 impl Node {
-    pub fn render(&mut self, draw: &mut impl DrawApi) {
+    pub fn render(&mut self, pass: &mut RenderPass<'_>) {
         match self.draw {
             Draw::Sprite(ref x) => {
-                self.params.build(&mut draw.sprite(x));
+                self.params.apply(&mut pass.sprite(x));
             }
             Draw::NineSlice(ref x) => {
-                self.params.build(&mut draw.sprite(x));
+                self.params.apply(&mut pass.sprite(x));
+            }
+            Draw::Text(ref x) => {
+                // TODO: custom position
+                pass.txt(self.params.pos, &x.txt);
             }
         }
     }
 }
 
-/// Common geometry information to draw a [`Node`]
+/// Common geometry data that can be tweened
 #[derive(Debug, Clone, Default)]
 pub struct DrawParams {
     pub pos: Vec2f,
@@ -66,7 +72,8 @@ pub struct DrawParams {
 }
 
 impl DrawParams {
-    pub fn build<'a, 'b: 'a, B: QuadParamsBuilder>(&self, builder: &'b mut B) -> &'a mut B {
+    /// Sets up quad parameters
+    pub fn apply<'a, 'b: 'a, B: QuadParamsBuilder>(&self, builder: &'b mut B) -> &'a mut B {
         builder
             .dst_pos_px(self.pos)
             .dst_size_px(self.size)
@@ -79,14 +86,49 @@ impl DrawParams {
 pub enum Draw {
     Sprite(SpriteData),
     NineSlice(NineSliceSprite),
+    Text(Text),
 }
+
+macro_rules! impl_into_draw {
+    ($ty:ident, $var:ident) => {
+        impl From<$ty> for Draw {
+            fn from(x: $ty) -> Draw {
+                Draw::$var(x)
+            }
+        }
+
+        impl From<$ty> for Node {
+            fn from(x: $ty) -> Node {
+                Node::from(Draw::from(x))
+            }
+        }
+
+        impl From<&$ty> for Draw {
+            fn from(x: &$ty) -> Draw {
+                Draw::$var(x.clone())
+            }
+        }
+
+        impl From<&$ty> for Node {
+            fn from(x: &$ty) -> Node {
+                Node::from(Draw::from(x.clone()))
+            }
+        }
+    };
+}
+
+impl_into_draw!(SpriteData, Sprite);
+impl_into_draw!(NineSliceSprite, NineSlice);
+impl_into_draw!(Text, Text);
 
 impl Draw {
     // pub fn draw(
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Text {
-    text: String,
+    // TODO: unsafe tetx reference?
+    pub txt: String,
     // TODO: decoration information (spans for colors, etc)
 }
 

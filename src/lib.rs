@@ -35,7 +35,6 @@ use {
         app::{Event, RApp},
         gfx as rg,
     },
-    snow2d::gfx::PassConfig,
 };
 
 pub struct SnowRl {
@@ -96,7 +95,6 @@ impl SnowRl {
         gl.world_render
             .render(&gl.world, &mut gl.ice, WorldRenderFlag::ALL);
 
-        let mut screen = gl.ice.rdr.screen(PassConfig::default());
-        gl.ui.render(&mut screen);
+        gl.ui.render(&mut gl.ice);
     }
 }
