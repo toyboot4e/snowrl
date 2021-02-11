@@ -110,9 +110,10 @@ impl<T> Pool<T> {
     }
 
     /// Adds an item and returns a reference-counted [`Handle`] for it
-    pub fn add(&mut self, item: T) -> Handle<T> {
-        let gen = Gen::new(self.gen_count);
+    pub fn add(&mut self, item: impl Into<T>) -> Handle<T> {
+        let item = item.into();
 
+        let gen = Gen::new(self.gen_count);
         let entry = PoolEntry {
             item,
             gen,

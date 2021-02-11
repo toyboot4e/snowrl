@@ -5,7 +5,7 @@ Scenes
 use snow2d::audio::src::Wav;
 
 use rlbox::ui::{
-    anims::{Anim, AnimImpl},
+    anim::{Anim, AnimImpl},
     node::{Draw, Node},
     AnimArena, Ui,
 };

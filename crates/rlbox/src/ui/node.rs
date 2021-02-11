@@ -85,6 +85,11 @@ impl Draw {
     // pub fn draw(
 }
 
+pub struct Text {
+    text: String,
+    // TODO: decoration information (spans for colors, etc)
+}
+
 /// X/Y aligment
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Align2d {

@@ -3,7 +3,6 @@ Talk
 */
 
 use {
-    rlbox::utils::{arena::Index, ez, tweak::*},
     rokol::fons::{FontBook, FontConfig},
     std::{borrow::Cow, time::Duration},
 };
@@ -17,6 +16,11 @@ use snow2d::{
         Color, RenderPass,
     },
     Ice,
+};
+
+use rlbox::{
+    ui::{anim::Anim, node::Node},
+    utils::{arena::Index, ez, tweak::*},
 };
 
 use grue2d::rl::world::{actor::Actor, World};
@@ -233,7 +237,7 @@ impl PlayTalk {
         // TODO: refactor with more generic tween
         let rect = &self.surface.layout.win;
         screen.sprite(self.surface.win()).dst_rect_px([
-            // because our widnwo is aligned to left-up,
+            // because our window is aligned to left-up,
             // we manually align our window to the center
             rect.x + rect.w * (1.0 - t) / 2.0,
             rect.y,

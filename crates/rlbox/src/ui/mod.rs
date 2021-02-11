@@ -2,7 +2,7 @@
 User interface
 */
 
-pub mod anims;
+pub mod anim;
 pub mod builder;
 pub mod node;
 
@@ -16,7 +16,7 @@ use snow2d::gfx::draw::DrawApi;
 use crate::utils::{arena::Arena, pool::Pool};
 
 use self::{
-    anims::{Anim, AnimImpl},
+    anim::{Anim, AnimImpl},
     node::Node,
 };
 
