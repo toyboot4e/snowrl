@@ -201,13 +201,12 @@ impl TitleAnims {
         from: usize,
         to: usize,
     ) {
-        // invalidate the previous animations
-        for ix in &self.init_choices {
-            let anim = &mut ui.anims[*ix];
-            anim.set_accum_norm(1.0);
-            anim.apply(&mut ui.nodes);
-        }
+        // remove all the initial animations
         for ix in self.init_choices.drain(0..) {
+            if let Some(anim) = ui.anims.get_mut(ix) {
+                anim.set_accum_norm(1.0);
+                anim.apply(&mut ui.nodes);
+            }
             ui.anims.remove(ix);
         }
 

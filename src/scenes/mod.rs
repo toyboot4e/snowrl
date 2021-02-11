@@ -52,11 +52,11 @@ impl Title {
             let mut pos = self.state.cursor;
             match y_sign {
                 Sign::Pos => {
-                    pos += self.nodes.choices.len() - 1;
+                    pos += 1;
                     pos %= self.nodes.choices.len();
                 }
                 Sign::Neg => {
-                    pos += 1;
+                    pos += self.nodes.choices.len() - 1;
                     pos %= self.nodes.choices.len();
                 }
                 Sign::Neutral => {}
