@@ -7,7 +7,6 @@ use std::{any::TypeId, borrow::Cow};
 use rlbox::{ui::Ui, utils::arena::Index};
 
 use grue2d::{
-    render::WorldRenderFlag,
     rl::{
         script::ScriptRef,
         turn::{
@@ -107,14 +106,6 @@ impl GameState for Roguelike {
             }
         }
     }
-
-    fn render(&mut self, gl: &mut Global) {
-        let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.ice, flags);
-
-        let mut screen = gl.ice.rdr.screen(PassConfig::default());
-        gl.ui.render(&mut screen);
-    }
 }
 
 /// Roguelike game animation state
@@ -143,14 +134,6 @@ impl GameState for Animation {
         };
 
         gl.anims.on_start(&mut ucx);
-    }
-
-    fn render(&mut self, gl: &mut Global) {
-        let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.ice, flags);
-
-        let mut screen = gl.ice.rdr.screen(PassConfig::default());
-        gl.ui.render(&mut screen);
     }
 }
 
@@ -205,14 +188,6 @@ impl GameState for Title {
             }
         }
     }
-
-    fn render(&mut self, gl: &mut Global) {
-        let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.ice, flags);
-
-        let mut screen = gl.ice.rdr.screen(PassConfig::default());
-        gl.ui.render(&mut screen);
-    }
 }
 
 /// Just plays hard-coded script (for now)
@@ -264,10 +239,6 @@ impl GameState for PlayScript {
             StateCommand::Push(TypeId::of::<PlayTalkState>()),
         ])
     }
-
-    fn render(&mut self, _gl: &mut Global) {
-        // unreachable!()
-    }
 }
 
 #[derive(Debug)]
@@ -310,13 +281,5 @@ impl GameState for PlayTalkState {
         } else {
             StateReturn::NextFrame(vec![])
         }
-    }
-
-    fn render(&mut self, gl: &mut Global) {
-        let flags = WorldRenderFlag::ALL;
-        gl.world_render.render(&gl.world, &mut gl.ice, flags);
-
-        let mut screen = gl.ice.rdr.screen(Default::default());
-        self.data.render(&mut screen);
     }
 }

@@ -29,12 +29,13 @@ pub mod scenes;
 pub mod states;
 
 use {
-    grue2d::{hot_crate, GlueRl},
+    grue2d::{hot_crate, render::WorldRenderFlag, GlueRl},
     rlbox::utils::tweak::*,
     rokol::{
         app::{Event, RApp},
         gfx as rg,
     },
+    snow2d::gfx::PassConfig,
 };
 
 pub struct SnowRl {
@@ -53,6 +54,17 @@ impl RApp for SnowRl {
     }
 
     fn frame(&mut self) {
+        self.pre_update();
+        self.update();
+        self.render();
+        self.grue.gl.on_end_frame();
+        rg::commit();
+    }
+}
+
+impl SnowRl {
+    #[inline]
+    fn pre_update(&mut self) {
         #[cfg(debug_assertions)]
         self.grue.gl.ice.audio.set_global_volume(sound_volume());
 
@@ -67,16 +79,24 @@ impl RApp for SnowRl {
         //     println!("current plugin: {:?}", load());
         //     // plugin.close().unwrap();
         // }
+    }
 
+    #[inline]
+    fn update(&mut self) {
         self.grue.gl.pre_update();
         self.grue.fsm.update(&mut self.grue.gl);
         self.grue.gl.post_update();
+    }
 
-        self.grue.gl.pre_render();
-        self.grue.fsm.render(&mut self.grue.gl);
+    #[inline]
+    fn render(&mut self) {
+        let gl = &mut self.grue.gl;
 
-        self.grue.gl.on_end_frame();
+        gl.pre_render();
+        gl.world_render
+            .render(&gl.world, &mut gl.ice, WorldRenderFlag::ALL);
 
-        rg::commit();
+        let mut screen = gl.ice.rdr.screen(PassConfig::default());
+        gl.ui.render(&mut screen);
     }
 }

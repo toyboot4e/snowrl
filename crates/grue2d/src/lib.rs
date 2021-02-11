@@ -105,6 +105,7 @@ pub struct Global {
     pub ui: Ui,
     /// Roguelike game animations
     pub anims: AnimPlayer,
+    /// TODO: extract it to user data
     pub script_to_play: Option<ScriptRef>,
 }
 
@@ -122,7 +123,7 @@ impl Global {
 
     /// Called after updating the FSM (game state)
     pub fn post_update(&mut self) {
-        // TODO: don't hard code
+        // TODO: don't hard code player detection
         let player = &self.world.entities.get_by_slot(0).unwrap().1;
         self.world
             .shadow
@@ -151,7 +152,6 @@ pub trait GameState: std::fmt::Debug {
 
     fn event(&mut self, _ev: &ra::Event, _gl: &mut Global) {}
     fn update(&mut self, _gl: &mut Global) -> StateReturn;
-    fn render(&mut self, gl: &mut Global);
 }
 
 /// Return value of [`GameState::update`]
@@ -238,12 +238,6 @@ impl Fsm {
                 self.states.remove(&typeid).unwrap();
             }
         }
-    }
-
-    pub fn render(&mut self, gl: &mut Global) {
-        let id = self.stack.last().unwrap();
-        let state = self.states.get_mut(id).unwrap();
-        state.render(gl);
     }
 }
 
