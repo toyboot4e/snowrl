@@ -250,9 +250,10 @@ impl Snow2d {
     }
 
     /// Begins off-screen rendering pass
-    pub fn offscreen(&mut self, ofs: &RenderTexture, cfg: PassConfig<'_>) -> RenderPass<'_> {
+    pub fn offscreen(&mut self, ofs: &mut RenderTexture, cfg: PassConfig<'_>) -> RenderPass<'_> {
         rg::begin_pass(ofs.pass(), cfg.pa);
 
+        // we don't need mutability for `ofs` actually
         let shd = cfg.shd.unwrap_or(&self.ofs_shd);
         shd.apply_pip();
 

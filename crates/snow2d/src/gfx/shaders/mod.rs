@@ -45,6 +45,32 @@ macro_rules! def_shd {
     }};
 }
 
+macro_rules! img_type {
+    ($name:expr,$ty:expr) => {
+        rg::ShaderImageDesc {
+            name: c_str!($name).as_ptr() as *const _,
+            image_type: $ty as u32,
+            ..Default::default()
+        }
+    };
+}
+
+/// Uniform block
+macro_rules! ub {
+    ($name:expr, $uniform_ty:expr, $size_ty:ty) => {{
+        let mut block = rg::ShaderUniformBlockDesc::default();
+
+        block.uniforms[0] = rg::ShaderUniformDesc {
+            name: concat!($name, "\0").as_ptr() as *const _,
+            type_: $uniform_ty as u32,
+            ..Default::default()
+        };
+        block.size += std::mem::size_of::<$size_ty>() as u64;
+
+        block
+    }};
+}
+
 /// Creates vertex & fragment shader from files and modifies them with given procedure
 fn gen(
     vs_fs: &[impl AsRef<str>; 2],
@@ -109,24 +135,8 @@ pub fn default_screen() -> Shader {
     gen(
         &def_shd!("tex_1"),
         |desc| {
-            desc.fs.images[0] = rg::ShaderImageDesc {
-                image_type: rg::ImageType::Dim2 as u32,
-                name: c_str!("tex1").as_ptr() as *const _,
-                ..Default::default()
-            };
-
-            desc.vs.uniform_blocks[0] = {
-                let mut block = rg::ShaderUniformBlockDesc::default();
-
-                block.uniforms[0] = rg::ShaderUniformDesc {
-                    type_: rg::UniformType::Mat4 as u32,
-                    name: c_str!("transform").as_ptr() as *const _,
-                    ..Default::default()
-                };
-                block.size += std::mem::size_of::<glam::Mat4>() as u64;
-
-                block
-            };
+            desc.fs.images[0] = img_type!("tex1", rg::ImageType::Dim2);
+            desc.vs.uniform_blocks[0] = ub!("transform", rg::UniformType::Mat4, glam::Mat4);
         },
         &mut {
             let mut desc = rg::PipelineDesc {
@@ -145,24 +155,8 @@ pub fn default_offscreen() -> Shader {
     gen(
         &def_shd!("tex_1"),
         |desc| {
-            desc.fs.images[0] = rg::ShaderImageDesc {
-                image_type: rg::ImageType::Dim2 as u32,
-                name: c_str!("tex1").as_ptr() as *const _,
-                ..Default::default()
-            };
-
-            desc.vs.uniform_blocks[0] = {
-                let mut block = rg::ShaderUniformBlockDesc::default();
-
-                block.uniforms[0] = rg::ShaderUniformDesc {
-                    type_: rg::UniformType::Mat4 as u32,
-                    name: c_str!("transform").as_ptr() as *const _,
-                    ..Default::default()
-                };
-                block.size += std::mem::size_of::<glam::Mat4>() as u64;
-
-                block
-            };
+            desc.fs.images[0] = img_type!("tex1", rg::ImageType::Dim2);
+            desc.vs.uniform_blocks[0] = ub!("transform", rg::UniformType::Mat4, glam::Mat4);
         },
         &mut {
             let mut desc = rg::PipelineDesc {
@@ -184,37 +178,9 @@ pub fn gauss() -> Shader {
     gen(
         &def_shd!("gauss"),
         |desc| {
-            desc.fs.images[0] = rg::ShaderImageDesc {
-                image_type: rg::ImageType::Dim2 as u32,
-                name: c_str!("tex1").as_ptr() as *const _,
-                ..Default::default()
-            };
-
-            desc.vs.uniform_blocks[0] = {
-                let mut block = rg::ShaderUniformBlockDesc::default();
-
-                block.uniforms[0] = rg::ShaderUniformDesc {
-                    type_: rg::UniformType::Mat4 as u32,
-                    name: c_str!("transform").as_ptr() as *const _,
-                    ..Default::default()
-                };
-                block.size += std::mem::size_of::<glam::Mat4>() as u64;
-
-                block
-            };
-
-            desc.vs.uniform_blocks[1] = {
-                let mut block = rg::ShaderUniformBlockDesc::default();
-
-                block.uniforms[0] = rg::ShaderUniformDesc {
-                    type_: rg::UniformType::Float as u32,
-                    name: c_str!("is_horizontal").as_ptr() as *const _,
-                    ..Default::default()
-                };
-                block.size += std::mem::size_of::<f32>() as u64;
-
-                block
-            };
+            desc.fs.images[0] = img_type!("tex1", rg::ImageType::Dim2);
+            desc.vs.uniform_blocks[0] = ub!("transform", rg::UniformType::Mat4, glam::Mat4);
+            desc.vs.uniform_blocks[1] = ub!("is_horizontal", rg::UniformType::Float, f32);
         },
         &mut {
             let mut desc = rg::PipelineDesc {
@@ -249,44 +215,9 @@ pub fn snow() -> Shader {
     gen(
         &def_shd!("snow"),
         |desc| {
-            desc.fs.uniform_blocks[0] = {
-                let mut block = rg::ShaderUniformBlockDesc::default();
-
-                block.uniforms[0] = rg::ShaderUniformDesc {
-                    type_: rg::UniformType::Float2 as u32,
-                    name: c_str!("iResolution").as_ptr() as *const _,
-                    ..Default::default()
-                };
-                block.size += std::mem::size_of::<[f32; 2]>() as u64;
-
-                block
-            };
-
-            desc.fs.uniform_blocks[1] = {
-                let mut block = rg::ShaderUniformBlockDesc::default();
-
-                block.uniforms[0] = rg::ShaderUniformDesc {
-                    type_: rg::UniformType::Float as u32,
-                    name: c_str!("iTime").as_ptr() as *const _,
-                    ..Default::default()
-                };
-                block.size += std::mem::size_of::<f32>() as u64;
-
-                block
-            };
-
-            desc.fs.uniform_blocks[2] = {
-                let mut block = rg::ShaderUniformBlockDesc::default();
-
-                block.uniforms[0] = rg::ShaderUniformDesc {
-                    type_: rg::UniformType::Float2 as u32,
-                    name: c_str!("iMouse").as_ptr() as *const _,
-                    ..Default::default()
-                };
-                block.size += std::mem::size_of::<[f32; 2]>() as u64;
-
-                block
-            };
+            desc.fs.uniform_blocks[0] = ub!("iResolution", rg::UniformType::Float2, [f32; 2]);
+            desc.fs.uniform_blocks[1] = ub!("iTime", rg::UniformType::Float, f32);
+            desc.fs.uniform_blocks[2] = ub!("iMouse", rg::UniformType::Float2, [f32; 2]);
         },
         &mut {
             let mut desc = rg::PipelineDesc {
