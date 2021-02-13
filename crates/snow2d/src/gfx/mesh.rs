@@ -70,7 +70,7 @@ impl<V> DynamicMesh<V> {
         let size_in_bytes = std::mem::size_of::<V>() * verts.len();
         log::trace!("mesh size: {}", size_in_bytes);
         b.vertex_buffers[0] = rg::Buffer::create(&rg::vbuf_desc_dyn(
-            size_in_bytes as i32,
+            size_in_bytes,
             rg::ResourceUsage::Stream,
             "",
         ));

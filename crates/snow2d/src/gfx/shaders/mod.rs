@@ -103,11 +103,6 @@ const ALPHA_BLEND: rg::BlendState = rg::BlendState {
     src_factor_alpha: rg::BlendFactor::One as u32,
     dst_factor_alpha: rg::BlendFactor::Zero as u32,
     op_alpha: 0,
-    color_write_mask: 0,
-    color_attachment_count: 1,
-    color_format: 0,
-    depth_format: 0,
-    blend_color: [0.0; 4],
 };
 
 pub fn default_screen() -> Shader {
@@ -115,7 +110,7 @@ pub fn default_screen() -> Shader {
         &def_shd!("tex_1"),
         |desc| {
             desc.fs.images[0] = rg::ShaderImageDesc {
-                type_: rg::ImageType::Dim2 as u32,
+                image_type: rg::ImageType::Dim2 as u32,
                 name: c_str!("tex1").as_ptr() as *const _,
                 ..Default::default()
             };
@@ -128,21 +123,20 @@ pub fn default_screen() -> Shader {
                     name: c_str!("transform").as_ptr() as *const _,
                     ..Default::default()
                 };
-                block.size += std::mem::size_of::<glam::Mat4>() as i32;
+                block.size += std::mem::size_of::<glam::Mat4>() as u64;
 
                 block
             };
         },
-        &mut rg::PipelineDesc {
-            index_type: rg::IndexType::UInt16 as u32,
-            layout: DefaultVertex::layout_desc(),
-            blend: ALPHA_BLEND,
-            rasterizer: rg::RasterizerState {
-                // NOTE: our renderer may output backward triangle
+        &mut {
+            let mut desc = rg::PipelineDesc {
+                index_type: rg::IndexType::UInt16 as u32,
+                layout: DefaultVertex::layout_desc(),
                 cull_mode: rg::CullMode::None as u32,
                 ..Default::default()
-            },
-            ..Default::default()
+            };
+            desc.colors[0].blend = ALPHA_BLEND;
+            desc
         },
     )
 }
@@ -152,7 +146,7 @@ pub fn default_offscreen() -> Shader {
         &def_shd!("tex_1"),
         |desc| {
             desc.fs.images[0] = rg::ShaderImageDesc {
-                type_: rg::ImageType::Dim2 as u32,
+                image_type: rg::ImageType::Dim2 as u32,
                 name: c_str!("tex1").as_ptr() as *const _,
                 ..Default::default()
             };
@@ -165,25 +159,20 @@ pub fn default_offscreen() -> Shader {
                     name: c_str!("transform").as_ptr() as *const _,
                     ..Default::default()
                 };
-                block.size += std::mem::size_of::<glam::Mat4>() as i32;
+                block.size += std::mem::size_of::<glam::Mat4>() as u64;
 
                 block
             };
         },
-        &mut rg::PipelineDesc {
-            index_type: rg::IndexType::UInt16 as u32,
-            layout: DefaultVertex::layout_desc(),
-            blend: rg::BlendState {
-                depth_format: rg::PixelFormat::Depth as u32,
-                ..ALPHA_BLEND
-            },
-            rasterizer: rg::RasterizerState {
-                // NOTE: our renderer may output backward triangle
+        &mut {
+            let mut desc = rg::PipelineDesc {
+                index_type: rg::IndexType::UInt16 as u32,
+                layout: DefaultVertex::layout_desc(),
                 cull_mode: rg::CullMode::None as u32,
-                // TODO: sample_count?
                 ..Default::default()
-            },
-            ..Default::default()
+            };
+            desc.depth.pixel_format = rg::PixelFormat::Depth as u32;
+            desc
         },
     )
 }
@@ -196,7 +185,7 @@ pub fn gauss() -> Shader {
         &def_shd!("gauss"),
         |desc| {
             desc.fs.images[0] = rg::ShaderImageDesc {
-                type_: rg::ImageType::Dim2 as u32,
+                image_type: rg::ImageType::Dim2 as u32,
                 name: c_str!("tex1").as_ptr() as *const _,
                 ..Default::default()
             };
@@ -209,7 +198,7 @@ pub fn gauss() -> Shader {
                     name: c_str!("transform").as_ptr() as *const _,
                     ..Default::default()
                 };
-                block.size += std::mem::size_of::<glam::Mat4>() as i32;
+                block.size += std::mem::size_of::<glam::Mat4>() as u64;
 
                 block
             };
@@ -222,25 +211,20 @@ pub fn gauss() -> Shader {
                     name: c_str!("is_horizontal").as_ptr() as *const _,
                     ..Default::default()
                 };
-                block.size += std::mem::size_of::<f32>() as i32;
+                block.size += std::mem::size_of::<f32>() as u64;
 
                 block
             };
         },
-        &mut rg::PipelineDesc {
-            index_type: rg::IndexType::UInt16 as u32,
-            layout: DefaultVertex::layout_desc(),
-            blend: rg::BlendState {
-                depth_format: rg::PixelFormat::Depth as u32,
-                ..Default::default()
-            },
-            rasterizer: rg::RasterizerState {
-                // NOTE: our renderer may output backward triangle
+        &mut {
+            let mut desc = rg::PipelineDesc {
+                index_type: rg::IndexType::UInt16 as u32,
+                layout: DefaultVertex::layout_desc(),
                 cull_mode: rg::CullMode::None as u32,
-                // TODO: sample_count? (also on internal image of render texture)
                 ..Default::default()
-            },
-            ..Default::default()
+            };
+            desc.depth.pixel_format = rg::PixelFormat::Depth as u32;
+            desc
         },
     )
 }
@@ -273,7 +257,7 @@ pub fn snow() -> Shader {
                     name: c_str!("iResolution").as_ptr() as *const _,
                     ..Default::default()
                 };
-                block.size += std::mem::size_of::<[f32; 2]>() as i32;
+                block.size += std::mem::size_of::<[f32; 2]>() as u64;
 
                 block
             };
@@ -286,7 +270,7 @@ pub fn snow() -> Shader {
                     name: c_str!("iTime").as_ptr() as *const _,
                     ..Default::default()
                 };
-                block.size += std::mem::size_of::<f32>() as i32;
+                block.size += std::mem::size_of::<f32>() as u64;
 
                 block
             };
@@ -299,29 +283,20 @@ pub fn snow() -> Shader {
                     name: c_str!("iMouse").as_ptr() as *const _,
                     ..Default::default()
                 };
-                block.size += std::mem::size_of::<[f32; 2]>() as i32;
+                block.size += std::mem::size_of::<[f32; 2]>() as u64;
 
                 block
             };
         },
-        &mut rg::PipelineDesc {
-            index_type: rg::IndexType::UInt16 as u32,
-            layout: PosUvVert::layout_desc(),
-            blend: rg::BlendState {
-                // alpha blending for on-screen rendering
-                enabled: true,
-                src_factor_rgb: rg::BlendFactor::SrcAlpha as u32,
-                dst_factor_rgb: rg::BlendFactor::OneMinusSrcAlpha as u32,
-                src_factor_alpha: rg::BlendFactor::One as u32,
-                dst_factor_alpha: rg::BlendFactor::Zero as u32,
-                ..Default::default()
-            },
-            rasterizer: rg::RasterizerState {
-                // NOTE: our renderer may output backward triangle
+        &mut {
+            let mut desc = rg::PipelineDesc {
+                index_type: rg::IndexType::UInt16 as u32,
+                layout: PosUvVert::layout_desc(),
                 cull_mode: rg::CullMode::None as u32,
                 ..Default::default()
-            },
-            ..Default::default()
+            };
+            desc.colors[0].blend = ALPHA_BLEND;
+            desc
         },
     )
 }

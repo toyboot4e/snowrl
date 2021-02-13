@@ -20,6 +20,7 @@ use crate::rl::world::World;
 /// TODO: remove
 const WALK_TIME: f32 = 8.0 / 60.0;
 
+/// TODO: use it?
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RenderLayer {
     Map,
@@ -29,6 +30,7 @@ pub enum RenderLayer {
     Ui,
 }
 
+/// Renders FoV/FoW shadows
 #[derive(Debug)]
 pub struct ShadowRenderer {
     /// Shadow textures for gaussian blur
@@ -58,9 +60,8 @@ impl ShadowRenderer {
 
     /// Renders shadow texture (don't forget to use it later)
     pub fn render_ofs(&mut self, rdr: &mut Snow2d, world: &World) {
-        // get shadow
         let mut offscreen = rdr.offscreen(
-            &self.shadows[0],
+            &mut self.shadows[0],
             PassConfig {
                 pa: &rg::PassAction::NONE,
                 tfm: None,
@@ -68,7 +69,7 @@ impl ShadowRenderer {
             },
         );
 
-        // TODO: use camera
+        // TODO: use camera bounds
         let bounds = Rect2f::from(([0.0, 0.0], ra::size_scaled()));
 
         tiled_render::render_fov_fow_blend(
@@ -148,6 +149,7 @@ impl ShadowRenderer {
     }
 }
 
+/// Renders snow on fullscreen
 #[derive(Debug)]
 pub struct SnowRenderer {
     shd: Shader,
@@ -220,6 +222,7 @@ bitflags::bitflags! {
     }
 }
 
+/// Renders map, actors, shadows and snow
 #[derive(Debug)]
 pub struct WorldRenderer {
     pub shadow_render: ShadowRenderer,
@@ -241,7 +244,8 @@ impl Default for WorldRenderer {
 
 impl WorldRenderer {
     pub fn post_update(&mut self, world: &World, _dt: Duration) {
-        // resize to ensure capacity
+        // ensure capacity
+        // FIXME: this tracking is NOT always valid (at least use Index<T>)
         if world.entities.len() > self.actor_visibilities.len() {
             self.actor_visibilities
                 .resize(world.entities.len() + 5, Default::default());
