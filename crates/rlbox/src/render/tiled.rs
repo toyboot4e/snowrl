@@ -50,10 +50,10 @@ pub fn t2w_center(pos: impl Into<Vec2i>, tiled: &tiled::Map) -> Vec2f {
     Vec2f::new(x, y)
 }
 
-fn grid_bounds_from_pixel_bounds(map: &tiled::Map, bounds: &Rect2f) -> Rect2i {
+pub fn grid_bounds_from_pixel_bounds(tiled: &tiled::Map, bounds: &Rect2f) -> Rect2i {
     let left_up = {
         // FIXME: w2t_round_up would be enough?
-        let mut pos = w2t_floor(bounds.left_up(), map);
+        let mut pos = w2t_floor(bounds.left_up(), tiled);
         pos.x = cmp::max(pos.x, 0);
         pos.y = cmp::max(pos.y, 0);
         pos
@@ -61,9 +61,9 @@ fn grid_bounds_from_pixel_bounds(map: &tiled::Map, bounds: &Rect2f) -> Rect2i {
 
     // right down position of the map + [1, 1]
     let right_down = {
-        let mut pos = w2t_round_up(bounds.right_down(), map);
-        pos.x = cmp::min(pos.x, map.width as i32);
-        pos.y = cmp::min(pos.y, map.height as i32);
+        let mut pos = w2t_round_up(bounds.right_down(), tiled);
+        pos.x = cmp::min(pos.x, tiled.width as i32);
+        pos.y = cmp::min(pos.y, tiled.height as i32);
         pos
     };
 

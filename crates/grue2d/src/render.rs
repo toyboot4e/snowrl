@@ -20,15 +20,15 @@ use crate::rl::world::World;
 /// TODO: remove
 const WALK_TIME: f32 = 8.0 / 60.0;
 
-/// TODO: use it?
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RenderLayer {
-    Map,
-    Actors,
-    Shadow,
-    Snow,
-    Ui,
-}
+// /// TODO: use it?
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub enum RenderLayer {
+//     Map,
+//     Actors,
+//     Shadow,
+//     Snow,
+//     Ui,
+// }
 
 /// Renders FoV/FoW shadows
 #[derive(Debug)]
@@ -72,13 +72,10 @@ impl ShadowRenderer {
             },
         );
 
-        // TODO: use camera bounds
-        let bounds = Rect2f::from(([0.0, 0.0], ra::size_scaled()));
-
         tiled_render::render_fov_fow_blend(
             &mut offscreen,
             &world.map.tiled,
-            &bounds,
+            &world.cam.bounds(),
             &world.shadow.fov.a,
             &world.shadow.fov.b,
             world.shadow.dt.get(),
@@ -283,13 +280,11 @@ impl WorldRenderer {
     }
 
     fn map(screen: &mut impl DrawApi, world: &World) {
-        let bounds = Rect2f::from(([0.0, 0.0], ra::size_scaled()));
-
         rlbox::render::tiled::render_tiled(
             screen,
             &world.map.tiled,
             &world.map.idmap,
-            bounds.clone(),
+            world.cam.bounds(),
         );
 
         // FIXME: can't draw rects
@@ -330,6 +325,7 @@ impl WorldRenderer {
             }
 
             let alpha = b2f(x.a) * x.t + b2f(x.b) * (1.0 - x.t);
+            let pos = world.cam.w2s(e.img.pos_world(&world.map.tiled));
 
             screen
                 .sprite(e.img.sprite())

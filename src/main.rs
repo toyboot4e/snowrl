@@ -7,6 +7,7 @@ use rokol::{
 
 use rlbox::{
     render::actor::ActorImage,
+    render::camera::*,
     rl::{grid2d::*, rlmap::TiledRlMap},
 };
 
@@ -111,7 +112,7 @@ fn new_game(rokol: Rokol) -> GlueRl {
 
 fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
     let map = TiledRlMap::new(
-        paths::map::tmx::RL_START,
+        paths::map::tmx::TILES,
         ice.assets.cache_mut::<Texture2dDrop>().unwrap(),
     )?;
 
@@ -119,6 +120,14 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
     let map_size = map.rlmap.size;
 
     let mut world = World {
+        cam: Camera2d {
+            params: TransformParams2d {
+                pos: [200.0, 20.0].into(),
+                scale: [1.0, 1.0].into(),
+                rot: 0.0,
+            },
+            size: rokol::app::size_f().into(),
+        },
         map,
         shadow: Shadow::new(radius, map_size, consts::WALK_TIME, consts::FOV_EASE),
         entities: Arena::with_capacity(20),

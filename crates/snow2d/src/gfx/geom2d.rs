@@ -150,6 +150,7 @@ impl_op_ex!(-|me: &Vec2f| -> Vec2f { Vec2f::new(-me.x, -me.y) });
 // Vec2f, f32
 impl_op_ex!(*|lhs: &Vec2f, rhs: &f32| -> Vec2f { Vec2f::new(lhs.x * rhs, lhs.y * rhs) });
 impl_op_ex!(/|lhs: &Vec2f, rhs: &f32| -> Vec2f { Vec2f::new(lhs.x / rhs, lhs.y / rhs) });
+impl_op_ex!(*|rhs: &f32, lhs: &Vec2f| -> Vec2f { Vec2f::new(lhs.x * rhs, lhs.y * rhs) });
 impl_op_ex!(*= |lhs: &mut Vec2f, rhs: &f32| { lhs.x *= rhs; lhs.y *= rhs; });
 impl_op_ex!(/= |lhs: &mut Vec2f, rhs: &f32| { lhs.x /= rhs; lhs.y /= rhs; });
 
@@ -774,6 +775,7 @@ mod test {
     use super::*;
     use std::f32::consts::PI;
 
+    /// Nearly equal
     fn mat_eq(m1: &Mat2f, m2: &Mat2f) {
         assert!(m1.m11 - m2.m11 < 1.0e-6);
         assert!(m1.m12 - m2.m12 < 1.0e-6);

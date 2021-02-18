@@ -7,6 +7,7 @@ use std::time::Duration;
 use snow2d::Ice;
 
 use rlbox::{
+    render::camera::Camera2d,
     rl::{
         fov::{FovData, OpacityMap},
         fow::FowData,
@@ -23,6 +24,7 @@ use self::actor::*;
 /// Turn-based game state should be outside of this struct.
 #[derive(Debug)]
 pub struct World {
+    pub cam: Camera2d,
     pub map: TiledRlMap,
     pub shadow: Shadow,
     pub entities: Arena<Actor>,

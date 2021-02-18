@@ -232,6 +232,7 @@ impl Snow2d {
 
         // FIXME: projection matrix should be set shaders by themselves
         // left, right, bottom, top, near, far
+        // let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
         let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
 
         if let Some(tfm) = cfg.tfm {

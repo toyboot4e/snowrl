@@ -15,6 +15,7 @@ use snow2d::{
 
 use crate::{
     render::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
+    render::camera::Camera2d,
     rl::grid2d::*,
     utils::{consts, ez, DoubleSwap},
 };
@@ -220,34 +221,16 @@ impl ActorImage {
         self.anim_state.tick(dt);
     }
 
+    /// Position in world coordinates
+    ///
     /// If the character is not walking, it's the bottom-center of the cell
     ///
     /// TODO: separate base position and actual position with offset
-    pub fn pos_screen(&self, tiled: &tiled::Map) -> Vec2f {
+    pub fn pos_world(&self, tiled: &tiled::Map) -> Vec2f {
         let pos_prev = self.align(self.state.b().pos, tiled);
         let pos_curr = self.align(self.state.a().pos, tiled);
 
         pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get()
-    }
-
-    pub fn render<'a, 'b, D: DrawApi>(
-        &'a self,
-        draw: &'b mut D,
-        tiled: &tiled::Map,
-    ) -> impl QuadParamsBuilder + 'a
-    where
-        'b: 'a,
-    {
-        let sprite = self.sprite();
-
-        // FIXME: actor image alignment
-        let pos = self.pos_screen(tiled);
-        // we assume the sprite is aligned to the center of it
-        // pos.y -= self.sprite().sub_tex_size()[1] / 2.0;
-
-        let mut draw = draw.sprite(sprite);
-        draw.dst_pos_px(pos);
-        draw
     }
 
     /// Align the bottom-center of an actor to the bottom-center of a cell
