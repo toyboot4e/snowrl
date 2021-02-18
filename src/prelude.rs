@@ -4,10 +4,7 @@ pub use snow2d::{
     asset::{Asset, AssetCacheAny, AssetCacheT},
     audio,
     gfx::{draw::*, geom2d::*, tex::*, Color, PassConfig, Snow2d},
-    input::{
-        axis::{Dir8, Sign},
-        Key,
-    },
+    input::{Dir8, Key, Sign},
     Ice,
 };
 
