@@ -1,7 +1,5 @@
 /*!
-
 2D texture types
-
 */
 
 // TODO: texture builder
@@ -9,7 +7,7 @@
 use {
     image::GenericImageView,
     rokol::gfx::{self as rg, BakedResource},
-    std::path::Path,
+    std::{borrow::Cow, path::Path},
 };
 
 use crate::{
@@ -24,43 +22,88 @@ use crate::{
 /// Image loading result
 pub type Result<T> = image::ImageResult<T>;
 
-fn gen_img(pixels: &[u8], w: u32, h: u32) -> rg::Image {
-    rg::Image::create(&{
-        let mut desc = rg::ImageDesc {
-            type_: rg::ImageType::Dim2 as u32,
-            render_target: false,
-            width: w as i32,
-            height: h as i32,
-            usage: rg::ResourceUsage::Immutable as u32,
-            min_filter: rg::Filter::Nearest as u32,
-            mag_filter: rg::Filter::Nearest as u32,
-            ..Default::default()
-        };
-
-        desc.data.subimage[0][0] = pixels.into();
-        desc
-    })
+#[derive(Debug)]
+pub struct TextureBuilder<'a> {
+    pixels: Cow<'a, [u8]>,
+    size: [u32; 2],
+    pub filter: rg::Filter,
+    pub wrap: rg::Wrap,
 }
 
-fn target_desc(w: u32, h: u32) -> rg::ImageDesc {
+impl TextureBuilder<'static> {
+    pub fn from_path(path: &Path) -> Result<Self> {
+        Ok(Self::from_dyn_img(image::open(path)?))
+    }
+
+    pub fn from_encoded_bytes(mem: &[u8]) -> Result<Self> {
+        Ok(Self::from_dyn_img(image::load_from_memory(mem)?))
+    }
+
+    fn from_dyn_img(img: image::DynamicImage) -> Self {
+        let size = [img.width(), img.height()];
+        Self {
+            pixels: Cow::from(img.into_bytes()),
+            size,
+            filter: rg::Filter::Nearest,
+            wrap: rg::Wrap::ClampToEdge,
+        }
+    }
+}
+
+impl<'a> TextureBuilder<'a> {
+    pub fn from_pixels(pixels: &'a [u8], w: u32, h: u32) -> Self {
+        Self {
+            pixels: Cow::from(pixels),
+            size: [w, h],
+            filter: rg::Filter::Nearest,
+            wrap: rg::Wrap::ClampToEdge,
+        }
+    }
+
+    pub fn filter(&mut self, filter: rg::Filter) -> &mut Self {
+        self.filter = filter;
+        self
+    }
+
+    pub fn wrap(&mut self, wrap: rg::Wrap) -> &mut Self {
+        self.wrap = wrap;
+        self
+    }
+
+    pub fn build_texture(&self) -> Texture2dDrop {
+        log::trace!("tex");
+        Texture2dDrop {
+            img: rg::Image::create(&{
+                let mut desc = self::img_desc(self.size[0], self.size[1], self.filter, self.wrap);
+                desc.render_target = false;
+                desc.usage = rg::ResourceUsage::Immutable as u32;
+                desc.data.subimage[0][0] = self.pixels.as_ref().into();
+                desc
+            }),
+            w: self.size[0],
+            h: self.size[1],
+        }
+    }
+}
+
+/// Set usage and pixels or depth format
+fn img_desc(w: u32, h: u32, filter: rg::Filter, wrap: rg::Wrap) -> rg::ImageDesc {
     rg::ImageDesc {
         type_: rg::ImageType::Dim2 as u32,
-        render_target: true,
         width: w as i32,
         height: h as i32,
-        // usage: rg::ResourceUsage::Immutable as u32,
-        min_filter: rg::Filter::Linear as u32,
-        mag_filter: rg::Filter::Linear as u32,
-        // TODO: (see also: rasterizer in pipeline)
-        wrap_u: rg::Wrap::ClampToEdge as u32,
-        wrap_v: rg::Wrap::ClampToEdge as u32,
-        wrap_w: rg::Wrap::ClampToEdge as u32,
-        sample_count: 1,
+        min_filter: filter as u32,
+        mag_filter: filter as u32,
+        wrap_u: wrap as u32,
+        wrap_v: wrap as u32,
+        wrap_w: wrap as u32,
         ..Default::default()
     }
 }
 
-/// A 2D owned texture that frees GPU image on drop. It's an [`AssetItem`].
+/// Owned 2D texture
+///
+/// Frees GPU image on drop. It's an [`AssetItem`].
 #[derive(Debug, Default)]
 pub struct Texture2dDrop {
     img: rg::Image,
@@ -71,37 +114,6 @@ pub struct Texture2dDrop {
 impl Drop for Texture2dDrop {
     fn drop(&mut self) {
         rg::Image::destroy(self.img);
-    }
-}
-
-impl Texture2dDrop {
-    pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
-        let img = image::open(path)?;
-
-        Ok(Self::from_pixels(img.as_bytes(), img.width(), img.height()))
-    }
-
-    pub fn from_encoded_bytes(bytes: &[u8]) -> Result<Self> {
-        let img = image::load_from_memory(bytes)?;
-
-        Ok(Self::from_pixels(img.as_bytes(), img.width(), img.height()))
-    }
-
-    /// The width and height have to be in scaled size (e.g. if on 2x DPI monitor with 1280x720 scaled
-    /// screen size, pass 1280x720)
-    pub fn from_pixels(pixels: &[u8], w: u32, h: u32) -> Self {
-        let id = self::gen_img(pixels, w, h);
-        Self { img: id, w, h }
-    }
-
-    fn offscreen(w: u32, h: u32) -> (Self, rg::ImageDesc) {
-        let desc = self::target_desc(w, h);
-        let me = Self {
-            img: rg::Image::create(&desc),
-            w,
-            h,
-        };
-        (me, desc)
     }
 }
 
@@ -117,7 +129,9 @@ impl AssetLoader for TextureLoader {
     type Item = Texture2dDrop;
     fn load(&mut self, path: &Path) -> asset::Result<Self::Item> {
         use std::io::{Error, ErrorKind};
-        Texture2dDrop::from_path(path).map_err(|e| Error::new(ErrorKind::Other, e))
+        Ok(TextureBuilder::from_path(path)
+            .map_err(|e| Error::new(ErrorKind::Other, e))?
+            .build_texture())
     }
 }
 
@@ -183,7 +197,7 @@ impl Texture2d for Texture2dDrop {
 impl Texture2d for SharedSubTexture2d {
     fn img(&self) -> rg::Image {
         if let Some(tex) = self.tex.get() {
-            tex.img()
+            tex.img
         } else {
             // TODO: is this OK?
             Default::default()
@@ -209,7 +223,7 @@ impl Texture2d for SpriteData {
     fn img(&self) -> rg::Image {
         // TODO: don't lock?
         if let Some(tex) = self.tex.get() {
-            tex.img()
+            tex.img
         } else {
             // TODO: is this OK?
             Default::default()
@@ -237,7 +251,7 @@ impl Texture2d for NineSliceSprite {
     // TODO: don't lock?
     fn img(&self) -> rg::Image {
         if let Some(tex) = self.tex.get() {
-            tex.img()
+            tex.img
         } else {
             // TODO: is this OK?
             Default::default()
@@ -355,7 +369,70 @@ impl OnSpritePush for NineSliceSprite {
     }
 }
 
-// --------------------------------------------------------------------------------
+#[derive(Debug)]
+pub struct RenderTextureBuilder {
+    size: [u32; 2],
+    filter: rg::Filter,
+    wrap: rg::Wrap,
+}
+
+impl RenderTextureBuilder {
+    /// Set scaled size
+    pub fn begin(size: [u32; 2]) -> Self {
+        Self {
+            size,
+            filter: rg::Filter::Linear,
+            wrap: rg::Wrap::ClampToEdge,
+        }
+    }
+
+    pub fn filter(&mut self, filter: rg::Filter) -> &mut Self {
+        self.filter = filter;
+        self
+    }
+
+    pub fn wrap(&mut self, wrap: rg::Wrap) -> &mut Self {
+        self.wrap = wrap;
+        self
+    }
+
+    pub fn build(&self) -> RenderTexture {
+        log::trace!("rt");
+        let mut img_desc = self::img_desc(
+            self.size[0],
+            self.size[1],
+            rg::Filter::Nearest,
+            rg::Wrap::ClampToBorder,
+        );
+        img_desc.render_target = true;
+        // render target has to have `Immutable` usage
+        img_desc.usage = rg::ResourceUsage::Immutable as u32;
+
+        let tex = Texture2dDrop {
+            img: rg::Image::create(&img_desc),
+            w: self.size[0],
+            h: self.size[1],
+        };
+
+        let pass = rg::Pass::create(&{
+            let mut pass_desc = rg::PassDesc::default();
+
+            // color image
+            pass_desc.color_attachments[0].image = tex.img;
+
+            // depth image
+            // TODO: can we skip this modifying shader creation
+            pass_desc.depth_stencil_attachment.image = rg::Image::create(&rg::ImageDesc {
+                pixel_format: rg::PixelFormat::Depth as u32,
+                ..img_desc
+            });
+
+            pass_desc
+        });
+
+        RenderTexture { tex, pass }
+    }
+}
 
 /// Off-screen rendering target
 #[derive(Debug, Default)]
@@ -366,28 +443,15 @@ pub struct RenderTexture {
     pass: rg::Pass,
 }
 
+impl Drop for RenderTexture {
+    fn drop(&mut self) {
+        rg::Pass::destroy(self.pass);
+    }
+}
+
 impl RenderTexture {
-    /// The width and height have to be in scaled size (e.g. if on 2x DPI monitor with 1280x720
-    /// scaled screen size, pass 1280x720)
-    pub fn new(w: u32, h: u32) -> Self {
-        let (tex, mut image_desc) = Texture2dDrop::offscreen(w, h);
-
-        let pass = rg::Pass::create(&{
-            let mut desc = rg::PassDesc::default();
-
-            // color image
-            desc.color_attachments[0].image = tex.img();
-
-            // depth image
-            desc.depth_stencil_attachment.image = rg::Image::create(&{
-                image_desc.pixel_format = rg::PixelFormat::Depth as u32;
-                image_desc
-            });
-
-            desc
-        });
-
-        Self { tex, pass }
+    pub fn builder(size: [u32; 2]) -> RenderTextureBuilder {
+        RenderTextureBuilder::begin(size)
     }
 
     /// [`rokol::gfx::Pass`] for off-screen rendering
@@ -400,6 +464,6 @@ impl RenderTexture {
     }
 
     pub fn img(&self) -> rg::Image {
-        self.tex.img()
+        self.tex.img
     }
 }

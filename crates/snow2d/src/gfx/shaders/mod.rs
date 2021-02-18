@@ -55,7 +55,7 @@ macro_rules! img_type {
     };
 }
 
-/// Uniform block
+/// Single-value uniform block
 macro_rules! ub {
     ($name:expr, $uniform_ty:expr, $size_ty:ty) => {{
         let mut block = rg::ShaderUniformBlockDesc::default();

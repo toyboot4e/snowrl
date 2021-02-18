@@ -1,4 +1,4 @@
-//! Fluent drawing API based on quad batcher
+//! Fluent drawing API based on the quad batcher
 
 mod builder;
 mod params;
@@ -10,13 +10,20 @@ pub use self::{
 
 use {once_cell::sync::OnceCell, rokol::gfx as rg};
 
-use crate::gfx::{batch::QuadData, geom2d::*, tex::Texture2dDrop, Color};
+use crate::gfx::{
+    batch::QuadData,
+    geom2d::*,
+    tex::{Texture2dDrop, TextureBuilder},
+    Color,
+};
 
 static WHITE_DOT: OnceCell<Texture2dDrop> = OnceCell::new();
 
 pub(crate) fn init() {
     let dot = include_bytes!("white_dot.png");
-    let tex = Texture2dDrop::from_encoded_bytes(dot).unwrap();
+    let tex = TextureBuilder::from_encoded_bytes(dot)
+        .unwrap()
+        .build_texture();
     WHITE_DOT.set(tex).unwrap();
 }
 

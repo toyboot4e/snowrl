@@ -7,8 +7,8 @@ use {
     rokol::{app as ra, gfx as rg},
     snow2d::{
         gfx::{
-            draw::*, geom2d::*, mesh::StaticMesh, shaders, shaders::PosUvVert, tex::RenderTexture,
-            Color, PassConfig, Shader, Snow2d,
+            draw::*, mesh::StaticMesh, shaders, shaders::PosUvVert, tex::RenderTexture, Color,
+            PassConfig, Shader, Snow2d,
         },
         Ice,
     },
@@ -52,10 +52,13 @@ impl ShadowRenderer {
     /// Creates 1/4 off-screern rendering target
     fn create_shadow() -> RenderTexture {
         let inv_scale = 4.0;
-        let mut screen_size = ra::size_scaled();
+        let mut screen_size = ra::size_f_scaled();
         screen_size[0] /= inv_scale;
         screen_size[1] /= inv_scale;
-        RenderTexture::new(screen_size[0] as u32, screen_size[1] as u32)
+        RenderTexture::builder([screen_size[0] as u32, screen_size[1] as u32])
+            // Linear filter is smoother
+            .filter(rg::Filter::Nearest)
+            .build()
     }
 
     /// Renders shadow texture (don't forget to use it later)
@@ -125,7 +128,7 @@ impl ShadowRenderer {
         draw.sprite(self.shadows[from].tex())
             // NOTE: we're using a orthogarphic projection matrix for the screen, so
             // use the screen size as the destination size
-            .dst_size_px(ra::size_scaled());
+            .dst_size_px(ra::size_f_scaled());
     }
 
     /// Writes shadow to the screen frame buffer
@@ -145,7 +148,7 @@ impl ShadowRenderer {
     pub fn blend_to_target(&self, target: &mut impl DrawApi) {
         target
             .sprite(self.shadows[0].tex())
-            .dst_size_px(ra::size_scaled());
+            .dst_size_px(ra::size_f_scaled());
     }
 }
 
@@ -159,7 +162,7 @@ pub struct SnowRenderer {
 
 impl Default for SnowRenderer {
     fn default() -> Self {
-        // NOTE: this is only for OpenGL
+        // NOTE: this works only for OpenGL
         let verts = vec![
             PosUvVert {
                 pos: [-1.0, -1.0],
@@ -194,7 +197,7 @@ impl SnowRenderer {
             }
         }
 
-        let size = glam::Vec2::from(ra::size_scaled());
+        let size = glam::Vec2::from(ra::size_f_scaled());
         self.shd.set_fs_uniform(0, as_bytes(&size));
 
         let time = (Instant::now() - self.start_time).as_secs_f32();
@@ -204,7 +207,7 @@ impl SnowRenderer {
         self.shd.set_fs_uniform(2, as_bytes(&mouse));
 
         // just draw a fullscreen triangle
-        self.mesh.draw();
+        self.mesh.draw_all();
 
         rg::end_pass();
     }
@@ -271,8 +274,7 @@ impl WorldRenderer {
         }
 
         if flags.contains(WorldRenderFlag::SHADOW) {
-            self.shadow_render.render_ofs(&mut ice.rdr, &world);
-            self.shadow(&mut ice.rdr);
+            self.shadow(&mut ice.rdr, world);
         }
 
         if flags.contains(WorldRenderFlag::SNOW) {
@@ -329,13 +331,16 @@ impl WorldRenderer {
 
             let alpha = b2f(x.a) * x.t + b2f(x.b) * (1.0 - x.t);
 
-            e.img
-                .render(screen, &world.map.tiled)
+            screen
+                .sprite(e.img.sprite())
+                // TODO: align y
+                .dst_pos_px(pos)
                 .color(Color::WHITE.with_alpha(alpha as u8));
         }
     }
 
-    fn shadow(&mut self, rdr: &mut Snow2d) {
+    fn shadow(&mut self, rdr: &mut Snow2d, world: &World) {
+        self.shadow_render.render_ofs(rdr, world);
         self.shadow_render.blend_to_screen(rdr);
     }
 

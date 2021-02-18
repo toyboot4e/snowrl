@@ -11,7 +11,7 @@ pub mod gfx;
 pub mod input {
     //! `xdl` re-exported
 
-    pub use xdl::{axis, utils, Input, Key, Keyboard};
+    pub use xdl::{utils, Dir4, Dir8, Input, Key, Keyboard, Sign};
 
     pub mod vi {
         //! Virtual input

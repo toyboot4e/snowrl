@@ -1,6 +1,5 @@
 /*!
-
-Roguelike game events
+Builtin roguelike game events
 
 Every change to the roguelike game world should be handled as primitive event. That's good for
 visualization, flexibilities and simplicities.
@@ -8,8 +7,9 @@ visualization, flexibilities and simplicities.
 e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
 
 TODO: remove non-primitive events
-
 */
+
+use snow2d::{gfx::geom2d::*, input::Key};
 
 use rlbox::{rl::grid2d::*, utils::arena::Index};
 
