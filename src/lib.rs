@@ -95,6 +95,8 @@ impl SnowRl {
         gl.world_render
             .render(&gl.world, &mut gl.ice, WorldRenderFlag::ALL);
 
-        gl.ui.render(&mut gl.ice);
+        for (_ix, layer) in &mut gl.ui.layers {
+            layer.render(&mut gl.ice);
+        }
     }
 }

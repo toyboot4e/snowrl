@@ -13,31 +13,48 @@ use std::time::Duration;
 
 use snow2d::{gfx::PassConfig, Ice};
 
-use crate::utils::{arena::Arena, pool::Pool};
+use crate::utils::{
+    arena::{Arena, Index},
+    pool::Pool,
+};
 
 use self::{
     anim::{Anim, AnimImpl},
     node::Node,
 };
 
-/// Collection of sprites and animations
-#[derive(Debug)]
+/// Collection of layers
+#[derive(Debug, Default)]
 pub struct Ui {
-    pub nodes: Pool<Node>,
-    pub anims: AnimArena,
-}
-
-impl Default for Ui {
-    fn default() -> Self {
-        Self {
-            nodes: Pool::with_capacity(16),
-            anims: AnimArena::default(),
-        }
-    }
+    pub layers: Arena<Layer>,
 }
 
 impl Ui {
     pub fn update(&mut self, dt: Duration) {
+        for (_ix, layer) in &mut self.layers {
+            layer.update(dt);
+        }
+    }
+}
+
+/// Sprites and animations
+#[derive(Debug)]
+pub struct Layer {
+    pub nodes: Pool<Node>,
+    pub anims: AnimArena,
+}
+
+impl Default for Layer {
+    fn default() -> Self {
+        Self {
+            nodes: Pool::with_capacity(16),
+            anims: AnimArena(Arena::with_capacity(16)),
+        }
+    }
+}
+
+impl Layer {
+    fn update(&mut self, dt: Duration) {
         self.anims.update(dt, &mut self.nodes);
         self.nodes.sync_refcounts();
     }
@@ -53,12 +70,6 @@ impl Ui {
 
 #[derive(Debug)]
 pub struct AnimArena(Arena<Anim>);
-
-impl Default for AnimArena {
-    fn default() -> Self {
-        Self(Arena::with_capacity(16))
-    }
-}
 
 impl std::ops::Deref for AnimArena {
     type Target = Arena<Anim>;

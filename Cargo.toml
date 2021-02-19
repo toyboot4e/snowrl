@@ -12,16 +12,13 @@ edition = "2018"
 
 [workspace]
 members = [
-    "crates/snow2d",
-    "crates/snow2d/rokol",
     "crates/snow2d/xdl",
     "crates/rlbox",
     "crates/grue2d",
     "crates/plugins",
 ]
-
 exclude = [
-    "crates/snow2d"
+    "crates/snow2d/rokol",
 ]
 
 [dependencies]

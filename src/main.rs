@@ -9,6 +9,7 @@ use rlbox::{
     render::actor::ActorImage,
     render::camera::*,
     rl::{grid2d::*, rlmap::TiledRlMap},
+    ui::Layer,
 };
 
 use grue2d::{
@@ -105,7 +106,9 @@ fn new_game(rokol: Rokol) -> GlueRl {
 
         // fsm.insert(states::Title::new(&mut gl.ice));
         fsm.insert(states::Title::new(&mut gl.ice, &mut gl.ui));
-        fsm.insert(states::PlayScript::new(&mut gl.ice.assets));
+
+        let common_layer_ix = gl.ui.layers.insert(Layer::default());
+        fsm.insert(states::PlayScript::new(&mut gl.ice.assets, common_layer_ix));
 
         fsm.push::<states::Roguelike>(&mut gl);
         fsm.push::<states::Title>(&mut gl);

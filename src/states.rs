@@ -4,7 +4,10 @@ Stack-based game states
 
 use std::{any::TypeId, borrow::Cow};
 
-use rlbox::{ui::Ui, utils::arena::Index};
+use rlbox::{
+    ui::{Layer, Ui},
+    utils::arena::Index,
+};
 
 use grue2d::{
     rl::{
@@ -193,13 +196,15 @@ impl GameState for Title {
 /// Just plays hard-coded script (for now)
 #[derive(Debug)]
 pub struct PlayScript {
+    layer_ix: Index<Layer>,
     window: NineSliceSprite,
     baloon: SpriteData,
 }
 
 impl PlayScript {
-    pub fn new(cache: &mut AssetCacheAny) -> Self {
+    pub fn new(cache: &mut AssetCacheAny, layer_ix: Index<Layer>) -> Self {
         Self {
+            layer_ix,
             window: NineSliceSprite {
                 tex: cache.load_sync(paths::img::sourve::A).unwrap(),
             },
@@ -232,7 +237,7 @@ impl GameState for PlayScript {
 
         // TODO: allow any script
         let txt = "OMG!\nYou're too big, Ika-chan.\n\nHallo hallo haa~~♪";
-        let play_text = PlayTalkState::new(gl, txt.to_string(), from, to);
+        let play_text = PlayTalkState::new(gl, self.layer_ix, txt.to_string(), from, to);
 
         StateReturn::ThisFrame(vec![
             StateCommand::insert(play_text),
@@ -247,7 +252,13 @@ pub struct PlayTalkState {
 }
 
 impl PlayTalkState {
-    pub fn new(gl: &mut Global, txt: String, from: Index<Actor>, to: Index<Actor>) -> Self {
+    pub fn new(
+        gl: &mut Global,
+        layer_ix: Index<Layer>,
+        txt: String,
+        from: Index<Actor>,
+        to: Index<Actor>,
+    ) -> Self {
         let (a, b) = (&gl.world.entities[from], &gl.world.entities[to]);
 
         let talk = play::talk::TalkViewCommand {
@@ -266,7 +277,7 @@ impl PlayTalkState {
         };
 
         Self {
-            data: play::talk::PlayTalk::new(talk, gl),
+            data: play::talk::PlayTalk::new(talk, gl, layer_ix),
         }
     }
 }
