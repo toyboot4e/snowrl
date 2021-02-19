@@ -39,8 +39,14 @@ fn main() -> rokol::Result {
 
     grue2d::run(rokol, |rokol| SnowRl {
         grue: self::new_game(rokol),
-        plugin: grue2d::hot_crate::HotLibrary::load("Cargo.toml", "crates/plugins/Cargo.toml")
-            .unwrap(),
+        plugin: {
+            let root = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+            grue2d::hot_crate::HotLibrary::load(
+                root.join("Cargo.toml"),
+                root.join("crates/plugins/Cargo.toml"),
+            )
+            .unwrap()
+        },
     })
 }
 
@@ -147,7 +153,9 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
     let cache = ice.assets.cache_mut::<Texture2dDrop>().unwrap();
 
     // player
-    let tex = cache.load_sync(paths::CHICKEN).unwrap();
+    // let tex = cache.load_sync(paths::CHICKEN).unwrap();
+    let tex = cache.load_sync(paths::IKA_CHAN).unwrap();
+    let tex_scales = [1.0, 1.0];
 
     let img = {
         let pos = Vec2i::new(20, 16);
@@ -164,8 +172,7 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
 
         // FIXME: consider offsets
         for frame_sprite in img.frames_mut() {
-            frame_sprite.scales[0] = 2.0;
-            frame_sprite.scales[1] = 2.0;
+            frame_sprite.scales = tex_scales;
         }
 
         img

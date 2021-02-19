@@ -7,7 +7,7 @@
 use {
     image::GenericImageView,
     rokol::gfx::{self as rg, BakedResource},
-    std::{borrow::Cow, path::Path},
+    std::path::Path,
 };
 
 use crate::{
@@ -23,14 +23,15 @@ use crate::{
 pub type Result<T> = image::ImageResult<T>;
 
 #[derive(Debug)]
-pub struct TextureBuilder<'a> {
-    pixels: Cow<'a, [u8]>,
+pub struct TextureBuilder {
+    // TODO: Cow
+    pixels: Vec<u8>,
     size: [u32; 2],
-    pub filter: rg::Filter,
-    pub wrap: rg::Wrap,
+    filter: rg::Filter,
+    wrap: rg::Wrap,
 }
 
-impl TextureBuilder<'static> {
+impl TextureBuilder {
     pub fn from_path(path: &Path) -> Result<Self> {
         Ok(Self::from_dyn_img(image::open(path)?))
     }
@@ -41,8 +42,12 @@ impl TextureBuilder<'static> {
 
     fn from_dyn_img(img: image::DynamicImage) -> Self {
         let size = [img.width(), img.height()];
+
+        // NOTE: We have to make sure it's RGBA8. It can be, for example, RGB8 image.
+        let img: Vec<u8> = img.into_rgba8().into_raw();
+
         Self {
-            pixels: Cow::from(img.into_bytes()),
+            pixels: img,
             size,
             filter: rg::Filter::Nearest,
             wrap: rg::Wrap::ClampToEdge,
@@ -50,10 +55,10 @@ impl TextureBuilder<'static> {
     }
 }
 
-impl<'a> TextureBuilder<'a> {
-    pub fn from_pixels(pixels: &'a [u8], w: u32, h: u32) -> Self {
+impl TextureBuilder {
+    pub fn from_pixels(pixels: &[u8], w: u32, h: u32) -> Self {
         Self {
-            pixels: Cow::from(pixels),
+            pixels: Vec::from(pixels),
             size: [w, h],
             filter: rg::Filter::Nearest,
             wrap: rg::Wrap::ClampToEdge,
@@ -71,13 +76,12 @@ impl<'a> TextureBuilder<'a> {
     }
 
     pub fn build_texture(&self) -> Texture2dDrop {
-        log::trace!("tex");
         Texture2dDrop {
             img: rg::Image::create(&{
                 let mut desc = self::img_desc(self.size[0], self.size[1], self.filter, self.wrap);
                 desc.render_target = false;
                 desc.usage = rg::ResourceUsage::Immutable as u32;
-                desc.data.subimage[0][0] = self.pixels.as_ref().into();
+                desc.data.subimage[0][0] = self.pixels.as_slice().into();
                 desc
             }),
             w: self.size[0],
@@ -398,12 +402,7 @@ impl RenderTextureBuilder {
 
     pub fn build(&self) -> RenderTexture {
         log::trace!("rt");
-        let mut img_desc = self::img_desc(
-            self.size[0],
-            self.size[1],
-            rg::Filter::Nearest,
-            rg::Wrap::ClampToBorder,
-        );
+        let mut img_desc = self::img_desc(self.size[0], self.size[1], self.filter, self.wrap);
         img_desc.render_target = true;
         // render target has to have `Immutable` usage
         img_desc.usage = rg::ResourceUsage::Immutable as u32;
@@ -423,6 +422,8 @@ impl RenderTextureBuilder {
             // depth image
             // TODO: can we skip this modifying shader creation
             pass_desc.depth_stencil_attachment.image = rg::Image::create(&rg::ImageDesc {
+                // NOTE: Both `PipelineDesc` and off-screen render target `ImageDesc`
+                //       must have `pixel_format` being `Depth`.
                 pixel_format: rg::PixelFormat::Depth as u32,
                 ..img_desc
             });

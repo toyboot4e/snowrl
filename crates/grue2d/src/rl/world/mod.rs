@@ -53,7 +53,7 @@ impl World {
     }
 
     pub fn is_blocked(&mut self, pos: Vec2i) -> bool {
-        if self.map.rlmap.is_blocked(pos) {
+        if self.map.rlmap.is_body_blocked(pos) {
             return true;
         }
 

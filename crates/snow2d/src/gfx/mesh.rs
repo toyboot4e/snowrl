@@ -152,9 +152,9 @@ impl<V> DynamicMesh<V> {
     /// `base_elem`: relative to `self.bind.vertex_buffer_offsets[0]`.
     ///
     /// `base_elem` should be zero after calling `append_vert_slice`.
-    pub fn draw(&self, base_elem: u32, n_verts: u32) {
+    pub fn draw(&self, base_elem: u32, n_indices: u32) {
         rg::apply_bindings(&self.bind);
-        rg::draw(base_elem, n_verts, 1);
+        rg::draw(base_elem, n_indices, 1);
     }
 
     pub fn draw_all(&self) {

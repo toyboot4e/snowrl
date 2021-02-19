@@ -56,7 +56,8 @@ impl ShadowRenderer {
         screen_size[0] /= inv_scale;
         screen_size[1] /= inv_scale;
         RenderTexture::builder([screen_size[0] as u32, screen_size[1] as u32])
-            // Linear filter is smoother
+            // linear: smooth, nearest: feels like pixelized
+            // TODO: let user choose it dynamically
             .filter(rg::Filter::Nearest)
             .build()
     }

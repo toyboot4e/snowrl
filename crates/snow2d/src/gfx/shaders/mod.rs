@@ -34,11 +34,18 @@ macro_rules! def_shd {
     ($file:expr) => {{
         use std::{fs, path::PathBuf};
 
-        let dir = PathBuf::from(file!()).parent().unwrap().join("glsl");
+        // NOTE: `file!` is relative path from CARGO_MANIFEST_DIR
+        let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+        let dir = root.join(PathBuf::from(file!()).parent().unwrap().join("glsl"));
 
-        let mut vert = fs::read_to_string(dir.join($file).with_extension("vs")).unwrap();
+        let vs_path = dir.join($file).with_extension("vs");
+        let mut vert = fs::read_to_string(&vs_path)
+            .unwrap_or_else(|_| panic!("can't file shader file: {}", vs_path.display()));
         vert.push('\0');
-        let mut frag = fs::read_to_string(dir.join($file).with_extension("fs")).unwrap();
+
+        let fs_path = dir.join($file).with_extension("fs");
+        let mut frag = fs::read_to_string(&fs_path)
+            .unwrap_or_else(|_| panic!("can't file shader file: {}", fs_path.display()));
         frag.push('\0');
 
         [vert, frag]
