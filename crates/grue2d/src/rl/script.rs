@@ -4,7 +4,7 @@ Script integration
 
 */
 
-use rlbox::utils::arena::Index;
+use snow2d::utils::arena::Index;
 
 use crate::rl::world::actor::Actor;
 

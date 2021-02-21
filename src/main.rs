@@ -5,11 +5,12 @@ use rokol::{
     Rokol,
 };
 
+use snow2d::ui::{CoordSystem, Layer};
+
 use rlbox::{
     render::actor::ActorImage,
     render::camera::*,
     rl::{grid2d::*, rlmap::TiledRlMap},
-    ui::{CoordSystem, Layer},
 };
 
 use grue2d::{
@@ -171,7 +172,7 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
     let tex_scales = [1.0, 1.0];
 
     let img = {
-        let pos = Vec2i::new(12,23);
+        let pos = Vec2i::new(12, 23);
         let dir = Dir8::S;
 
         let mut img = ActorImage::new(

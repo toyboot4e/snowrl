@@ -6,14 +6,13 @@ pub mod anim;
 pub mod builder;
 pub mod node;
 
-// TODO: scenes
-pub mod stage;
-
 use {glam::Mat4, std::time::Duration};
 
-use snow2d::{gfx::PassConfig, Ice};
-
-use crate::utils::{arena::Arena, pool::Pool};
+use crate::{
+    gfx::PassConfig,
+    utils::{arena::Arena, pool::Pool},
+    Ice,
+};
 
 use self::{
     anim::{Anim, AnimImpl},

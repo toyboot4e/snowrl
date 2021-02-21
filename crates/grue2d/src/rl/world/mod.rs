@@ -4,7 +4,10 @@ pub mod actor;
 
 use std::time::Duration;
 
-use snow2d::Ice;
+use snow2d::{
+    utils::{arena::Arena, ez},
+    Ice,
+};
 
 use rlbox::{
     render::camera::{Camera2d, FollowCamera2d},
@@ -14,7 +17,7 @@ use rlbox::{
         grid2d::*,
         rlmap::TiledRlMap,
     },
-    utils::{arena::Arena, ez, Double},
+    utils::Double,
 };
 
 use self::actor::*;

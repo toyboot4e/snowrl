@@ -1,6 +1,5 @@
-use snow2d::gfx::{geom2d::Vec2f, Color};
-
 use crate::{
+    gfx::{geom2d::Vec2f, Color},
     ui::{anim::*, node::Node, AnimArena},
     utils::{arena::Index, ez, pool::Handle},
 };

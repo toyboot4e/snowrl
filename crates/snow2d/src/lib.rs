@@ -7,8 +7,10 @@ A 2D framework built on top of [`rokol`].
 pub mod asset;
 pub mod audio;
 pub mod gfx;
-
 pub mod input;
+
+pub mod ui;
+pub mod utils;
 
 use std::time::{Duration, Instant};
 

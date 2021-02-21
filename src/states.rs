@@ -4,7 +4,7 @@ Stack-based game states
 
 use std::{any::TypeId, borrow::Cow};
 
-use rlbox::{
+use snow2d::{
     ui::{Layer, Ui},
     utils::arena::Index,
 };

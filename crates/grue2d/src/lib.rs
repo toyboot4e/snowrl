@@ -11,14 +11,14 @@ pub mod vi;
 
 pub(crate) mod utils;
 
+use std::{any::TypeId, collections::HashMap};
+
 use {
-    rlbox::ui::Ui,
     rokol::{
         app::{self as ra, RApp},
         gfx as rg, Rokol,
     },
-    snow2d::Ice,
-    std::{any::TypeId, collections::HashMap},
+    snow2d::{ui::Ui, Ice},
 };
 
 use crate::{

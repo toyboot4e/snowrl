@@ -13,8 +13,7 @@ use std::{
 
 use {
     downcast_rs::{impl_downcast, Downcast},
-    rlbox::utils::arena::Index,
-    snow2d::Ice,
+    snow2d::{utils::arena::Index, Ice},
 };
 
 use crate::{

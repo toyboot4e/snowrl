@@ -2,12 +2,13 @@
 Scenes
 */
 
-use snow2d::audio::src::Wav;
-
-use rlbox::ui::{
-    anim::{Anim, AnimImpl},
-    node::{Draw, Node},
-    AnimArena, Layer,
+use snow2d::{
+    audio::src::Wav,
+    ui::{
+        anim::{Anim, AnimImpl},
+        node::{Draw, Node},
+        AnimArena, Layer,
+    },
 };
 
 use crate::utils::asset_defs::{title, AssetDef};

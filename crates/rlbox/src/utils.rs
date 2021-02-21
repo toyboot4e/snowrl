@@ -1,59 +1,12 @@
 /*!
-Generic utilities
-*/
-
-pub mod ez;
-pub mod pool;
-
-/// [`arraytools::ArrayTools`] re-exported
-///
-///
-pub use arraytools::ArrayTools;
-
-pub mod arena {
-    /*!
-    Fork of [`thunderdome`] re-exported. Note that [`Index`] is not reference-counted.
-    */
-
-    pub use thunderdome::*;
-}
+Utilities
+ */
 
 pub mod consts {
     //! TODO: remove
 
     /// Duration in seconds to change direction in 45 degrees
     pub const CHANGE_DIR_TIME: f32 = 1.0 / 60.0;
-}
-
-/// [`enum_dispatch::enum_dispatch`] re-exported
-///
-///
-pub use enum_dispatch::enum_dispatch;
-
-/// [`trait_enum::trait_enum`] re-exported
-///
-///
-pub use trait_enum::trait_enum;
-
-/// [`inventory`] re-exported
-///
-///
-#[doc(inline)]
-pub use inventory;
-
-pub mod tweak {
-    //! [inline_tweak] re-exported
-    //!
-    //! ```
-    //! use rlbox::utils::tweak::*;
-    //!
-    //! let x = tweak!(1.0);
-    //! ```
-
-    pub use inline_tweak::{self, watch, Tweakable};
-
-    /// Creates reloadable literal at runtime
-    pub use inline_tweak::tweak;
 }
 
 /// Raw double buffer

@@ -8,11 +8,9 @@ They're created referencing rogulike events and then we forget about original ev
 
 use {
     downcast_rs::{impl_downcast, Downcast},
-    snow2d::Ice,
+    snow2d::{utils::arena::Index, Ice},
     std::{collections::VecDeque, fmt, time::Duration},
 };
-
-use rlbox::utils::arena::Index;
 
 use crate::rl::world::{actor::Actor, World};
 

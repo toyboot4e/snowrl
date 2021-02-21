@@ -11,12 +11,13 @@ use snow2d::{
         geom2d::*,
         tex::{SpriteData, Texture2dDrop},
     },
+    utils::ez,
 };
 
 use crate::{
     render::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
     rl::grid2d::*,
-    utils::{consts, ez, DoubleSwap},
+    utils::{consts, DoubleSwap},
 };
 
 /// Generate character walking animation with some heuristic

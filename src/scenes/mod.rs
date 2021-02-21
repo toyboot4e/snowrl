@@ -4,13 +4,13 @@ UI scenes
 
 pub mod title;
 
-use snow2d::Ice;
-
-use rlbox::{
-    rl::grid2d::*,
+use snow2d::{
     ui::{CoordSystem, Layer, Ui},
     utils::arena::Index,
+    Ice,
 };
+
+use rlbox::rl::grid2d::*;
 
 use grue2d::Global;
 

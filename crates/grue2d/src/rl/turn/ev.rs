@@ -9,9 +9,9 @@ e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
 TODO: remove non-primitive events
 */
 
-use snow2d::{gfx::geom2d::*, input::Key};
+use snow2d::{gfx::geom2d::*, input::Key, utils::arena::Index};
 
-use rlbox::{rl::grid2d::*, utils::arena::Index};
+use rlbox::rl::grid2d::*;
 
 use crate::rl::{
     turn::{

@@ -2,14 +2,15 @@
 UI nodes
 */
 
-use snow2d::gfx::{
-    draw::*,
-    geom2d::*,
-    tex::{NineSliceSprite, SpriteData},
-    Color, RenderPass,
+use crate::{
+    gfx::{
+        draw::*,
+        geom2d::*,
+        tex::{NineSliceSprite, SpriteData},
+        Color, RenderPass,
+    },
+    utils::pool::Handle,
 };
-
-use crate::utils::pool::Handle;
 
 #[derive(Debug, Clone)]
 pub struct Node {

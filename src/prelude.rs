@@ -5,15 +5,14 @@ pub use snow2d::{
     audio,
     gfx::{draw::*, geom2d::*, tex::*, Color, PassConfig, Snow2d},
     input::{Dir8, Key, Sign},
+    utils::{
+        arena::{Arena, Index},
+        ez::{self, Ease, EasedDt, LinearDt, Tweened},
+        pool::{Handle, Pool},
+        tweak::*,
+        ArrayTools,
+    },
     Ice,
-};
-
-pub use rlbox::utils::{
-    arena::{Arena, Index},
-    ez::{self, Ease, EasedDt, LinearDt, Tweened},
-    pool::{Handle, Pool},
-    tweak::*,
-    ArrayTools,
 };
 
 pub use grue2d::{vi::VInput, Global, GlueRl};

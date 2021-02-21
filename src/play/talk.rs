@@ -13,9 +13,6 @@ use snow2d::{
         geom2d::*,
         tex::{NineSliceSprite, SpriteData},
     },
-};
-
-use rlbox::{
     ui::{node::*, Layer},
     utils::{arena::Index, ez, pool::Handle, tweak::*},
 };
