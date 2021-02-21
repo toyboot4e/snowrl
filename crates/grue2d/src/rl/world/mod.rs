@@ -7,7 +7,7 @@ use std::time::Duration;
 use snow2d::Ice;
 
 use rlbox::{
-    render::camera::Camera2d,
+    render::camera::{Camera2d, FollowCamera2d},
     rl::{
         fov::{FovData, OpacityMap},
         fow::FowData,
@@ -25,6 +25,7 @@ use self::actor::*;
 #[derive(Debug)]
 pub struct World {
     pub cam: Camera2d,
+    pub cam_follow: FollowCamera2d,
     pub map: TiledRlMap,
     pub shadow: Shadow,
     pub entities: Arena<Actor>,

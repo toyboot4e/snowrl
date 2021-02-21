@@ -8,7 +8,7 @@ use snow2d::Ice;
 
 use rlbox::{
     rl::grid2d::*,
-    ui::{Layer, Ui},
+    ui::{CoordSystem, Layer, Ui},
     utils::arena::Index,
 };
 
@@ -33,7 +33,7 @@ impl Title {
         let state = title::TitleState { cursor: 0 };
         let mut assets = title::TitleAssets::new(assets);
 
-        let layer_ix = ui.layers.insert(Layer::default());
+        let layer_ix = ui.layers.insert(Layer::new(CoordSystem::Screen));
         let layer = &mut ui.layers[layer_ix];
 
         let nodes = title::TitleNodes::new(&cfg, &mut layer.nodes, &mut assets);

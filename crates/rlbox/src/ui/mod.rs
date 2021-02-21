@@ -9,19 +9,24 @@ pub mod node;
 // TODO: scenes
 pub mod stage;
 
-use std::time::Duration;
+use {glam::Mat4, std::time::Duration};
 
 use snow2d::{gfx::PassConfig, Ice};
 
-use crate::utils::{
-    arena::{Arena, Index},
-    pool::Pool,
-};
+use crate::utils::{arena::Arena, pool::Pool};
 
 use self::{
     anim::{Anim, AnimImpl},
     node::Node,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CoordSystem {
+    /// Use fixed position to the screen
+    Screen,
+    /// Used world coordinates to render nodes. Follow camera automatically
+    World,
+}
 
 /// Collection of layers
 #[derive(Debug, Default)]
@@ -42,26 +47,33 @@ impl Ui {
 pub struct Layer {
     pub nodes: Pool<Node>,
     pub anims: AnimArena,
-}
-
-impl Default for Layer {
-    fn default() -> Self {
-        Self {
-            nodes: Pool::with_capacity(16),
-            anims: AnimArena(Arena::with_capacity(16)),
-        }
-    }
+    pub coord: CoordSystem,
 }
 
 impl Layer {
+    pub fn new(coord: CoordSystem) -> Self {
+        Self {
+            nodes: Pool::with_capacity(16),
+            anims: AnimArena(Arena::with_capacity(16)),
+            coord,
+        }
+    }
+
     fn update(&mut self, dt: Duration) {
         self.anims.update(dt, &mut self.nodes);
         self.nodes.sync_refcounts();
     }
 
-    pub fn render(&mut self, ice: &mut Ice) {
+    pub fn render(&mut self, ice: &mut Ice, cam_mat: Mat4) {
+        let mut screen = ice.rdr.screen(PassConfig {
+            tfm: match self.coord {
+                CoordSystem::Screen => None,
+                CoordSystem::World => Some(cam_mat),
+            },
+            ..Default::default()
+        });
+
         // TODO: sort nodes
-        let mut screen = ice.rdr.screen(PassConfig::default());
         for node in self.nodes.iter_mut() {
             node.render(&mut screen);
         }

@@ -7,7 +7,7 @@ use crate::gfx::{draw::*, mesh::DynamicMesh, shaders::DefaultVertex};
 /// Number of quads in batcher, which is long enough to not be saturated
 ///
 /// NOTE: We can't use ring buffer of vertices with Sokol for some reason:
-/// https://github.com/floooh/sokol/issues/477
+/// <https://github.com/floooh/sokol/issues/477>
 pub const N_QUADS: usize = 2048 * 4;
 
 /// `snow2d` quad data type

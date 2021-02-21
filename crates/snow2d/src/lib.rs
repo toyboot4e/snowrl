@@ -8,18 +8,7 @@ pub mod asset;
 pub mod audio;
 pub mod gfx;
 
-pub mod input {
-    //! `xdl` re-exported
-
-    pub use xdl::{utils, Dir4, Dir8, Input, Key, Keyboard, Sign};
-
-    pub mod vi {
-        //! Virtual input
-
-        pub use snow2d_macros::keys;
-        pub use xdl::vi::*;
-    }
-}
+pub mod input;
 
 use std::time::{Duration, Instant};
 
@@ -76,7 +65,10 @@ impl Ice {
             start_time: Instant::now(),
         }
     }
+}
 
+/// Lifecycle
+impl Ice {
     pub fn event(&mut self, ev: &rokol::app::Event) {
         self.input.event(ev);
     }

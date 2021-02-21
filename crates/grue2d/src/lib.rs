@@ -125,12 +125,23 @@ impl Global {
     pub fn post_update(&mut self) {
         // TODO: don't hard code player detection
         let player = &self.world.entities.get_by_slot(0).unwrap().1;
-        self.world
-            .shadow
-            .post_update(self.ice.dt, &self.world.map.rlmap, player);
+        let player_pos = player.img.pos_world_centered(&self.world.map.tiled);
+
+        // shadow
+        {
+            self.world
+                .shadow
+                .post_update(self.ice.dt, &self.world.map.rlmap, player);
+        }
+
+        // camera
+        rlbox::render::camera::update_follow(
+            &mut self.world.cam,
+            &self.world.cam_follow,
+            player_pos,
+        );
 
         self.world_render.post_update(&self.world, self.ice.dt);
-
         self.ui.update(self.ice.dt);
     }
 

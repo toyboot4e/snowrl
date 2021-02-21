@@ -9,7 +9,7 @@ use rlbox::{
     render::actor::ActorImage,
     render::camera::*,
     rl::{grid2d::*, rlmap::TiledRlMap},
-    ui::Layer,
+    ui::{CoordSystem, Layer},
 };
 
 use grue2d::{
@@ -92,6 +92,7 @@ fn new_game(rokol: Rokol) -> GlueRl {
         }
     };
 
+    // TODO: remove this debug print
     {
         let x = ron::ser::to_string_pretty(&gl.vi, Default::default()).unwrap();
         println!("{}", x);
@@ -107,8 +108,11 @@ fn new_game(rokol: Rokol) -> GlueRl {
         // fsm.insert(states::Title::new(&mut gl.ice));
         fsm.insert(states::Title::new(&mut gl.ice, &mut gl.ui));
 
-        let common_layer_ix = gl.ui.layers.insert(Layer::default());
-        fsm.insert(states::PlayScript::new(&mut gl.ice.assets, common_layer_ix));
+        let world_ui_layer_ix = gl.ui.layers.insert(Layer::new(CoordSystem::World));
+        fsm.insert(states::PlayScript::new(
+            &mut gl.ice.assets,
+            world_ui_layer_ix,
+        ));
 
         fsm.push::<states::Roguelike>(&mut gl);
         fsm.push::<states::Title>(&mut gl);
@@ -137,6 +141,12 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
             },
             size: rokol::app::size_f().into(),
         },
+        cam_follow: FollowCamera2d {
+            // TODO: don't hardcode
+            deadzone: Rect2f::new(320.0, 180.0, 1280.0 - 320.0 * 2.0, 720.0 - 180.0 * 2.0),
+            lerp: 0.1,
+            // ease: ez::Ease,
+        },
         map,
         shadow: Shadow::new(radius, map_size, consts::WALK_TIME, consts::FOV_EASE),
         entities: Arena::with_capacity(20),
@@ -161,7 +171,7 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
     let tex_scales = [1.0, 1.0];
 
     let img = {
-        let pos = Vec2i::new(20, 16);
+        let pos = Vec2i::new(12,23);
         let dir = Dir8::S;
 
         let mut img = ActorImage::new(

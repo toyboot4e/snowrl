@@ -1,11 +1,11 @@
 /*!
-TODO: 2D camera
-TODO: transform2d
+2D camera
 */
 
+use glam::{Mat4, Vec3};
 use snow2d::gfx::geom2d::*;
 
-/// Transfrom of position, rotation and scale
+/// TODO: use it? Transfrom of position, rotation and scale
 #[derive(Debug, Clone, PartialEq)]
 pub struct Transform2d {
     local: Mat2f,
@@ -60,4 +60,47 @@ impl Camera2d {
             y: pos.y - self.params.pos.y,
         }
     }
+
+    pub fn to_mat4(&self) -> Mat4 {
+        Mat4::from_translation(Vec3::new(-self.params.pos.x, -self.params.pos.y, 0.0))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FollowCamera2d {
+    /// Deadzoine in screen coordinates (fixed position)
+    pub deadzone: Rect2f,
+    /// Every frame we add `target_delta * lerp` to the camera position
+    pub lerp: f32,
+    // pub ease: ez::Ease,
+}
+
+pub fn update_follow(cam: &mut Camera2d, follow: &FollowCamera2d, player_pos_world: Vec2f) {
+    let deadzone_world = follow.deadzone.offset(cam.params.pos);
+
+    let dx1 = player_pos_world.x - deadzone_world.right();
+    let dx2 = player_pos_world.x - deadzone_world.left();
+
+    let dx = if dx1 > 0.0 {
+        dx1
+    } else if dx2 < 0.0 {
+        dx2
+    } else {
+        0.0
+    };
+
+    let dy1 = player_pos_world.y - deadzone_world.down();
+    let dy2 = player_pos_world.y - deadzone_world.up();
+
+    let dy = if dy1 > 0.0 {
+        dy1
+    } else if dy2 < 0.0 {
+        dy2
+    } else {
+        0.0
+    };
+
+    log::trace!("{:?}, {:?}", dx, dy);
+
+    cam.params.pos += Vec2f::new(dx * follow.lerp, dy * follow.lerp);
 }

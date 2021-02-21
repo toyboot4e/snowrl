@@ -173,7 +173,7 @@ const M_INV_Y: glam::Mat4 = glam::const_mat4!(
 #[derive(Debug)]
 pub struct PassConfig<'a> {
     pub pa: &'a rg::PassAction,
-    /// uniform matrix = orthographic * transform
+    /// uniform matrix = orthographic * transform (transform = view)
     pub tfm: Option<glam::Mat4>,
     pub shd: Option<&'a Shader>,
 }
@@ -181,7 +181,7 @@ pub struct PassConfig<'a> {
 impl<'a> Default for PassConfig<'a> {
     fn default() -> Self {
         Self {
-            pa: &rg::PassAction::NONE,
+            pa: &rg::PassAction::LOAD,
             tfm: None,
             shd: None,
         }

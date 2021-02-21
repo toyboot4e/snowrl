@@ -67,7 +67,7 @@ impl ShadowRenderer {
         let mut offscreen = rdr.offscreen(
             &mut self.shadows[0],
             PassConfig {
-                pa: &rg::PassAction::NONE,
+                pa: &rg::PassAction::LOAD,
                 tfm: None,
                 shd: None,
             },
@@ -109,7 +109,7 @@ impl ShadowRenderer {
         let mut draw = rdr.offscreen(
             &mut self.shadows[to],
             PassConfig {
-                pa: &rg::PassAction::NONE,
+                pa: &rg::PassAction::LOAD,
                 tfm: None,
                 shd: Some(&self.gauss_shd),
             },
@@ -132,7 +132,7 @@ impl ShadowRenderer {
     /// Writes shadow to the screen frame buffer
     pub fn blend_to_screen(&self, rdr: &mut Snow2d) {
         let mut screen = rdr.screen(PassConfig {
-            pa: &rg::PassAction::NONE,
+            pa: &rg::PassAction::LOAD,
             tfm: None,
             shd: None,
         });
@@ -186,7 +186,7 @@ impl Default for SnowRenderer {
 
 impl SnowRenderer {
     pub fn render(&mut self) {
-        rg::begin_default_pass(&rg::PassAction::NONE, ra::width(), ra::height());
+        rg::begin_default_pass(&rg::PassAction::LOAD, ra::width(), ra::height());
         self.shd.apply_pip();
 
         fn as_bytes<T>(x: &T) -> &[u8] {
@@ -297,6 +297,7 @@ impl WorldRenderer {
         // );
     }
 
+    // TODO: maybe use camera matrix
     fn actors(&mut self, screen: &mut impl DrawApi, world: &World, dt: Duration) {
         // FIXME: separate update and render
         // TODO: y sort + culling
@@ -326,7 +327,7 @@ impl WorldRenderer {
             }
 
             let alpha = b2f(x.a) * x.t + b2f(x.b) * (1.0 - x.t);
-            let pos = world.cam.w2s(e.img.pos_world(&world.map.tiled));
+            let pos = world.cam.w2s(e.img.render_pos_world(&world.map.tiled));
 
             screen
                 .sprite(e.img.sprite())

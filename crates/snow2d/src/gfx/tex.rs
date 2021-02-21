@@ -1,5 +1,9 @@
 /*!
 2D texture types
+
+They implement traits in the [`draw`] module.
+
+[`draw`]: super::draw
 */
 
 // TODO: texture builder

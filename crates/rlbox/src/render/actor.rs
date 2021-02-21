@@ -15,7 +15,6 @@ use snow2d::{
 
 use crate::{
     render::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
-    render::camera::Camera2d,
     rl::grid2d::*,
     utils::{consts, ez, DoubleSwap},
 };
@@ -221,20 +220,33 @@ impl ActorImage {
         self.anim_state.tick(dt);
     }
 
-    /// Position in world coordinates
+    /// Position in world coordinates, used for like camera
     ///
-    /// If the character is not walking, it's the bottom-center of the cell
-    ///
-    /// TODO: separate base position and actual position with offset
-    pub fn pos_world(&self, tiled: &tiled::Map) -> Vec2f {
-        let pos_prev = self.align(self.state.b().pos, tiled);
-        let pos_curr = self.align(self.state.a().pos, tiled);
+    /// Align the center of the sprite to the center of the cell.
+    pub fn pos_world_centered(&self, tiled: &tiled::Map) -> Vec2f {
+        let pos_prev = self.align_center(self.state.b().pos, tiled);
+        let pos_curr = self.align_center(self.state.a().pos, tiled);
 
         pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get()
     }
 
     /// Align the bottom-center of an actor to the bottom-center of a cell
-    fn align(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
+    fn align_center(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
+        let mut pos = crate::render::tiled::t2w_center(pos, &tiled);
+        pos.y -= self.sprite().sub_tex_size_unscaled()[1] / 2.0;
+        pos
+    }
+
+    /// Position in world coordinates, used for like rendering actors
+    pub fn render_pos_world(&self, tiled: &tiled::Map) -> Vec2f {
+        let pos_prev = self.align_render(self.state.b().pos, tiled);
+        let pos_curr = self.align_render(self.state.a().pos, tiled);
+
+        pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get()
+    }
+
+    /// Align the center of the sprite to the bottom-center of the cell
+    fn align_render(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
         let mut pos = crate::render::tiled::t2w_center(pos, &tiled);
         pos.y += tiled.tile_height as f32 / 2.0;
         pos.y -= self.sprite().sub_tex_size_unscaled()[1] / 2.0;

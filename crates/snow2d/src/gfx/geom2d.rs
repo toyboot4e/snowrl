@@ -273,13 +273,11 @@ impl Rect2f {
         self.x + self.w
     }
 
-    /// Coordinate of visually up edge
-    pub fn top(&self) -> f32 {
+    pub fn up(&self) -> f32 {
         self.y
     }
 
-    /// Coordinate of visually down edge
-    pub fn bottom(&self) -> f32 {
+    pub fn down(&self) -> f32 {
         self.y + self.h
     }
 
@@ -355,6 +353,8 @@ impl Rect2f {
 
 /// More semantic
 impl Rect2f {
+    // getters
+
     pub fn center(&self) -> Vec2f {
         (self.left_up() + self.right_down()) / 2.0
     }
@@ -363,6 +363,19 @@ impl Rect2f {
     pub fn origin_px(&self, origin: impl Into<Vec2f>) -> Vec2f {
         self.left_up() + self.size().scale(origin.into())
     }
+
+    // convert
+
+    pub fn offset(&self, pos: Vec2f) -> Rect2f {
+        Rect2f {
+            x: self.x + pos.x,
+            y: self.y + pos.y,
+            w: self.w,
+            h: self.h,
+        }
+    }
+
+    // mutations
 
     /// Sets the position of the center
     pub fn set_center(&mut self, pos: impl Into<[f32; 2]>) {
@@ -379,17 +392,15 @@ impl Rect2f {
         self.y = pos[1] - self.h * origin[1];
     }
 
-    // mutations
-
     /// Adds offset to `self`
-    pub fn translate(&mut self, offset: impl Into<Vec2f>) {
+    pub fn translate_mut(&mut self, offset: impl Into<Vec2f>) {
         let v = offset.into();
         self.x += v.x;
         self.y += v.y;
     }
 
     /// Adjusts x value assuming `w < max - min` (be warned that this is stupid)
-    pub fn clamp_x(&mut self, min: f32, max: f32) {
+    pub fn clamp_x_mut(&mut self, min: f32, max: f32) {
         if self.left() < min {
             self.set_left(min);
         }
@@ -399,11 +410,11 @@ impl Rect2f {
     }
 
     /// Adjusts y value assuming `h < max - min` (be warned that this is stupid)
-    pub fn clamp_y(&mut self, min: f32, max: f32) {
-        if self.top() < min {
+    pub fn clamp_y_mut(&mut self, min: f32, max: f32) {
+        if self.up() < min {
             self.set_up(min);
         }
-        if self.bottom() > max {
+        if self.down() > max {
             self.set_down(max)
         }
     }
@@ -415,18 +426,15 @@ impl Rect2f {
         let pos = pos.into();
         !(
             //
-            pos.x < self.left()
-                || self.right() < pos.x
-                || pos.y < self.top()
-                || self.bottom() < pos.y
+            pos.x < self.left() || self.right() < pos.x || pos.y < self.up() || self.down() < pos.y
         )
     }
 
     pub fn intersects(&self, other: &Rect2f) -> bool {
         !(self.right() < other.left()
             || other.right() < self.left()
-            || self.bottom() < other.top()
-            || other.bottom() < self.top())
+            || self.down() < other.up()
+            || other.down() < self.up())
     }
 }
 

@@ -84,6 +84,7 @@ impl SnowRl {
     fn update(&mut self) {
         self.grue.gl.pre_update();
         self.grue.fsm.update(&mut self.grue.gl);
+
         self.grue.gl.post_update();
     }
 
@@ -95,8 +96,9 @@ impl SnowRl {
         gl.world_render
             .render(&gl.world, &mut gl.ice, WorldRenderFlag::ALL);
 
+        let cam_mat = gl.world.cam.to_mat4();
         for (_ix, layer) in &mut gl.ui.layers {
-            layer.render(&mut gl.ice);
+            layer.render(&mut gl.ice, cam_mat);
         }
     }
 }
