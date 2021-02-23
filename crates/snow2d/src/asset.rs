@@ -17,6 +17,9 @@ TODO features:
 
 #![allow(dead_code)]
 
+/// `std::io::Result` re-exported
+///
+/// ---
 pub use std::io::Result;
 
 use std::{
@@ -32,7 +35,6 @@ use std::{
 use downcast_rs::{impl_downcast, Downcast};
 
 /// Get asset path relative to `assets` directory
-/// TODO: remove `unsafe`
 pub fn path(path: impl AsRef<Path>) -> PathBuf {
     // TODO: supply appropreate root path
     let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -45,6 +47,7 @@ pub trait AssetItem: fmt::Debug + Sized + 'static {
     type Loader: AssetLoader<Item = Self>;
 }
 
+/// How to load an [`AssetItem`]
 pub trait AssetLoader: fmt::Debug + Sized + 'static {
     type Item: AssetItem;
     fn load(&mut self, path: &Path) -> Result<Self::Item>;
@@ -94,6 +97,8 @@ impl<T: AssetItem> Asset<T> {
     }
 }
 
+/// Key to load asset
+///
 /// TODO: use newtype struct while enabling static construction (or use IntoAssetKey)
 pub struct AssetKey<'a>(Cow<'a, Path>);
 
@@ -110,6 +115,7 @@ impl<'a> std::ops::Deref for AssetKey<'a> {
     }
 }
 
+/// Key to load asset (allocated statically)
 #[derive(Clone, Copy)]
 pub struct StaticAssetKey(pub &'static str);
 

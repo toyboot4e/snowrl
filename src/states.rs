@@ -10,6 +10,7 @@ use snow2d::{
 };
 
 use grue2d::{
+    fsm::{GameState, StateCommand, StateReturn},
     rl::{
         script::ScriptRef,
         turn::{
@@ -19,7 +20,7 @@ use grue2d::{
         },
         world::actor::Actor,
     },
-    GameState, Global, StateCommand, StateReturn,
+    Global,
 };
 
 use crate::{play, prelude::*, utils::paths};

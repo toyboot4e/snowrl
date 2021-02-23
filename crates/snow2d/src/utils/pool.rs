@@ -1,5 +1,5 @@
 /*!
-Pool with reference-counted handles
+Reference-counted pool
 
 # About
 

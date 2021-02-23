@@ -1,5 +1,5 @@
 /*!
-User interface
+User interface (sprites and animations)
 */
 
 pub mod anim;
@@ -19,6 +19,7 @@ use self::{
     node::Node,
 };
 
+/// Coordinate used in a [`Layer`] (`Screen` | `World`)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CoordSystem {
     /// Use fixed position to the screen
@@ -27,7 +28,7 @@ pub enum CoordSystem {
     World,
 }
 
-/// Collection of layers
+/// UI scene composed of layers
 #[derive(Debug, Default)]
 pub struct Ui {
     pub layers: Arena<Layer>,
@@ -41,10 +42,10 @@ impl Ui {
     }
 }
 
-/// Sprites and animations
+/// Nodes and animations
 #[derive(Debug)]
 pub struct Layer {
-    pub nodes: Pool<Node>,
+    pub nodes: NodePool,
     pub anims: AnimArena,
     pub coord: CoordSystem,
 }
@@ -79,6 +80,10 @@ impl Layer {
     }
 }
 
+/// [`Pool`] of nodes
+pub type NodePool = Pool<Node>;
+
+/// [`Arena`] of animations
 #[derive(Debug)]
 pub struct AnimArena(Arena<Anim>);
 

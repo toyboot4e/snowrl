@@ -1,8 +1,12 @@
 /*!
-[`soloud-rs`] re-exported with additional types and [`snow2d::asset`] integration
+[`soloud-rs`] re-exported
 
 [`soloud-rs`]: https://github.com/MoAlyousef/soloud-rs
 [`snow2d::asset`]: crate::asset
+
+.. with additional types and [`snow2d::asset`] integration.
+
+---
 
 [SoLoud] is an easy to use, free, portable c/c++ audio engine for games.
 

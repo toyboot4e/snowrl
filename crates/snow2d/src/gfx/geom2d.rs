@@ -112,11 +112,6 @@ impl Vec2f {
         Self { x: 1.0, y: 1.0 }
     }
 
-    pub fn round(&mut self) {
-        self.x = self.x.round();
-        self.y = self.y.round();
-    }
-
     pub fn offset(&self, x: impl Into<Self>) -> Self {
         self + x.into()
     }
@@ -128,6 +123,13 @@ impl Vec2f {
             x: self.x * scale.x,
             y: self.y * scale.y,
         }
+    }
+
+    // mutations
+
+    pub fn round_mut(&mut self) {
+        self.x = self.x.round();
+        self.y = self.y.round();
     }
 
     /// Angle in radian
@@ -144,15 +146,17 @@ impl Vec2f {
     }
 }
 
-// Vec2f, f32
+// negation
 impl_op_ex!(-|me: &Vec2f| -> Vec2f { Vec2f::new(-me.x, -me.y) });
 
 // Vec2f, f32
 impl_op_ex!(*|lhs: &Vec2f, rhs: &f32| -> Vec2f { Vec2f::new(lhs.x * rhs, lhs.y * rhs) });
 impl_op_ex!(/|lhs: &Vec2f, rhs: &f32| -> Vec2f { Vec2f::new(lhs.x / rhs, lhs.y / rhs) });
-impl_op_ex!(*|rhs: &f32, lhs: &Vec2f| -> Vec2f { Vec2f::new(lhs.x * rhs, lhs.y * rhs) });
 impl_op_ex!(*= |lhs: &mut Vec2f, rhs: &f32| { lhs.x *= rhs; lhs.y *= rhs; });
 impl_op_ex!(/= |lhs: &mut Vec2f, rhs: &f32| { lhs.x /= rhs; lhs.y /= rhs; });
+
+// f32, Vec2f
+impl_op_ex!(*|lhs: &f32, rhs: &Vec2f| -> Vec2f { Vec2f::new(lhs * rhs.x, lhs * rhs.y) });
 
 // Vec2f, Vec2f
 impl_op_ex!(+ |lhs: &Vec2f, rhs: &Vec2f| -> Vec2f { Vec2f::new(lhs.x + rhs.x, lhs.y + rhs.y) });
@@ -163,8 +167,8 @@ impl_op_ex!(/ |lhs: &Vec2f, rhs: &Vec2f| -> Vec2f { Vec2f::new(lhs.x / rhs.x, lh
 // assginments
 impl_op_ex!(+= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x += rhs.x; lhs.y += rhs.y; });
 impl_op_ex!(-= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x -= rhs.x; lhs.y -= rhs.y; });
-// impl_op_ex!(*= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x *= rhs.x; lhs.y *= rhs.y; });
-// impl_op_ex!(/= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x /= rhs.x; lhs.y /= rhs.y; });
+impl_op_ex!(*= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x *= rhs.x; lhs.y *= rhs.y; });
+impl_op_ex!(/= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x /= rhs.x; lhs.y /= rhs.y; });
 
 // TODO: assignment with impl Into<Vec2f>
 
@@ -224,9 +228,13 @@ impl Into<(f32, f32)> for &Vec2f {
 /// else, then those methods don't make sense.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Rect2f {
+    /// Left
     pub x: f32,
+    /// Up
     pub y: f32,
+    /// Width
     pub w: f32,
+    /// Height
     pub h: f32,
 }
 
@@ -281,20 +289,20 @@ impl Rect2f {
         self.y + self.h
     }
 
-    pub fn set_left(&mut self, x: f32) {
-        self.x = x;
+    pub fn set_left(&mut self, left: f32) {
+        self.x = left;
     }
 
-    pub fn set_right(&mut self, x: f32) {
-        self.x = x - self.w;
+    pub fn set_right(&mut self, right: f32) {
+        self.x = right - self.w;
     }
 
-    pub fn set_up(&mut self, y: f32) {
-        self.y = y;
+    pub fn set_up(&mut self, up: f32) {
+        self.y = up;
     }
 
-    pub fn set_down(&mut self, y: f32) {
-        self.y = y - self.h;
+    pub fn set_down(&mut self, down: f32) {
+        self.y = down - self.h;
     }
 
     // vectors
@@ -366,16 +374,23 @@ impl Rect2f {
 
     // convert
 
-    pub fn offset(&self, pos: Vec2f) -> Rect2f {
+    pub fn offset(&self, pos: impl Into<[f32; 2]>) -> Rect2f {
+        let pos = pos.into();
         Rect2f {
-            x: self.x + pos.x,
-            y: self.y + pos.y,
+            x: self.x + pos[0],
+            y: self.y + pos[1],
             w: self.w,
             h: self.h,
         }
     }
 
     // mutations
+
+    pub fn offset_mut(&mut self, pos: impl Into<[f32; 2]>) {
+        let pos = pos.into();
+        self.x += pos[0];
+        self.y += pos[1];
+    }
 
     /// Sets the position of the center
     pub fn set_center(&mut self, pos: impl Into<[f32; 2]>) {
@@ -424,10 +439,7 @@ impl Rect2f {
 impl Rect2f {
     pub fn contains(&self, pos: impl Into<Vec2f>) -> bool {
         let pos = pos.into();
-        !(
-            //
-            pos.x < self.left() || self.right() < pos.x || pos.y < self.up() || self.down() < pos.y
-        )
+        !(pos.x < self.left() || self.right() < pos.x || pos.y < self.up() || self.down() < pos.y)
     }
 
     pub fn intersects(&self, other: &Rect2f) -> bool {

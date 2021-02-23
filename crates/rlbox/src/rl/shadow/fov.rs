@@ -5,7 +5,7 @@ Field of view
 use crate::rl::grid2d::Vec2i;
 
 /// Refreshes [`FovWrite`] (FoV data or maybe bundle of FoV and FoW)
-pub fn refresh<T: OpacityMap>(fov: &mut impl FovWrite, params: RefreshParams<T>) {
+pub fn refresh_fov<T: OpacityMap>(fov: &mut impl FovWrite, params: FovRefreshParams<T>) {
     fov.on_refresh(&params);
     self::update_fov(fov, params.r, params.origin, params.opa);
 }
@@ -13,7 +13,7 @@ pub fn refresh<T: OpacityMap>(fov: &mut impl FovWrite, params: RefreshParams<T>)
 /// FoV data or maybe bundle of FoV and FoW
 pub trait FovWrite {
     /// Prepare for updating
-    fn on_refresh<T: OpacityMap>(&mut self, params: &RefreshParams<T>);
+    fn on_refresh<T: OpacityMap>(&mut self, params: &FovRefreshParams<T>);
     /// Define that the cell is in view
     ///
     /// The `pos` is guaranteed to be inside the map
@@ -22,7 +22,7 @@ pub trait FovWrite {
 
 /// Parameters to refresh FoV
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RefreshParams<'a, T: OpacityMap> {
+pub struct FovRefreshParams<'a, T: OpacityMap> {
     pub r: u32,
     pub origin: Vec2i,
     pub opa: &'a T,
@@ -113,7 +113,7 @@ impl FovData {
 }
 
 impl FovWrite for FovData {
-    fn on_refresh<T: OpacityMap>(&mut self, params: &RefreshParams<T>) {
+    fn on_refresh<T: OpacityMap>(&mut self, params: &FovRefreshParams<T>) {
         self.radius = params.r;
         self.origin = params.origin;
         // TODO: resize if needed

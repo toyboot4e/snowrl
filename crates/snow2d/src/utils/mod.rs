@@ -12,7 +12,12 @@ pub use arraytools::ArrayTools;
 
 pub mod arena {
     /*!
-    Fork of [`thunderdome`] re-exported. Note that [`Index`] is not reference-counted.
+     Non-reference-counted pool
+
+     This is a fork of [`thunderdome`]. Changes:
+
+     * `Index` has type parameter `T`
+     * `Arena::insert` accepts `impl Into<T>`
     */
 
     pub use thunderdome::*;
@@ -20,19 +25,19 @@ pub mod arena {
 
 /// [`enum_dispatch::enum_dispatch`] re-exported
 ///
-///
+/// ---
 pub use enum_dispatch::enum_dispatch;
 
 /// [`trait_enum::trait_enum`] re-exported
 ///
-///
+/// ---
 pub use trait_enum::trait_enum;
 
 pub mod tweak {
     //! [inline_tweak] re-exported
     //!
     //! ```
-    //! use rlbox::utils::tweak::*;
+    //! use snow2d::utils::tweak::*;
     //!
     //! let x = tweak!(1.0);
     //! ```

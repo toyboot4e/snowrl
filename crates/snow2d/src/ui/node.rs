@@ -1,25 +1,27 @@
 /*!
 UI nodes
+
+[`Handle`] of UI nodes are strong references, so a node won't freed until nothing refers to it.
 */
 
 use crate::{
-    gfx::{
-        draw::*,
-        geom2d::*,
-        tex::{NineSliceSprite, SpriteData},
-        Color, RenderPass,
-    },
+    gfx::{draw::*, geom2d::*, Color, RenderPass},
     utils::pool::Handle,
 };
 
+// Re-exported as [`Node`] variants
+pub use crate::gfx::tex::{NineSliceSprite, SpriteData};
+
+/// Visible object in a UI layer
 #[derive(Debug, Clone)]
 pub struct Node {
     pub draw: Draw,
-    /// Common geometry data that can be tweened
+    /// Common geometry data
     pub params: DrawParams,
-    pub children: Vec<Handle<Self>>,
     /// TODO: Drawing order (1.0 is top, 0.0 is bottom)
     pub z: f32,
+    /// TODO: transform tree
+    pub children: Vec<Handle<Self>>,
 }
 
 impl From<Draw> for Node {
@@ -61,7 +63,7 @@ impl Node {
     }
 }
 
-/// Common geometry data that can be tweened
+/// Common geometry data that animations can operate on
 #[derive(Debug, Clone, Default)]
 pub struct DrawParams {
     pub pos: Vec2f,
@@ -82,7 +84,7 @@ impl DrawParams {
     }
 }
 
-// Everything is drawn as a [`Node`] with [`Draw`]
+/// [`Node`] surface
 #[derive(Debug, Clone)]
 pub enum Draw {
     Sprite(SpriteData),
@@ -126,6 +128,7 @@ impl Draw {
     // pub fn draw(
 }
 
+/// [`Draw`] variant
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Text {
     // TODO: unsafe tetx reference?
@@ -133,29 +136,29 @@ pub struct Text {
     // TODO: decoration information (spans for colors, etc)
 }
 
-/// X/Y aligment
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Align2d {
-    pub h: AlignH,
-    pub v: AlignV,
-}
+// /// X/Y aligment
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub struct Align2d {
+//     pub h: AlignH,
+//     pub v: AlignV,
+// }
 
-impl Align2d {
-    pub fn new(h: AlignH, v: AlignV) -> Self {
-        Self { h, v }
-    }
-}
+// impl Align2d {
+//     pub fn new(h: AlignH, v: AlignV) -> Self {
+//         Self { h, v }
+//     }
+// }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AlignH {
-    Left,
-    Center,
-    Right,
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub enum AlignH {
+//     Left,
+//     Center,
+//     Right,
+// }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AlignV {
-    Top,
-    Center,
-    Bottom,
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub enum AlignV {
+//     Top,
+//     Center,
+//     Bottom,
+// }

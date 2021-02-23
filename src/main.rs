@@ -1,23 +1,22 @@
 //! TODO: filter debug/error log on release build
 
 use rokol::{
-    fons::{Align, FontConfig},
+    fons::{self, FontConfig},
     Rokol,
 };
 
 use snow2d::ui::{CoordSystem, Layer};
 
 use rlbox::{
-    render::actor::ActorImage,
-    render::camera::*,
-    rl::{grid2d::*, rlmap::TiledRlMap},
+    rl::grid2d::*,
+    view::{actor::ActorImage, camera::*, map::TiledRlMap, shadow::Shadow},
 };
 
 use grue2d::{
     render::WorldRenderer,
     rl::{
         turn::anim::AnimPlayer,
-        world::{actor::Actor, Shadow, World},
+        world::{actor::Actor, World},
     },
 };
 
@@ -54,18 +53,23 @@ fn main() -> rokol::Result {
 
 fn new_game(rokol: Rokol) -> GlueRl {
     let title = rokol.title;
-    let mut gl = {
+
+    // create generic game context
+    let mut ice = {
         let mut snow = unsafe { Snow2d::new() };
+
         let font_cfg = FontConfig {
             font: {
-                // FIXME: font path
+                // FIXME: font and font path
                 let font = include_bytes!("../assets_embedded/mplus-1p-regular.ttf");
                 let ix = snow
                     .fontbook
                     .stash()
                     .add_font_mem("mplus-1p-regular", font)
                     .unwrap();
-                snow.fontbook.stash().set_align(Align::TOP | Align::LEFT);
+                snow.fontbook
+                    .stash()
+                    .set_align(fons::Align::TOP | fons::Align::LEFT);
                 ix
             },
             fontsize: crate::consts::DEFAULT_FONT_SIZE,
@@ -73,8 +77,11 @@ fn new_game(rokol: Rokol) -> GlueRl {
         };
         snow.fontbook.apply_cfg(&font_cfg);
 
-        let mut ice = Ice::new(title, snow, font_cfg);
+        Ice::new(title, snow, font_cfg)
+    };
 
+    // create our game context
+    let mut gl = {
         ice.assets
             .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
 
@@ -100,8 +107,9 @@ fn new_game(rokol: Rokol) -> GlueRl {
         let _y: VInput = ron::de::from_str(&x).unwrap();
     }
 
+    // create our control
     let fsm = {
-        let mut fsm = grue2d::Fsm::default();
+        let mut fsm = grue2d::fsm::Fsm::default();
 
         fsm.insert_default::<states::Roguelike>();
         fsm.insert_default::<states::Animation>();
@@ -143,10 +151,17 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
             size: rokol::app::size_f().into(),
         },
         cam_follow: FollowCamera2d {
-            // TODO: don't hardcode
-            deadzone: Rect2f::new(320.0, 180.0, 1280.0 - 320.0 * 2.0, 720.0 - 180.0 * 2.0),
-            lerp: 0.1,
-            // ease: ez::Ease,
+            // TODO: don't hardcode. maybe use expressions considering window resizing
+            sense_pads: Vec2f::new(320.0, 180.0),
+            target_pads: Vec2f::new(340.0, 200.0),
+            deadzone: Rect2f::new(
+                0.0,
+                0.0,
+                map_size[0] as f32 * map.tiled.tile_width as f32,
+                map_size[1] as f32 * map.tiled.tile_height as f32,
+            ),
+            lerp_speed: 0.1,
+            is_moving: false,
         },
         map,
         shadow: Shadow::new(radius, map_size, consts::WALK_TIME, consts::FOV_EASE),
@@ -158,7 +173,7 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
     // just set FoV:
     // shadow.calculate(player.pos, &map.rlmap);
     // or animate initial FoV:
-    world.shadow.make_dirty();
+    world.shadow.mark_dirty();
 
     Ok(world)
 }
@@ -172,16 +187,13 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
     let tex_scales = [1.0, 1.0];
 
     let img = {
-        let pos = Vec2i::new(12, 23);
-        let dir = Dir8::S;
-
         let mut img = ActorImage::new(
             tex,
             consts::ACTOR_FPS,
             consts::WALK_TIME,
             consts::WALK_EASE,
-            pos,
-            dir,
+            [12, 23].into(),
+            Dir8::S,
         )?;
 
         // FIXME: consider offsets
@@ -193,65 +205,45 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
     };
 
     w.entities.insert({
-        let pos = Vec2i::new(20, 16);
-        let dir = Dir8::S;
-
-        let player = Actor {
-            pos,
-            dir,
-            img: {
-                let mut img = img.clone();
-                img.warp(pos, dir);
-                img
-            },
+        let mut player = Actor {
+            pos: [20, 16].into(),
+            dir: Dir8::S,
+            img: img.clone(),
         };
-
+        player.img.warp(player.pos, player.dir);
         player
     });
 
     // non-player characters
 
     let tex = cache.load_sync(paths::img::pochi::WHAT).unwrap();
-    let img = {
-        let pos = Vec2i::new(20, 16);
-        let dir = Dir8::S;
-
-        ActorImage::new(
-            tex,
-            consts::ACTOR_FPS,
-            consts::WALK_TIME,
-            consts::WALK_EASE,
-            pos,
-            dir,
-        )?
-    };
+    let img = ActorImage::new(
+        tex,
+        consts::ACTOR_FPS,
+        consts::WALK_TIME,
+        consts::WALK_EASE,
+        [0, 0].into(),
+        Dir8::S,
+    )?;
 
     w.entities.insert({
-        let pos = Vec2i::new(14, 12);
-        let dir = Dir8::S;
-        Actor {
-            pos,
-            dir,
-            img: {
-                let mut img = img.clone();
-                img.warp(pos, dir);
-                img
-            },
-        }
+        let mut actor = Actor {
+            pos: [14, 12].into(),
+            dir: Dir8::S,
+            img: img.clone(),
+        };
+        actor.img.warp(actor.pos, actor.dir);
+        actor
     });
 
     w.entities.insert({
-        let pos = Vec2i::new(25, 18);
-        let dir = Dir8::S;
-        Actor {
-            pos,
-            dir,
-            img: {
-                let mut img = img.clone();
-                img.warp(pos, dir);
-                img
-            },
-        }
+        let mut actor = Actor {
+            pos: [25, 18].into(),
+            dir: Dir8::S,
+            img: img.clone(),
+        };
+        actor.img.warp(actor.pos, actor.dir);
+        actor
     });
 
     Ok(())

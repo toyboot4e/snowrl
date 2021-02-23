@@ -3,16 +3,18 @@
 
 [easing]: https://easings.net/
 
-Easing functions map `[0.0, 1.0]` to a different curve in the same range `[0.0, 1.0]`. They can be
-applied to other types that are linearly interpolatable:
+# TIP
+
+Exponential tween can be replaced with simple calculation every frame:
 
 ```no_run
-pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
-    T::lerp(a, b, ease.map(t))
+fn update_follow_camera() {
+    camera_position += target_delta_position * lerp_speed;
+    // P(t) := target_delta_position
+    // P(t + dt) = (1.0 - lerp_speed) * P(t)
+    // ^ This is actually a derivative function of `exp(-Ct)`
 }
 ```
-
-Tweens are applied based on time, so there are timing utilities:  [`LinearDt`] and [`EasedDt`].
 */
 
 use std::{

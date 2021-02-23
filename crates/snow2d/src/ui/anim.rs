@@ -1,10 +1,8 @@
 /*!
-
-Animations
+UI node animations
 
 Animations hold reference-counted handles to their target nodes, so nodes will be alive until
 related animations are finished.
-
 */
 
 use std::time::Duration;
@@ -18,6 +16,7 @@ use crate::{
     },
 };
 
+/// Common animation lifecycle
 #[enum_dispatch]
 pub trait AnimImpl: std::fmt::Debug + Clone {
     fn tick(&mut self, dt: Duration);

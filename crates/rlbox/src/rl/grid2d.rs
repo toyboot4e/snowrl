@@ -1,5 +1,5 @@
 /*!
-Desrete geometry types
+Discrete geometry types
 */
 
 use auto_ops::*;

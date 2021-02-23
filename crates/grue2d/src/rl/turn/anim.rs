@@ -196,7 +196,7 @@ impl Anim for WalkAnim {
         // TODO: don't hard code player detection
         if self.actors.iter().any(|a| a.slot() == 0) {
             // update Player FoV in this frame
-            ucx.world.shadow.make_dirty();
+            ucx.world.shadow.mark_dirty();
         }
     }
 

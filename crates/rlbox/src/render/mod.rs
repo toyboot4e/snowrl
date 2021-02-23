@@ -1,8 +1,5 @@
 /*!
-Tiled, actors and camera
+Rendering procedures
 */
 
-pub mod actor;
-pub mod anim;
-pub mod camera;
 pub mod tiled;

@@ -1,24 +1,18 @@
 /*!
-Renderers
+Full-screen enderers
 */
 
 use {
-    rlbox::{render::tiled as tiled_render, utils::DoubleTrack},
     rokol::{app as ra, gfx as rg},
-    snow2d::{
-        gfx::{
-            draw::*, mesh::StaticMesh, shaders, shaders::PosUvVert, tex::RenderTexture, Color,
-            PassConfig, Shader, Snow2d,
-        },
-        Ice,
+    snow2d::gfx::{
+        draw::*, mesh::StaticMesh, shaders, shaders::PosUvVert, tex::RenderTexture, PassConfig,
+        Shader, Snow2d,
     },
-    std::time::{Duration, Instant},
+    std::time::Instant,
 };
 
 use crate::rl::world::World;
-
-/// TODO: remove
-const WALK_TIME: f32 = 8.0 / 60.0;
+use rlbox::render::tiled as tiled_render;
 
 // /// TODO: use it?
 // #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,12 +43,15 @@ impl Default for ShadowRenderer {
 }
 
 impl ShadowRenderer {
-    /// Creates 1/4 off-screern rendering target
+    /// Creates off-screern rendering target
     fn create_shadow() -> RenderTexture {
-        let inv_scale = 4.0;
         let mut screen_size = ra::size_f_scaled();
-        screen_size[0] /= inv_scale;
-        screen_size[1] /= inv_scale;
+
+        // the smaller the fuzzyier
+        let scale = 1.0 / 3.0;
+        screen_size[0] *= scale;
+        screen_size[1] *= scale;
+
         RenderTexture::builder([screen_size[0] as u32, screen_size[1] as u32])
             // linear: smooth, nearest: feels like pixelized
             // TODO: let user choose it dynamically
@@ -63,16 +60,17 @@ impl ShadowRenderer {
     }
 
     /// Renders shadow texture (don't forget to use it later)
-    pub fn render_ofs(&mut self, rdr: &mut Snow2d, world: &World) {
+    pub fn render_ofs(&mut self, rdr: &mut Snow2d, world: &World, blur: bool) {
         let mut offscreen = rdr.offscreen(
             &mut self.shadows[0],
             PassConfig {
                 pa: &rg::PassAction::LOAD,
-                tfm: None,
+                tfm: Some(world.cam.to_mat4()),
                 shd: None,
             },
         );
 
+        // get shadow texture
         tiled_render::render_fov_fow_blend(
             &mut offscreen,
             &world.map.tiled,
@@ -86,8 +84,10 @@ impl ShadowRenderer {
 
         drop(offscreen);
 
-        // apply gaussian blur
-        self.pingpong(rdr);
+        if blur {
+            // apply gaussian blur
+            self.pingpong(rdr);
+        }
     }
 
     /// Apply gaussian blur
@@ -138,8 +138,6 @@ impl ShadowRenderer {
         });
 
         self.blend_to_target(&mut screen);
-
-        drop(screen);
     }
 
     /// Writes shadow to the screen frame buffer
@@ -208,141 +206,5 @@ impl SnowRenderer {
         self.mesh.draw_all();
 
         rg::end_pass();
-    }
-}
-
-bitflags::bitflags! {
-    /// Fixed set of renderers
-    pub struct WorldRenderFlag: u32 {
-        const SHADOW = 1 << 0;
-        const SNOW = 1 << 1;
-        const ACTORS = 1 << 3;
-        const MAP = 1 << 4;
-        //
-        const ALL = Self::SHADOW.bits | Self::SNOW.bits |  Self::ACTORS.bits | Self::MAP.bits;
-    }
-}
-
-/// Renders map, actors, shadows and snow
-#[derive(Debug)]
-pub struct WorldRenderer {
-    pub shadow_render: ShadowRenderer,
-    pub snow_render: SnowRenderer,
-    pa_blue: rg::PassAction,
-    actor_visibilities: Vec<DoubleTrack<bool>>,
-}
-
-impl Default for WorldRenderer {
-    fn default() -> Self {
-        Self {
-            shadow_render: ShadowRenderer::default(),
-            snow_render: SnowRenderer::default(),
-            pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
-            actor_visibilities: Default::default(),
-        }
-    }
-}
-
-impl WorldRenderer {
-    pub fn post_update(&mut self, world: &World, _dt: Duration) {
-        // ensure capacity
-        // FIXME: this tracking is NOT always valid (at least use Index<T>)
-        if world.entities.len() > self.actor_visibilities.len() {
-            self.actor_visibilities
-                .resize(world.entities.len() + 5, Default::default());
-        }
-    }
-
-    /// Renders the world (maybe partially)
-    pub fn render(&mut self, world: &World, ice: &mut Ice, flags: WorldRenderFlag) {
-        if flags.contains(WorldRenderFlag::MAP | WorldRenderFlag::ACTORS) {
-            let mut screen = ice.rdr.screen(PassConfig {
-                pa: &self.pa_blue,
-                tfm: None,
-                shd: None,
-            });
-
-            if flags.contains(WorldRenderFlag::MAP) {
-                Self::map(&mut screen, &world);
-            }
-
-            if flags.contains(WorldRenderFlag::ACTORS) {
-                self.actors(&mut screen, &world, ice.dt);
-            }
-        }
-
-        if flags.contains(WorldRenderFlag::SHADOW) {
-            self.shadow(&mut ice.rdr, world);
-        }
-
-        if flags.contains(WorldRenderFlag::SNOW) {
-            self.snow();
-        }
-    }
-
-    fn map(screen: &mut impl DrawApi, world: &World) {
-        rlbox::render::tiled::render_tiled(
-            screen,
-            &world.map.tiled,
-            &world.map.idmap,
-            world.cam.bounds(),
-        );
-
-        // FIXME: can't draw rects
-        // rlbox::render::tiled::render_rects_on_non_blocking_cells(
-        //     screen,
-        //     &world.map.tiled,
-        //     &world.map.rlmap.blocks,
-        //     &bounds, // FIXME: copy
-        // );
-    }
-
-    // TODO: maybe use camera matrix
-    fn actors(&mut self, screen: &mut impl DrawApi, world: &World, dt: Duration) {
-        // FIXME: separate update and render
-        // TODO: y sort + culling
-        for (i, e) in world.entities.iter() {
-            let x = &mut self.actor_visibilities[i.slot() as usize];
-
-            let is_visible = world.shadow.fov.a.is_in_view(e.pos);
-            if is_visible != x.a {
-                x.b = x.a;
-                x.a = is_visible;
-                x.t = Default::default();
-            }
-
-            let max = WALK_TIME;
-
-            x.t += dt.as_secs_f32() / max;
-            if x.t > 1.0 {
-                x.t = 1.0;
-            }
-
-            fn b2f(b: bool) -> f32 {
-                if b {
-                    255.0
-                } else {
-                    0.0
-                }
-            }
-
-            let alpha = b2f(x.a) * x.t + b2f(x.b) * (1.0 - x.t);
-            let pos = world.cam.w2s(e.img.render_pos_world(&world.map.tiled));
-
-            screen
-                .sprite(e.img.sprite())
-                // TODO: align y
-                .dst_pos_px(pos)
-                .color(Color::WHITE.with_alpha(alpha as u8));
-        }
-    }
-
-    fn shadow(&mut self, rdr: &mut Snow2d, world: &World) {
-        self.shadow_render.render_ofs(rdr, world);
-        self.shadow_render.blend_to_screen(rdr);
-    }
-
-    fn snow(&mut self) {
-        self.snow_render.render();
     }
 }

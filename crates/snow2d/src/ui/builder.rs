@@ -1,9 +1,14 @@
+/*!
+UI node animation builder
+*/
+
 use crate::{
     gfx::{geom2d::Vec2f, Color},
     ui::{anim::*, node::Node, AnimArena},
     utils::{arena::Index, ez, pool::Handle},
 };
 
+/// Internaly utility to provide with fluent API to supply two values
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Delta<T> {
     pub a: T,
@@ -30,10 +35,7 @@ impl<T, U: Into<T>> From<[U; 2]> for Delta<T> {
     }
 }
 
-pub fn animate(anims: &mut AnimArena) -> AnimBuilder<'_> {
-    AnimBuilder::new(anims)
-}
-
+/// Fluent API to create animation objects
 pub struct AnimBuilder<'a> {
     anims: &'a mut AnimArena,
     node: Option<Handle<Node>>,

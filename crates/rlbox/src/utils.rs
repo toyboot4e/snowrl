@@ -1,5 +1,5 @@
 /*!
-Utilities
+Trivial utilities
  */
 
 pub mod consts {
@@ -7,31 +7,6 @@ pub mod consts {
 
     /// Duration in seconds to change direction in 45 degrees
     pub const CHANGE_DIR_TIME: f32 = 1.0 / 60.0;
-}
-
-/// Raw double buffer
-#[derive(Debug, Clone)]
-pub struct Double<T> {
-    /// Front
-    pub a: T,
-    /// Back
-    pub b: T,
-}
-
-impl<T: Default> Default for Double<T> {
-    fn default() -> Self {
-        Self {
-            a: Default::default(),
-            b: Default::default(),
-        }
-    }
-}
-
-impl<T> Double<T> {
-    /// TODO: maybe improve efficiency
-    pub fn swap(&mut self) {
-        std::mem::swap(&mut self.a, &mut self.b);
-    }
 }
 
 /// Raw double buffer with interpolation value

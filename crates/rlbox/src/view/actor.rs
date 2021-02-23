@@ -15,9 +15,9 @@ use snow2d::{
 };
 
 use crate::{
-    render::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
     rl::grid2d::*,
     utils::{consts, DoubleSwap},
+    view::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
 };
 
 /// Generate character walking animation with some heuristic
@@ -233,9 +233,7 @@ impl ActorImage {
 
     /// Align the bottom-center of an actor to the bottom-center of a cell
     fn align_center(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
-        let mut pos = crate::render::tiled::t2w_center(pos, &tiled);
-        pos.y -= self.sprite().sub_tex_size_unscaled()[1] / 2.0;
-        pos
+        crate::render::tiled::t2w_center(pos, &tiled)
     }
 
     /// Position in world coordinates, used for like rendering actors
@@ -243,7 +241,10 @@ impl ActorImage {
         let pos_prev = self.align_render(self.state.b().pos, tiled);
         let pos_curr = self.align_render(self.state.a().pos, tiled);
 
-        pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get()
+        let mut pos = pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get();
+        // FIXME: rounding
+        pos.round_mut();
+        pos
     }
 
     /// Align the center of the sprite to the bottom-center of the cell
