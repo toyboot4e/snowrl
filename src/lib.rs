@@ -1,25 +1,8 @@
 /*!
-Snow the roguelike game
-
-2D framework:
-
-| Crate      | Description                             |
-|------------|-----------------------------------------|
-| [`rokol`]  | Window and lower-level graphics         |
-| [`snow2d`] | 2D rendering and asset management       |
-
-SnowRL framework:
-
-| Crate      | Description                             |
-|------------|-----------------------------------------|
-| [`rlbox`]  | Toolkit to power 2D GUI roguelike games |
-| [`grue2d`] | Game states for SnowRL                  |
-
-And `snowrl` is a set of plugins to [`grue2d`].
+Snow the roguelike game built on [`grue2d`]
 */
 
-// use generator (unstable Rust)
-#![feature(generators, generator_trait)]
+pub extern crate grue2d;
 
 pub mod utils;
 
@@ -30,28 +13,30 @@ pub mod states;
 
 use {
     grue2d::{hot_crate, render::WorldRenderFlag, GlueRl},
-    rlbox::utils::tweak::*,
     rokol::{
         app::{Event, RApp},
         gfx as rg,
     },
+    snow2d::utils::tweak::*,
 };
-
-pub struct SnowRl {
-    pub grue: GlueRl,
-    pub plugin: hot_crate::HotLibrary,
-}
 
 fn sound_volume() -> f32 {
     tweak!(0.0)
 }
 
-// Lifecycle
+/// The game
+pub struct SnowRl {
+    pub grue: GlueRl,
+    pub plugin: hot_crate::HotLibrary,
+}
+
+/// Lifecycle forced by `rokol`
 impl RApp for SnowRl {
     fn event(&mut self, ev: &Event) {
         self.grue.gl.event(ev);
     }
 
+    /// Create our own lifecycle
     fn frame(&mut self) {
         self.pre_update();
         self.update();
@@ -61,9 +46,11 @@ impl RApp for SnowRl {
     }
 }
 
+/// Our game lifecycle
 impl SnowRl {
     #[inline]
     fn pre_update(&mut self) {
+        // do not play sound in debug build
         #[cfg(debug_assertions)]
         self.grue.gl.ice.audio.set_global_volume(sound_volume());
 
@@ -92,9 +79,14 @@ impl SnowRl {
         let gl = &mut self.grue.gl;
 
         gl.pre_render();
+
+        // TODO: schedule rendering
         gl.world_render
             .render(&gl.world, &mut gl.ice, WorldRenderFlag::ALL);
 
-        gl.ui.render(&mut gl.ice);
+        let cam_mat = gl.world.cam.to_mat4();
+        for (_ix, layer) in &mut gl.ui.layers {
+            layer.render(&mut gl.ice, cam_mat);
+        }
     }
 }

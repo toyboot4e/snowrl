@@ -1,25 +1,16 @@
 /*!
-`snow2d` ❄️
-
-A 2D framework built on top of [`rokol`].
+`snow2d` ❄️ framework
 */
+
+pub extern crate rokol;
 
 pub mod asset;
 pub mod audio;
 pub mod gfx;
+pub mod input;
 
-pub mod input {
-    //! `xdl` re-exported
-
-    pub use xdl::{axis, utils, Input, Key, Keyboard};
-
-    pub mod vi {
-        //! Virtual input
-
-        pub use snow2d_macros::keys;
-        pub use xdl::vi::*;
-    }
-}
+pub mod ui;
+pub mod utils;
 
 use std::time::{Duration, Instant};
 
@@ -33,7 +24,7 @@ use crate::{
     input::Input,
 };
 
-/// The generic context that powers your game
+/// Set of generic game contexts
 #[derive(Debug)]
 pub struct Ice {
     /// TODO: For debug purpose
@@ -76,25 +67,33 @@ impl Ice {
             start_time: Instant::now(),
         }
     }
+}
 
+/// Lifecycle
+impl Ice {
+    /// Updates input state
     pub fn event(&mut self, ev: &rokol::app::Event) {
         self.input.event(ev);
     }
 
+    /// Updates frame counter
     pub fn pre_update(&mut self) {
         self.frame_count += 1;
     }
 
+    /// Updates font texture
     pub fn pre_render(&mut self) {
         self.rdr.pre_render();
         // FIXME: use real dt
         self.dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
     }
 
+    /// Debug render?
     pub fn render(&mut self) {
         // debug render?
     }
 
+    /// Updates asset reference counts  and swaps input data buffers
     pub fn on_end_frame(&mut self) {
         self.assets.free_unused();
         self.input.on_end_frame();

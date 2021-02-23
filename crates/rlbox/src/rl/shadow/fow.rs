@@ -3,8 +3,8 @@ Fog of war, shadow on the map
 */
 
 use crate::rl::{
-    fov::{self, FovData, FovWrite, OpacityMap},
     grid2d::Vec2i,
+    shadow::fov::{self, FovData, FovWrite, OpacityMap},
 };
 
 /// Fog of war, shadow on the map
@@ -64,7 +64,8 @@ impl FowData {
     }
 }
 
-pub fn calculate_fov_fow<'a, 'b>(
+/// Updates FoV and FoW with one iteration
+pub fn refresh_fov_fow<'a, 'b>(
     fov: &'a mut FovData,
     fow: &'b mut FowData,
     r: Option<u32>,
@@ -74,9 +75,9 @@ pub fn calculate_fov_fow<'a, 'b>(
     let r = r.unwrap_or(fov.radius());
 
     let mut bind = FovFowWrite { fov, fow };
-    let params = fov::RefreshParams { r, origin, opa };
+    let params = fov::FovRefreshParams { r, origin, opa };
 
-    fov::refresh(&mut bind, params);
+    fov::refresh_fov(&mut bind, params);
 }
 
 struct FovFowWrite<'a, 'b> {
@@ -85,7 +86,7 @@ struct FovFowWrite<'a, 'b> {
 }
 
 impl<'a, 'b> FovWrite for FovFowWrite<'a, 'b> {
-    fn on_refresh<T: OpacityMap>(&mut self, params: &fov::RefreshParams<T>) {
+    fn on_refresh<T: OpacityMap>(&mut self, params: &fov::FovRefreshParams<T>) {
         self.fov.on_refresh(params);
     }
 

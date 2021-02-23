@@ -1,6 +1,5 @@
 /*!
-
-Roguelike game events
+Builtin roguelike game events
 
 Every change to the roguelike game world should be handled as primitive event. That's good for
 visualization, flexibilities and simplicities.
@@ -8,10 +7,11 @@ visualization, flexibilities and simplicities.
 e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
 
 TODO: remove non-primitive events
-
 */
 
-use rlbox::{rl::grid2d::*, utils::arena::Index};
+use snow2d::{gfx::geom2d::*, input::Key, utils::arena::Index};
+
+use rlbox::rl::grid2d::*;
 
 use crate::rl::{
     turn::{
@@ -202,7 +202,7 @@ impl GenAnim for PlayerWalk {}
 
 impl Event for PlayerWalk {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let EventContext { world, vi } = ecx;
+        let EventContext { world, vi, .. } = ecx;
 
         let actor = &mut world.entities[self.actor];
         let pos = actor.pos + Vec2i::from(self.dir.signs_i32());
@@ -305,11 +305,9 @@ impl Event for PlayerTurn {
         );
 
         if select {
-            let dir = ecx.world.entities[self.actor].dir;
-
             return EventResult::chain(Interact {
                 actor: self.actor,
-                dir,
+                dir: ecx.world.entities[self.actor].dir,
             });
         }
 
@@ -327,10 +325,21 @@ impl Event for PlayerTurn {
         }
 
         if let Some(dir) = dir {
-            return EventResult::chain(PlayerWalk {
-                actor: self.actor,
-                dir,
-            });
+            if ecx
+                .ice
+                .input
+                .kbd
+                .is_any_key_down(&[Key::LShift, Key::RShift])
+            {
+                // camera scroll TODO: remove
+                let delta = 8.0 * Vec2f::from(dir.signs_f32());
+                ecx.world.cam.params.pos += delta;
+            } else {
+                return EventResult::chain(PlayerWalk {
+                    actor: self.actor,
+                    dir,
+                });
+            }
         }
 
         EventResult::GotoNextFrame

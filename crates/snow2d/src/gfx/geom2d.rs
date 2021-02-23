@@ -112,11 +112,6 @@ impl Vec2f {
         Self { x: 1.0, y: 1.0 }
     }
 
-    pub fn round(&mut self) {
-        self.x = self.x.round();
-        self.y = self.y.round();
-    }
-
     pub fn offset(&self, x: impl Into<Self>) -> Self {
         self + x.into()
     }
@@ -128,6 +123,13 @@ impl Vec2f {
             x: self.x * scale.x,
             y: self.y * scale.y,
         }
+    }
+
+    // mutations
+
+    pub fn round_mut(&mut self) {
+        self.x = self.x.round();
+        self.y = self.y.round();
     }
 
     /// Angle in radian
@@ -144,7 +146,7 @@ impl Vec2f {
     }
 }
 
-// Vec2f, f32
+// negation
 impl_op_ex!(-|me: &Vec2f| -> Vec2f { Vec2f::new(-me.x, -me.y) });
 
 // Vec2f, f32
@@ -152,6 +154,9 @@ impl_op_ex!(*|lhs: &Vec2f, rhs: &f32| -> Vec2f { Vec2f::new(lhs.x * rhs, lhs.y *
 impl_op_ex!(/|lhs: &Vec2f, rhs: &f32| -> Vec2f { Vec2f::new(lhs.x / rhs, lhs.y / rhs) });
 impl_op_ex!(*= |lhs: &mut Vec2f, rhs: &f32| { lhs.x *= rhs; lhs.y *= rhs; });
 impl_op_ex!(/= |lhs: &mut Vec2f, rhs: &f32| { lhs.x /= rhs; lhs.y /= rhs; });
+
+// f32, Vec2f
+impl_op_ex!(*|lhs: &f32, rhs: &Vec2f| -> Vec2f { Vec2f::new(lhs * rhs.x, lhs * rhs.y) });
 
 // Vec2f, Vec2f
 impl_op_ex!(+ |lhs: &Vec2f, rhs: &Vec2f| -> Vec2f { Vec2f::new(lhs.x + rhs.x, lhs.y + rhs.y) });
@@ -162,8 +167,8 @@ impl_op_ex!(/ |lhs: &Vec2f, rhs: &Vec2f| -> Vec2f { Vec2f::new(lhs.x / rhs.x, lh
 // assginments
 impl_op_ex!(+= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x += rhs.x; lhs.y += rhs.y; });
 impl_op_ex!(-= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x -= rhs.x; lhs.y -= rhs.y; });
-// impl_op_ex!(*= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x *= rhs.x; lhs.y *= rhs.y; });
-// impl_op_ex!(/= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x /= rhs.x; lhs.y /= rhs.y; });
+impl_op_ex!(*= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x *= rhs.x; lhs.y *= rhs.y; });
+impl_op_ex!(/= |lhs: &mut Vec2f, rhs: &Vec2f| { lhs.x /= rhs.x; lhs.y /= rhs.y; });
 
 // TODO: assignment with impl Into<Vec2f>
 
@@ -223,9 +228,13 @@ impl Into<(f32, f32)> for &Vec2f {
 /// else, then those methods don't make sense.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Rect2f {
+    /// Left
     pub x: f32,
+    /// Up
     pub y: f32,
+    /// Width
     pub w: f32,
+    /// Height
     pub h: f32,
 }
 
@@ -272,30 +281,28 @@ impl Rect2f {
         self.x + self.w
     }
 
-    /// Coordinate of visually up edge
-    pub fn top(&self) -> f32 {
+    pub fn up(&self) -> f32 {
         self.y
     }
 
-    /// Coordinate of visually down edge
-    pub fn bottom(&self) -> f32 {
+    pub fn down(&self) -> f32 {
         self.y + self.h
     }
 
-    pub fn set_left(&mut self, x: f32) {
-        self.x = x;
+    pub fn set_left(&mut self, left: f32) {
+        self.x = left;
     }
 
-    pub fn set_right(&mut self, x: f32) {
-        self.x = x - self.w;
+    pub fn set_right(&mut self, right: f32) {
+        self.x = right - self.w;
     }
 
-    pub fn set_up(&mut self, y: f32) {
-        self.y = y;
+    pub fn set_up(&mut self, up: f32) {
+        self.y = up;
     }
 
-    pub fn set_down(&mut self, y: f32) {
-        self.y = y - self.h;
+    pub fn set_down(&mut self, down: f32) {
+        self.y = down - self.h;
     }
 
     // vectors
@@ -354,6 +361,8 @@ impl Rect2f {
 
 /// More semantic
 impl Rect2f {
+    // getters
+
     pub fn center(&self) -> Vec2f {
         (self.left_up() + self.right_down()) / 2.0
     }
@@ -361,6 +370,26 @@ impl Rect2f {
     /// Origin in pixels from origin in normalized coordinates
     pub fn origin_px(&self, origin: impl Into<Vec2f>) -> Vec2f {
         self.left_up() + self.size().scale(origin.into())
+    }
+
+    // convert
+
+    pub fn offset(&self, pos: impl Into<[f32; 2]>) -> Rect2f {
+        let pos = pos.into();
+        Rect2f {
+            x: self.x + pos[0],
+            y: self.y + pos[1],
+            w: self.w,
+            h: self.h,
+        }
+    }
+
+    // mutations
+
+    pub fn offset_mut(&mut self, pos: impl Into<[f32; 2]>) {
+        let pos = pos.into();
+        self.x += pos[0];
+        self.y += pos[1];
     }
 
     /// Sets the position of the center
@@ -378,17 +407,15 @@ impl Rect2f {
         self.y = pos[1] - self.h * origin[1];
     }
 
-    // mutations
-
     /// Adds offset to `self`
-    pub fn translate(&mut self, offset: impl Into<Vec2f>) {
+    pub fn translate_mut(&mut self, offset: impl Into<Vec2f>) {
         let v = offset.into();
         self.x += v.x;
         self.y += v.y;
     }
 
     /// Adjusts x value assuming `w < max - min` (be warned that this is stupid)
-    pub fn clamp_x(&mut self, min: f32, max: f32) {
+    pub fn clamp_x_mut(&mut self, min: f32, max: f32) {
         if self.left() < min {
             self.set_left(min);
         }
@@ -398,11 +425,11 @@ impl Rect2f {
     }
 
     /// Adjusts y value assuming `h < max - min` (be warned that this is stupid)
-    pub fn clamp_y(&mut self, min: f32, max: f32) {
-        if self.top() < min {
+    pub fn clamp_y_mut(&mut self, min: f32, max: f32) {
+        if self.up() < min {
             self.set_up(min);
         }
-        if self.bottom() > max {
+        if self.down() > max {
             self.set_down(max)
         }
     }
@@ -412,20 +439,14 @@ impl Rect2f {
 impl Rect2f {
     pub fn contains(&self, pos: impl Into<Vec2f>) -> bool {
         let pos = pos.into();
-        !(
-            //
-            pos.x < self.left()
-                || self.right() < pos.x
-                || pos.y < self.top()
-                || self.bottom() < pos.y
-        )
+        !(pos.x < self.left() || self.right() < pos.x || pos.y < self.up() || self.down() < pos.y)
     }
 
     pub fn intersects(&self, other: &Rect2f) -> bool {
         !(self.right() < other.left()
             || other.right() < self.left()
-            || self.bottom() < other.top()
-            || other.bottom() < self.top())
+            || self.down() < other.up()
+            || other.down() < self.up())
     }
 }
 
@@ -774,6 +795,7 @@ mod test {
     use super::*;
     use std::f32::consts::PI;
 
+    /// Nearly equal
     fn mat_eq(m1: &Mat2f, m2: &Mat2f) {
         assert!(m1.m11 - m2.m11 < 1.0e-6);
         assert!(m1.m12 - m2.m12 < 1.0e-6);

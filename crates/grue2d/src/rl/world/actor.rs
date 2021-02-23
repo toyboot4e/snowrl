@@ -7,7 +7,7 @@ prototpyes.
 
 */
 
-use rlbox::{render::actor::ActorImage, rl::grid2d::*};
+use rlbox::{rl::grid2d::*, view::actor::ActorImage};
 
 #[derive(Debug, Clone)]
 pub struct Actor {

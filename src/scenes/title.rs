@@ -2,12 +2,13 @@
 Scenes
 */
 
-use snow2d::audio::src::Wav;
-
-use rlbox::ui::{
-    anim::{Anim, AnimImpl},
-    node::{Draw, Node},
-    AnimArena, Ui,
+use snow2d::{
+    audio::src::Wav,
+    ui::{
+        anim::{Anim, AnimImpl},
+        node::{Draw, Node},
+        AnimArena, Layer,
+    },
 };
 
 use crate::utils::asset_defs::{title, AssetDef};
@@ -197,20 +198,20 @@ impl TitleAnims {
         &mut self,
         cfg: &ColorConfig,
         nodes: &TitleNodes,
-        ui: &mut Ui,
+        layer: &mut Layer,
         from: usize,
         to: usize,
     ) {
         // remove all the initial animations
         for ix in self.init_choices.drain(0..) {
-            if let Some(anim) = ui.anims.get_mut(ix) {
+            if let Some(anim) = layer.anims.get_mut(ix) {
                 anim.set_accum_norm(1.0);
-                anim.apply(&mut ui.nodes);
+                anim.apply(&mut layer.nodes);
             }
-            ui.anims.remove(ix);
+            layer.anims.remove(ix);
         }
 
-        let mut b = ui.anims.builder();
+        let mut b = layer.anims.builder();
         b.dt(EasedDt::new(6.0 / 60.0, Ease::Linear));
 
         // items

@@ -2,7 +2,7 @@
 Hard-coded magic values (should be removed)
 */
 
-use rlbox::utils::ez;
+use snow2d::utils::ez;
 
 /// FPS of character graphics animation
 pub const ACTOR_FPS: f32 = 4.0;

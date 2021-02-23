@@ -11,12 +11,13 @@ use snow2d::{
         geom2d::*,
         tex::{SpriteData, Texture2dDrop},
     },
+    utils::ez,
 };
 
 use crate::{
-    render::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
     rl::grid2d::*,
-    utils::{consts, ez, DoubleSwap},
+    utils::{consts, DoubleSwap},
+    view::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
 };
 
 /// Generate character walking animation with some heuristic
@@ -220,38 +221,34 @@ impl ActorImage {
         self.anim_state.tick(dt);
     }
 
-    /// If the character is not walking, it's the bottom-center of the cell
+    /// Position in world coordinates, used for like camera
     ///
-    /// TODO: separate base position and actual position with offset
-    pub fn pos_screen(&self, tiled: &tiled::Map) -> Vec2f {
-        let pos_prev = self.align(self.state.b().pos, tiled);
-        let pos_curr = self.align(self.state.a().pos, tiled);
+    /// Align the center of the sprite to the center of the cell.
+    pub fn pos_world_centered(&self, tiled: &tiled::Map) -> Vec2f {
+        let pos_prev = self.align_center(self.state.b().pos, tiled);
+        let pos_curr = self.align_center(self.state.a().pos, tiled);
 
         pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get()
     }
 
-    pub fn render<'a, 'b, D: DrawApi>(
-        &'a self,
-        draw: &'b mut D,
-        tiled: &tiled::Map,
-    ) -> impl QuadParamsBuilder + 'a
-    where
-        'b: 'a,
-    {
-        let sprite = self.sprite();
-
-        // FIXME: actor image alignment
-        let pos = self.pos_screen(tiled);
-        // we assume the sprite is aligned to the center of it
-        // pos.y -= self.sprite().sub_tex_size()[1] / 2.0;
-
-        let mut draw = draw.sprite(sprite);
-        draw.dst_pos_px(pos);
-        draw
+    /// Align the bottom-center of an actor to the bottom-center of a cell
+    fn align_center(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
+        crate::render::tiled::t2w_center(pos, &tiled)
     }
 
-    /// Align the bottom-center of an actor to the bottom-center of a cell
-    fn align(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
+    /// Position in world coordinates, used for like rendering actors
+    pub fn render_pos_world(&self, tiled: &tiled::Map) -> Vec2f {
+        let pos_prev = self.align_render(self.state.b().pos, tiled);
+        let pos_curr = self.align_render(self.state.a().pos, tiled);
+
+        let mut pos = pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get();
+        // FIXME: rounding
+        pos.round_mut();
+        pos
+    }
+
+    /// Align the center of the sprite to the bottom-center of the cell
+    fn align_render(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
         let mut pos = crate::render::tiled::t2w_center(pos, &tiled);
         pos.y += tiled.tile_height as f32 / 2.0;
         pos.y -= self.sprite().sub_tex_size_unscaled()[1] / 2.0;

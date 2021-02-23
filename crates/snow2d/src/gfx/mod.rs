@@ -173,7 +173,7 @@ const M_INV_Y: glam::Mat4 = glam::const_mat4!(
 #[derive(Debug)]
 pub struct PassConfig<'a> {
     pub pa: &'a rg::PassAction,
-    /// uniform matrix = orthographic * transform
+    /// uniform matrix = orthographic * transform (transform = view)
     pub tfm: Option<glam::Mat4>,
     pub shd: Option<&'a Shader>,
 }
@@ -181,7 +181,7 @@ pub struct PassConfig<'a> {
 impl<'a> Default for PassConfig<'a> {
     fn default() -> Self {
         Self {
-            pa: &rg::PassAction::NONE,
+            pa: &rg::PassAction::LOAD,
             tfm: None,
             shd: None,
         }
@@ -231,7 +231,8 @@ impl Snow2d {
         shd.apply_pip();
 
         // FIXME: projection matrix should be set shaders by themselves
-        // left, right, top, bottom, near, far
+        // left, right, bottom, top, near, far
+        // let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
         let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
 
         if let Some(tfm) = cfg.tfm {
@@ -258,14 +259,14 @@ impl Snow2d {
         shd.apply_pip();
 
         // FIXME: projection matrix should be set shaders by themselves
-        // left, right, top, bottom, near, far
+        // left, right, bottom, top, near, far
         let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
 
         if let Some(tfm) = cfg.tfm {
             proj = proj * tfm;
         }
 
-        // [OpenGL] invert y
+        // [OpenGL] invert/flip y (TODO: why?)
         proj = M_INV_Y * proj;
 
         let bytes: &[u8] = unsafe {

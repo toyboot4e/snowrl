@@ -13,10 +13,7 @@ use snow2d::{
         geom2d::*,
         tex::{NineSliceSprite, SpriteData},
     },
-};
-
-use rlbox::{
-    ui::node::*,
+    ui::{node::*, Layer},
     utils::{arena::Index, ez, pool::Handle, tweak::*},
 };
 
@@ -81,7 +78,7 @@ impl<'a> TalkViewCommand<'a> {
 
     fn base_pos(world: &World, actor: Index<Actor>) -> Vec2f {
         let actor = &world.entities[actor];
-        let mut pos = actor.img.pos_screen(&world.map.tiled);
+        let mut pos = actor.img.pos_world_centered(&world.map.tiled);
         pos.y -= world.map.tiled.tile_height as f32;
         pos
     }
@@ -210,24 +207,25 @@ pub struct PlayTalk {
 }
 
 impl PlayTalk {
-    pub fn new(talk: TalkViewCommand<'_>, gl: &mut Global) -> Self {
+    pub fn new(talk: TalkViewCommand<'_>, gl: &mut Global, layer: Index<Layer>) -> Self {
         let layout = talk.layout(&talk.cfg, &gl.ice.rdr.fontbook, &gl.ice.font_cfg, &gl.world);
         let surface = TalkSurface::new(layout, &mut gl.ice.assets);
 
+        let layer = &mut gl.ui.layers[layer];
         let nodes = TalkNodes {
-            win: gl.ui.nodes.add({
+            win: layer.nodes.add({
                 let mut win = Node::from(surface.win());
                 win.params.pos = surface.layout.win.left_up().into();
                 win
             }),
-            txt: gl.ui.nodes.add({
+            txt: layer.nodes.add({
                 let mut txt = Node::from(Text {
                     txt: talk.txt.into_owned(),
                 });
                 txt.params.pos = surface.layout.txt.into();
                 txt
             }),
-            baloon: gl.ui.nodes.add({
+            baloon: layer.nodes.add({
                 let mut baloon = Node::from(surface.baloon(&talk.cfg));
                 baloon.params.pos = surface.layout.baloon.into();
                 baloon
@@ -235,7 +233,7 @@ impl PlayTalk {
         };
 
         let dt = ez::EasedDt::new(consts::TALK_WIN_ANIM_TIME, consts::TALK_WIN_EASE);
-        let mut b = gl.ui.anims.builder();
+        let mut b = layer.anims.builder();
 
         let rect = &surface.layout.win;
         b.dt(dt)

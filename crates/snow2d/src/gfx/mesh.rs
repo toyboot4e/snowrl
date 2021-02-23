@@ -15,6 +15,13 @@ pub struct StaticMesh<V> {
     _phantom: PhantomData<V>,
 }
 
+impl<V> Drop for StaticMesh<V> {
+    fn drop(&mut self) {
+        rg::Buffer::destroy(self.bind.vertex_buffers[0]);
+        rg::Buffer::destroy(self.bind.index_buffer);
+    }
+}
+
 impl<V> StaticMesh<V> {
     fn new<T>(verts: &[V], indices: &[T]) -> Self {
         Self {
@@ -47,8 +54,7 @@ impl<V> StaticMesh<V> {
         self.bind.fs_images[slot] = img;
     }
 
-    /// Draws all the elements
-    pub fn draw(&self) {
+    pub fn draw_all(&self) {
         rg::apply_bindings(&self.bind);
         rg::draw(0, self.n_indices as u32, 1);
     }
@@ -61,6 +67,13 @@ pub struct DynamicMesh<V> {
     pub n_indices: usize,
     pub verts: Vec<V>,
     _phantom: PhantomData<V>,
+}
+
+impl<V> Drop for DynamicMesh<V> {
+    fn drop(&mut self) {
+        rg::Buffer::destroy(self.bind.vertex_buffers[0]);
+        rg::Buffer::destroy(self.bind.index_buffer);
+    }
 }
 
 impl<V> DynamicMesh<V> {
@@ -139,9 +152,9 @@ impl<V> DynamicMesh<V> {
     /// `base_elem`: relative to `self.bind.vertex_buffer_offsets[0]`.
     ///
     /// `base_elem` should be zero after calling `append_vert_slice`.
-    pub fn draw(&self, base_elem: u32, n_verts: u32) {
+    pub fn draw(&self, base_elem: u32, n_indices: u32) {
         rg::apply_bindings(&self.bind);
-        rg::draw(base_elem, n_verts, 1);
+        rg::draw(base_elem, n_indices, 1);
     }
 
     pub fn draw_all(&self) {

@@ -1,25 +1,22 @@
 /*!
-
-Animations
+UI node animations
 
 Animations hold reference-counted handles to their target nodes, so nodes will be alive until
 related animations are finished.
-
 */
 
 use std::time::Duration;
 
-use crate::utils::enum_dispatch;
-use snow2d::gfx::{geom2d::Vec2f, Color};
-
 use crate::{
+    gfx::{geom2d::Vec2f, Color},
     ui::node::Node,
     utils::{
-        ez,
+        enum_dispatch, ez,
         pool::{Handle, Pool},
     },
 };
 
+/// Common animation lifecycle
 #[enum_dispatch]
 pub trait AnimImpl: std::fmt::Debug + Clone {
     fn tick(&mut self, dt: Duration);
@@ -28,7 +25,7 @@ pub trait AnimImpl: std::fmt::Debug + Clone {
     fn set_accum_norm(&mut self, t: f32);
 }
 
-/// Any kind of animation
+/// One of [`AnimImpl`] impls
 #[enum_dispatch(AnimImpl)]
 #[derive(Debug, Clone)]
 pub enum Anim {

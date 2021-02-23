@@ -3,16 +3,18 @@
 
 [easing]: https://easings.net/
 
-Easing functions map `[0.0, 1.0]` to a different curve in the same range `[0.0, 1.0]`. They can be
-applied to other types that are linearly interpolatable:
+# TIP
+
+Exponential tween can be replaced with simple calculation every frame:
 
 ```no_run
-pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
-    T::lerp(a, b, ease.map(t))
+fn update_follow_camera() {
+    camera_position += target_delta_position * lerp_speed;
+    // P(t) := target_delta_position
+    // P(t + dt) = (1.0 - lerp_speed) * P(t)
+    // ^ This is actually a derivative function of `exp(-Ct)`
 }
 ```
-
-Tweens are applied based on time, so there are timing utilities:  [`LinearDt`] and [`EasedDt`].
 */
 
 use std::{
@@ -20,7 +22,7 @@ use std::{
     time::Duration,
 };
 
-use crate::rl::grid2d::Dir8;
+use crate::input::Dir8;
 
 /// Linearly interpolatable; can be [`Tweened`]
 pub trait Lerp {
@@ -48,13 +50,13 @@ impl Lerp for [f32; 2] {
     }
 }
 
-impl Lerp for snow2d::gfx::geom2d::Vec2f {
+impl Lerp for crate::gfx::geom2d::Vec2f {
     fn lerp(a: Self, b: Self, t: f32) -> Self {
         Self::new(f32::lerp(a.x, b.x, t), f32::lerp(a.y, b.y, t))
     }
 }
 
-impl Lerp for snow2d::gfx::Color {
+impl Lerp for crate::gfx::Color {
     fn lerp(a: Self, b: Self, t: f32) -> Self {
         Self::rgba(
             u8::lerp(a.r, b.r, t),
@@ -65,8 +67,8 @@ impl Lerp for snow2d::gfx::Color {
     }
 }
 
-impl Lerp for Dir8 {
-    fn lerp(a: Self, b: Self, t: f32) -> Self {
+impl crate::utils::ez::Lerp for Dir8 {
+    fn lerp(a: Self, b: Self, t: f32) -> Dir8 {
         let n_steps = (b as u8 + 8 - a as u8) % 8;
 
         let (n_steps, step_size) = if n_steps <= 4 {
@@ -82,11 +84,6 @@ impl Lerp for Dir8 {
     }
 }
 
-/// Interpolates [`Lerp`] types
-pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
-    T::lerp(a, b, ease.map(t))
-}
-
 /// Interpolates [`Dir8`] with smallast number of frames considering rotation
 pub fn tween_dirs(a: Dir8, b: Dir8, time_per_pattern: f32) -> Tweened<Dir8> {
     let n_steps = (b as u8 + 8 - a as u8) % 8;
@@ -99,6 +96,11 @@ pub fn tween_dirs(a: Dir8, b: Dir8, time_per_pattern: f32) -> Tweened<Dir8> {
         b,
         dt: EasedDt::new(time_per_pattern * n_steps as f32, Ease::Linear),
     }
+}
+
+/// Interpolates [`Lerp`] types
+pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
+    T::lerp(a, b, ease.map(t))
 }
 
 /// Generates tweened values

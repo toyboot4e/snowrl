@@ -13,8 +13,7 @@ use std::{
 
 use {
     downcast_rs::{impl_downcast, Downcast},
-    rlbox::utils::arena::Index,
-    snow2d::Ice,
+    snow2d::{utils::arena::Index, Ice},
 };
 
 use crate::{
@@ -40,6 +39,7 @@ type Gen = Box<dyn Generator<TickContext, Yield = TickResult, Return = ()> + Unp
 #[derive(Debug, Clone)]
 struct TickContext {
     world: Cheat<World>,
+    ice: Cheat<Ice>,
     vi: Cheat<VInput>,
 }
 
@@ -88,6 +88,7 @@ impl Default for GameLoop {
             tcx: unsafe {
                 TickContext {
                     world: Cheat::empty(),
+                    ice: Cheat::empty(),
                     vi: Cheat::empty(),
                 }
             },
@@ -97,11 +98,12 @@ impl Default for GameLoop {
 
 impl GameLoop {
     /// Ticks the game for "one step"
-    pub fn tick(&mut self, world: &mut World, vi: &mut VInput) -> TickResult {
+    pub fn tick(&mut self, world: &mut World, ice: &mut Ice, vi: &mut VInput) -> TickResult {
         // set cheat borrows here for the generator
         unsafe {
             self.tcx.world = Cheat::new(world);
             self.tcx.vi = Cheat::new(vi);
+            self.tcx.ice = Cheat::new(ice);
         }
 
         match Pin::new(&mut self.gen).resume(self.tcx.clone()) {
@@ -136,7 +138,8 @@ fn game_loop() -> Gen {
             loop {
                 let mut ecx = EventContext {
                     world: &mut tcx.world,
-                    vi: &mut tcx.vi,
+                    vi: &tcx.vi,
+                    ice: &tcx.ice,
                 };
 
                 match ev.run(&mut ecx) {
@@ -189,7 +192,8 @@ pub trait GenAnim {
 pub struct EventContext<'a> {
     pub world: &'a mut World,
     /// TODO: remove input
-    pub vi: &'a mut VInput,
+    pub vi: &'a VInput,
+    pub ice: &'a Ice,
 }
 
 /// Return value of event handling

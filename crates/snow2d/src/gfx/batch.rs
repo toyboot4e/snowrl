@@ -4,7 +4,10 @@ use rokol::gfx as rg;
 
 use crate::gfx::{draw::*, mesh::DynamicMesh, shaders::DefaultVertex};
 
-/// Number of quads in batcher
+/// Number of quads in batcher, which is long enough to not be saturated
+///
+/// NOTE: We can't use ring buffer of vertices with Sokol for some reason:
+/// <https://github.com/floooh/sokol/issues/477>
 pub const N_QUADS: usize = 2048 * 4;
 
 /// `snow2d` quad data type
@@ -156,12 +159,6 @@ impl BatchData {
     }
 
     fn draw(&mut self) {
-        // TODO: can we not upload more than N_QUADS a frame?
-        // println!(
-        //     "draw: ix = {}, offset = {}, GPU offset = {}",
-        //     self.quad_ix, self.buffer_offset, self.mesh.bind.vertex_buffer_offsets[0]
-        // );
-
         {
             let offset = self
                 .mesh
