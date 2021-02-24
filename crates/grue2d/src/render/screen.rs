@@ -1,18 +1,35 @@
 /*!
-Full-screen enderers
+Full-screen renderers
+
+Each type may have more explanation.
 */
 
 use {
     rokol::{app as ra, gfx as rg},
     snow2d::gfx::{
-        draw::*, mesh::StaticMesh, shaders, shaders::PosUvVert, tex::RenderTexture, PassConfig,
-        Shader, Snow2d,
+        draw::*, geom2d::Vec2f, mesh::StaticMesh, shaders, shaders::PosUvVert, tex::RenderTexture,
+        PassConfig, Shader, Snow2d,
     },
     std::time::Instant,
 };
 
 use crate::rl::world::World;
-use rlbox::render::tiled as tiled_render;
+use rlbox::{render::tiled as tiled_render, rl::grid2d::Vec2i, view::camera::Camera2d};
+
+const SCREEN_TRIANGLE: [PosUvVert; 3] = [
+    PosUvVert {
+        pos: [-1.0, -1.0],
+        uv: [0.0, 0.0],
+    },
+    PosUvVert {
+        pos: [3.0, -1.0],
+        uv: [2.0, 0.0],
+    },
+    PosUvVert {
+        pos: [-1.0, 3.0],
+        uv: [0.0, 2.0],
+    },
+];
 
 // /// TODO: use it?
 // #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,12 +42,30 @@ use rlbox::render::tiled as tiled_render;
 // }
 
 /// Renders FoV/FoW shadows
+///
+/// # How it works
+///
+/// 1. Calculate shadow by cell (based on some articles on Rogue Basin)
+/// 2. Draw shadow to a shadow texture based on cells
+/// 3. Apply Gaussian blur (shader code taken from Learn OpenGL [Bloom chapter])
+/// 4. Draw the shadow to the screen
+///
+/// [Bloom Chapter]: https://learnopengl.com/Advanced-Lighting/Bloom
+///
+/// # Rendering pixel-perfect shadow when scrolling
+///
+/// We're using shadow textures with the size of screen size / 4. When we draw shadow to the screen,
+/// it is up scaled . But then 1x1 pixel in shadow may be mapped to **4x4 pixels on screen with
+/// different level of darkness/brightness**, in other words, different cells. Therefore, we need
+/// some workaround to make sure every 4x4 pixels is always in one cell (e.g. when the camera
+/// position is not multiples of 4).
 #[derive(Debug)]
 pub struct ShadowRenderer {
     /// Shadow textures for gaussian blur
     shadows: [RenderTexture; 2],
     /// Shader program for off-screen rendering with gausssian blur
     gauss_shd: Shader,
+    // mesh: StaticMesh<PosUvVert>,
 }
 
 impl Default for ShadowRenderer {
@@ -45,14 +80,15 @@ impl Default for ShadowRenderer {
 impl ShadowRenderer {
     /// Creates off-screern rendering target
     fn create_shadow() -> RenderTexture {
-        let mut screen_size = ra::size_f_scaled();
+        let mut shadow_size = ra::size_f_scaled();
 
-        // the smaller the fuzzyier
-        let scale = 1.0 / 3.0;
-        screen_size[0] *= scale;
-        screen_size[1] *= scale;
+        let scale = 1.0 / 4.0;
+        shadow_size[0] *= scale;
+        shadow_size[1] *= scale;
+        shadow_size[0] += 1.0;
+        shadow_size[1] += 1.0;
 
-        RenderTexture::builder([screen_size[0] as u32, screen_size[1] as u32])
+        RenderTexture::builder([shadow_size[0] as u32, shadow_size[1] as u32])
             // linear: smooth, nearest: feels like pixelized
             // TODO: let user choose it dynamically
             .filter(rg::Filter::Nearest)
@@ -69,6 +105,33 @@ impl ShadowRenderer {
                 shd: None,
             },
         );
+
+        // NOTE: this is an important trick
+        let tfm = glam::Mat4::from_translation({
+            let offset_f = world.cam.params.pos.floor();
+            // let offset_f = world.cam.params.pos.round();
+            let offset = Vec2i::new(offset_f.x as i32, offset_f.y as i32);
+            let rem = offset % 4;
+            glam::Vec3::new((-offset.x + rem.x) as f32, (-offset.y + rem.y) as f32, 0.0)
+        });
+
+        unsafe {
+            const M_INV_Y: glam::Mat4 = glam::const_mat4!(
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, -1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0]
+            );
+            let proj = M_INV_Y
+                * glam::Mat4::orthographic_rh_gl(0.0, 1280.0 + 4.0, 720.0 + 4.0, 0.0, 0.0, 1.0)
+                * tfm;
+            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
+            // let bytes: &[u8] = std::slice::from_raw_parts(
+            //     &proj as *const _ as *const _,
+            //     std::mem::size_of::<glam::Mat4>(),
+            // );
+            // rg::apply_uniforms(rg::ShaderStage::Vs, 0, &bytes);
+        }
 
         // get shadow texture
         tiled_render::render_fov_fow_blend(
@@ -130,25 +193,37 @@ impl ShadowRenderer {
     }
 
     /// Writes shadow to the screen frame buffer
-    pub fn blend_to_screen(&self, rdr: &mut Snow2d) {
+    pub fn blend_to_screen(&self, rdr: &mut Snow2d, cam: &Camera2d) {
         let mut screen = rdr.screen(PassConfig {
             pa: &rg::PassAction::LOAD,
             tfm: None,
             shd: None,
         });
 
-        self.blend_to_target(&mut screen);
+        self.blend_to_target(&mut screen, cam);
     }
 
     /// Writes shadow to the screen frame buffer
-    pub fn blend_to_target(&self, target: &mut impl DrawApi) {
+    pub fn blend_to_target(&self, target: &mut impl DrawApi, cam: &Camera2d) {
+        // NOTE: this is an important trick
+        let offsetr_f = cam.params.pos.floor();
+        // let offsetr_f = cam.params.pos.round();
+        let offset = Vec2i::new(offsetr_f.x as i32, offsetr_f.y as i32);
+        let rem = offset % 4;
+        let size = Vec2f::from(ra::size_f_scaled()).offset([4.0, 4.0]);
+
         target
             .sprite(self.shadows[0].tex())
-            .dst_size_px(ra::size_f_scaled());
+            .dst_pos_px([-rem.x as f32, -rem.y as f32])
+            .dst_size_px(size);
     }
 }
 
 /// Renders snow on fullscreen
+///
+/// Uses the [Just snow] shader by baldand. Be warned that is has some restrictive license.
+///
+/// [Just snow]: https://www.shadertoy.com/view/ldsGDn
 #[derive(Debug)]
 pub struct SnowRenderer {
     shd: Shader,
@@ -159,25 +234,10 @@ pub struct SnowRenderer {
 impl Default for SnowRenderer {
     fn default() -> Self {
         // NOTE: this works only for OpenGL
-        let verts = vec![
-            PosUvVert {
-                pos: [-1.0, -1.0],
-                uv: [0.0, 0.0],
-            },
-            PosUvVert {
-                pos: [3.0, -1.0],
-                uv: [2.0, 0.0],
-            },
-            PosUvVert {
-                pos: [-1.0, 3.0],
-                uv: [0.0, 2.0],
-            },
-        ];
-
         Self {
             shd: shaders::snow(),
             start_time: Instant::now(),
-            mesh: StaticMesh::new_16(&verts, &[0, 1, 2]),
+            mesh: StaticMesh::new_16(&SCREEN_TRIANGLE, &[0, 1, 2]),
         }
     }
 }

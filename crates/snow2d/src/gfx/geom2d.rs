@@ -125,11 +125,22 @@ impl Vec2f {
         }
     }
 
-    // mutations
+    pub fn round(&self) -> Self {
+        Self::new(self.x.round(), self.y.round())
+    }
+
+    pub fn floor(&self) -> Self {
+        Self::new(self.x.floor(), self.y.floor())
+    }
 
     pub fn round_mut(&mut self) {
         self.x = self.x.round();
         self.y = self.y.round();
+    }
+
+    pub fn floor_mut(&mut self) {
+        self.x = self.x.floor();
+        self.y = self.y.floor();
     }
 
     /// Angle in radian

@@ -228,7 +228,9 @@ impl ActorImage {
         let pos_prev = self.align_center(self.state.b().pos, tiled);
         let pos_curr = self.align_center(self.state.a().pos, tiled);
 
-        pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get()
+        let mut pos = pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get();
+        pos.floor_mut();
+        pos
     }
 
     /// Align the bottom-center of an actor to the bottom-center of a cell
@@ -242,8 +244,7 @@ impl ActorImage {
         let pos_curr = self.align_render(self.state.a().pos, tiled);
 
         let mut pos = pos_prev * (1.0 - self.dt.get()) + pos_curr * self.dt.get();
-        // FIXME: rounding
-        pos.round_mut();
+        pos.floor_mut();
         pos
     }
 

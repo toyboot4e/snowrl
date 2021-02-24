@@ -405,7 +405,6 @@ impl RenderTextureBuilder {
     }
 
     pub fn build(&self) -> RenderTexture {
-        log::trace!("rt");
         let mut img_desc = self::img_desc(self.size[0], self.size[1], self.filter, self.wrap);
         img_desc.render_target = true;
         // render target has to have `Immutable` usage

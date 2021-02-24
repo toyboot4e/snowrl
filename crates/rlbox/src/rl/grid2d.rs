@@ -88,6 +88,7 @@ impl_op_ex!(+= |lhs: &mut Vec2i, rhs: &Vec2i| { lhs.x += rhs.x; lhs.y += rhs.y; 
 impl_op_ex!(-= |lhs: &mut Vec2i, rhs: &Vec2i| { lhs.x -= rhs.x; lhs.y -= rhs.y; });
 impl_op_ex!(*= |lhs: &mut Vec2i, rhs: &Vec2i| { lhs.x *= rhs.x; lhs.y *= rhs.y; });
 impl_op_ex!(/= |lhs: &mut Vec2i, rhs: &Vec2i| { lhs.x /= rhs.x; lhs.y /= rhs.y; });
+impl_op_ex!(% |lhs: &Vec2i, rhs: &i32| -> Vec2i { Vec2i::new(lhs.x % rhs, lhs.y % rhs) });
 
 impl_op_ex!(*|lhs: &Vec2i, rhs: &i32| -> Vec2i { Vec2i::new(lhs.x * rhs, lhs.y * rhs) });
 impl_op_ex!(*|lhs: &i32, rhs: &Vec2i| -> Vec2i { Vec2i::new(rhs.x * lhs, rhs.y * lhs) });

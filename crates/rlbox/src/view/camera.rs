@@ -47,7 +47,6 @@ impl Camera2d {
     /// Bounding rectangle in pixels
     pub fn bounds(&self) -> Rect2f {
         Rect2f {
-            // rounding is very important to avoid sub pixel issues
             x: self.params.pos.x.floor(),
             y: self.params.pos.y.floor(),
             w: self.size.x,
@@ -152,7 +151,7 @@ impl FollowCamera2d {
             self.is_moving = false;
             // avoid sub pixel issues
             cam.params.pos += dpos_clamped;
-            cam.params.pos.round_mut();
+            // cam.params.pos.floor_mut();
         }
     }
 }
