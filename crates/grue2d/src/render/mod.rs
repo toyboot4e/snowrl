@@ -74,24 +74,24 @@ impl WorldRenderer {
             });
 
             if flags.contains(WorldRenderFlag::MAP) {
-                Self::map(&mut screen, &world);
+                Self::render_map(&mut screen, &world);
             }
 
             if flags.contains(WorldRenderFlag::ACTORS) {
-                self.actors(&mut screen, &world, ice.dt);
+                self.render_actors(&mut screen, &world, ice.dt);
             }
         }
 
         if flags.contains(WorldRenderFlag::SHADOW) {
-            self.shadow(&mut ice.rdr, world);
+            self.render_shadow(&mut ice.rdr, world);
         }
 
         if flags.contains(WorldRenderFlag::SNOW) {
-            self.snow();
+            self.render_snow();
         }
     }
 
-    fn map(screen: &mut impl DrawApi, world: &World) {
+    fn render_map(screen: &mut impl DrawApi, world: &World) {
         tiled_render::render_tiled(
             screen,
             &world.map.tiled,
@@ -109,7 +109,7 @@ impl WorldRenderer {
     }
 
     // TODO: maybe use camera matrix
-    fn actors(&mut self, screen: &mut impl DrawApi, world: &World, dt: Duration) {
+    fn render_actors(&mut self, screen: &mut impl DrawApi, world: &World, dt: Duration) {
         // FIXME: separate update and render
         // TODO: y sort + culling
         for (i, e) in world.entities.iter() {
@@ -148,13 +148,13 @@ impl WorldRenderer {
         }
     }
 
-    fn shadow(&mut self, rdr: &mut Snow2d, world: &World) {
-        let blur = true;
+    fn render_shadow(&mut self, rdr: &mut Snow2d, world: &World) {
+        let blur = false;
         self.shadow_render.render_ofs(rdr, world, blur);
-        self.shadow_render.blend_to_screen(rdr);
+        self.shadow_render.blend_to_screen(rdr, &world.cam);
     }
 
-    fn snow(&mut self) {
+    fn render_snow(&mut self) {
         self.snow_render.render();
     }
 }

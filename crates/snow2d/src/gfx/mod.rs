@@ -330,7 +330,7 @@ impl<'a> RenderPass<'a> {
     // pub fn txt(&mut self, pos: impl Into<Vec2f>, text: &str) {
 
     /// Renders multiple lines of text
-    pub fn txt(&mut self, pos: impl Into<Vec2f>, text: &str) {
+    pub fn text(&mut self, pos: impl Into<Vec2f>, text: &str) {
         // use non-premultipiled alpha blending
 
         // FIXME: fontstash _should_ handle newline.. but not. why?

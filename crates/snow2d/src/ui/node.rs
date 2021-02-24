@@ -57,7 +57,7 @@ impl Node {
             }
             Draw::Text(ref x) => {
                 // TODO: custom position
-                pass.txt(self.params.pos, &x.txt);
+                pass.text(self.params.pos, &x.txt);
             }
         }
     }

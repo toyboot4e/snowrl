@@ -1,0 +1,142 @@
+= SnowRL devlog
+:toc:
+:toy: https://github.com/toyboot4e/
+:rokol: https://github.com/toyboot4e/rokol[rokol]
+:Rust-FNA3D: https://github.com/toyboot4e/Rust-FNA3D[Rust-FNA3D]
+:FNA3D: https://github.com/FNA-XNA/FNA3D[FNA3D]
+:Sokol: https://github.com/floooh/sokol[sokol]
+:sokol-gl: https://github.com/floooh/sokol/blob/master/util/sokol_gl.h[sokol_gl.h]
+:zig-gamekit: https://github.com/prime31/zig-gamekit[zig-gamekit]
+:rust-gen: https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html[Generators]
+:learn-gl-sokol: https://www.geertarien.com/learnopengl-examples-html5/[Learn OpenGL Examples]
+:gen-arena: https://docs.rs/generational-arena/latest/generational_arena/[generational_arena]
+:thunderdome: https://docs.rs/thunderdome/latest/thunderdome/[thunderdome]
+:froggy: https://docs.rs/froggy/latest/froggy/[froggy]
+:rg3d: https://github.com/mrDIMAS/rg3d/[rg3d]
+:rg3d-res: https://github.com/mrDIMAS/rg3d/blob/master/src/resource/mod.rs[Resoure]
+:nine-slice: https://docs.unity3d.com/Manual/9SliceSprites.html
+:fons-rs: https://github.com/toyboot4e/fontstash-rs[fontstash-rs]
+:just-snow: https://www.shadertoy.com/view/ldsGDn[Just snow]
+:soloud-rs: https://docs.rs/soloud/latest/soloud/[soloud-rs]
+
+== Batcher (Dec 17, 2020)
+
+SnowRL (Snow roguelike) is going to be built on top of {rokol}, which is bindings to the {sokol}
+header-only C libraries. I used to use {rust-fna3d} ({fna3d}), but the {learn-gl-sokol} (in Sokol)
+was so good for a beginner.
+
+This time I made an immediate-mode rendering API: `snow2d::gfx`. It makes heavy use of sprite
+builder:
+
+[source,rust]
+----
+screen
+    .sprite(&self.sprite)
+    .dst_pos_px([200.0, 150.0])
+    .color(color);
+----
+
+There's a quad batcher under the hood. I basically ported {zig-gamekit} to Rust (thought it doesn't
+have a builder). {sokol-gl} can also be referred to as an immediate-mode rendering API implementation.
+
+== FoV rendering (Dec 20, 2020)
+
+This is the raw output of FoV shadows:
+
+image::./img/fov_raw.png[]
+
+Then I applied gaussian blur to it:
+
+image::./img/fov_gauss.png[]
+
+Great! Which would you prefer? I like the latter, but it doesn't look like cell-based FoV. So I
+would make a flag for selecting if we use gaussian blur or not.
+
+== Turn-based game loop (Dec 27, 2020)
+
+{rust-gen} in Rust is currently unstable and would not be stablized for a while. But I liked its
+simplicity, so I'm using it for my turn-based game loop.
+
+Actor actions are immutable objects. They are mapped from one to another and result in primitive
+events to make changes to the game world. Example: `MeleeAttack` → `Hit` →
+`GiveDamage`. `MeleeAttack` is not yet implemenetd, but it would work as this.
+
+I'm also considering adding rules or systems. They can override action event handlings. For example,
+`ZombieSystem` would map `Heal` event to `GiveDamage` event if the target is a zombie.
+
+== Camera & pixel-perfect shadow (Feb 24, 2021)
+
+I added a bunch of items and modules.
+
+image::http://img.youtube.com/vi/h8XE-1vEI8w/maxresdefault.jpg[link=https://www.youtube.com/watch?v=h8XE-1vEI8w]
+
+(Click the image to jump to Youtube video)
+
+As you can see in the video,
+
+* It's snowing with {just-snow} shader!
+* `snow2d` got a sprite-based `ui` module:
+** The title texts (`ui::Node` s) can be applied animation objects.
+** Entities can now talk! The text is hard-coded for now. Texts are drawn via {fons-rs}.
+** I implemented {nine-slice}[Nine slice sprite] for the talking windows.
+
+Also there's an audio module, i.e., re-exports of {soloud-rs}. I'm sticking with the idea to use
+C/C++ for low level things and Rust for higher-level code.
+
+=== Pixel-perfect shadow
+
+I added camera. FoV/FoW shadow was flickering or shaking when scrolling. I was using shadow textures
+with size of screen size / 4, but I needed +1 pixels so that each shadow pixel (1x1) maps to *screen
+pixels (4x4) in a same cell*.
+
+=== Pools
+
+As noted in {gen-arena}, `Vec<T>` is not suitable for storing items that are referred to from
+somewhere else (for example, `Vec::remove` can change other item positions). We have some options:
+
+- **Non-reference-counted pool**, a.k.a. `Arena`. Examples: {gen-arena}, {thunderdome}
++
+My UI node animations are placed in this kind of pool.
+
+- **Reference-counted pool**. Example: {froggy}, https://docs.rs/bevy/latest/bevy/asset/index.html[bevy_asset]
++
+My UI nodes are placed in this kind of pool. Nodes won't be freed while their animations are alive!
+
+- **Reference-counted pointers**, wrappers of `Arc<Mutex<T>>`. Examples: {rg3d-res} in {rg3d}
++
+I also put assets in this kind of pointer. I don't have a particular reason for this.
++
+I would have to write some custom serializer for assets since `serde` doesn't serialize `Rc` or `Arc` objects correctly.
+
+== Non-ECS (Feb 25, 2021)
+
+I forgot to mention that SnowRL is not using ECS. Rather, it's using a traditional coding style.
+
+. Do you fight the borrow checker?
++
+Yes, but only occasionally. So basically no. My game code looks like this:
++
+[source,rust]
+----
+pub struct SnowRl {
+    /// Data (contexts and the game world)
+    global: Global,
+    /// Logic (controller of the game). A stack-based finite state machine
+    fsm: Fsm,
+}
+----
++
+After coming to this structure, I din't have to struggle with the borrow rules. Maybe it's because
+SnowRl is a simple, turn-based game. Real-time actions games would have other problems, but I guess
+basically separating logic from data (not using methods) is the point.
+
+. How do you handle variants of entities?
++
+Maybe I would use `enum`? But making `Player` and `Npc` different types is horrible. I need to
+rethink about it later.
+
+. The startup code for your game is messy, right?
++
+Yes. The https://github.com/lowenware/push-it/blob/main/src/main.rs[main.rs] of Dotrix example game
+is so nice compared to my `main.rs`.
+
