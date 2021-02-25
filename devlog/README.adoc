@@ -126,9 +126,10 @@ pub struct SnowRl {
 }
 ----
 +
-After coming to this structure, I din't have to struggle with the borrow rules. Maybe it's because
+After coming to this structure, I didn't have to struggle with the borrow rules. Maybe it's because
 SnowRl is a simple, turn-based game. Real-time actions games would have other problems, but I guess
-basically separating logic from data (not using methods) is the point.
+basically separating logic from data (**not using methods**) is the point. I hear that returning
+messages to make changes is also super helpful.
 
 . How do you handle variants of entities?
 +
@@ -139,4 +140,6 @@ rethink about it later.
 +
 Yes. The https://github.com/lowenware/push-it/blob/main/src/main.rs[main.rs] of Dotrix example game
 is so nice compared to my `main.rs`.
+
+I'm temped to try ECS, but it would be after finishing SnowRL.
 

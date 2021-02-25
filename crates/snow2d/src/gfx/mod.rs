@@ -8,16 +8,20 @@ Same as OpenGL or school math (left-handed and column-major).
 
 */
 
-pub mod batch;
-pub mod draw;
 pub mod geom2d;
 pub mod mesh;
 pub mod shaders;
 pub mod tex;
 
+// immediate-mode rendering
+pub mod batch;
+pub mod draw;
+
+pub mod text;
+
 use rokol::{
     app as ra,
-    fons::FontBook,
+    fons::{FonsQuad, FontBook},
     gfx::{self as rg, BakedResource},
 };
 
@@ -331,49 +335,98 @@ impl<'a> RenderPass<'a> {
 
     /// Renders multiple lines of text
     pub fn text(&mut self, pos: impl Into<Vec2f>, text: &str) {
-        // use non-premultipiled alpha blending
-
-        // FIXME: fontstash _should_ handle newline.. but not. why?
-        // self.render_text_line(text, pos.into());
+        // NOTE: Be sure to use non-premultiplied alpha blending
 
         // we have to draw text line by line
         let fontsize = 20.0; // really?
+                             // TODO: read configuration
         let nl_space = 2.0;
 
         let pos = pos.into();
         let nl_offset = fontsize + nl_space;
         for (i, line) in text.lines().enumerate() {
             let pos = pos + Vec2f::new(0.0, nl_offset * i as f32);
-            self.render_text_line(pos, line);
+            self.line_with_shadow(line, pos, Vec2f::new(2.0, 2.0));
         }
-
-        // TODO: ensure flushing?
     }
 
-    /// Renders one line of text
+    /// * `base_pos`: left-up corner of text bounds
     #[inline]
-    fn render_text_line(&mut self, pos: Vec2f, text: &str) {
+    fn line(&mut self, text: &str, base_pos: Vec2f) {
         let img = self.snow.fontbook.img();
 
         let iter = self.snow.fontbook.text_iter(text).unwrap();
-        for quad in iter {
+        for fons_quad in iter {
             let q = self.next_quad_mut(img);
-
-            q[0].uv = [quad.s0, quad.t0];
-            q[1].uv = [quad.s1, quad.t0];
-            q[2].uv = [quad.s0, quad.t1];
-            q[3].uv = [quad.s1, quad.t1];
-
-            q[0].pos = [quad.x0 as f32 + pos.x, quad.y0 as f32 + pos.y];
-            q[1].pos = [quad.x1 as f32 + pos.x, quad.y0 as f32 + pos.y];
-            q[2].pos = [quad.x0 as f32 + pos.x, quad.y1 as f32 + pos.y];
-            q[3].pos = [quad.x1 as f32 + pos.x, quad.y1 as f32 + pos.y];
-
-            let color = [255, 255, 255, 255];
-            q[0].color = color;
-            q[1].color = color;
-            q[2].color = color;
-            q[3].color = color;
+            Self::set_quad(q, &fons_quad, base_pos, [255, 255, 255, 255]);
         }
+    }
+
+    /// * `base_pos`: left-up corner of text bounds
+    #[inline]
+    fn line_with_shadow(&mut self, text: &str, base_pos: Vec2f, shadow_offset: Vec2f) {
+        let img = self.snow.fontbook.img();
+        let shadow_pos = base_pos.offset(shadow_offset);
+
+        let iter = self.snow.fontbook.text_iter(text).unwrap();
+        for fons_quad in iter {
+            let q_shadow = self.next_quad_mut(img);
+            Self::set_quad(q_shadow, &fons_quad, shadow_pos, [0, 0, 0, 255]);
+
+            let q = self.next_quad_mut(img);
+            Self::set_quad(q, &fons_quad, base_pos, [255, 255, 255, 255]);
+        }
+    }
+
+    /// * `base_pos`: left-up corner of text bounds
+    #[inline]
+    fn line_with_multi_shadow(&mut self, text: &str, base_pos: Vec2f, n_shadows: usize) {
+        let img = self.snow.fontbook.img();
+
+        let iter = self.snow.fontbook.text_iter(text).unwrap();
+        for fons_quad in iter {
+            for i in 0..n_shadows {
+                let q_shadow = self.next_quad_mut(img);
+                Self::set_quad(
+                    q_shadow,
+                    &fons_quad,
+                    base_pos.offset((i + 1) as f32 * Vec2f::new(1.0, 1.0)),
+                    [0, 0, 0, 255],
+                );
+            }
+
+            let q = self.next_quad_mut(img);
+            Self::set_quad(q, &fons_quad, base_pos, [255, 255, 255, 255]);
+        }
+    }
+
+    #[inline]
+    fn set_quad(q: &mut QuadData, fons_quad: &FonsQuad, base_pos: Vec2f, color: [u8; 4]) {
+        q[0].uv = [fons_quad.s0, fons_quad.t0];
+        q[1].uv = [fons_quad.s1, fons_quad.t0];
+        q[2].uv = [fons_quad.s0, fons_quad.t1];
+        q[3].uv = [fons_quad.s1, fons_quad.t1];
+
+        q[0].pos = [
+            fons_quad.x0 as f32 + base_pos.x,
+            fons_quad.y0 as f32 + base_pos.y,
+        ];
+        q[1].pos = [
+            fons_quad.x1 as f32 + base_pos.x,
+            fons_quad.y0 as f32 + base_pos.y,
+        ];
+        q[2].pos = [
+            fons_quad.x0 as f32 + base_pos.x,
+            fons_quad.y1 as f32 + base_pos.y,
+        ];
+        q[3].pos = [
+            fons_quad.x1 as f32 + base_pos.x,
+            fons_quad.y1 as f32 + base_pos.y,
+        ];
+
+        q[0].color = color;
+        q[1].color = color;
+        q[2].color = color;
+        q[3].color = color;
     }
 }

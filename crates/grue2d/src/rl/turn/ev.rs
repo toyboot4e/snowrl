@@ -9,7 +9,7 @@ e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
 TODO: remove non-primitive events
 */
 
-use snow2d::{gfx::geom2d::*, input::Key, utils::arena::Index};
+use snow2d::{input::Key, utils::arena::Index};
 
 use rlbox::rl::grid2d::*;
 
@@ -325,21 +325,24 @@ impl Event for PlayerTurn {
         }
 
         if let Some(dir) = dir {
-            if ecx
+            let is_shift_down = ecx
                 .ice
                 .input
                 .kbd
-                .is_any_key_down(&[Key::LShift, Key::RShift])
-            {
-                // camera scroll TODO: remove
-                let delta = 8.0 * Vec2f::from(dir.signs_f32());
-                ecx.world.cam.params.pos += delta;
-            } else {
-                return EventResult::chain(PlayerWalk {
+                .is_any_key_down(&[Key::LShift, Key::RShift]);
+
+            return if is_shift_down {
+                EventResult::chain(ChangeDir {
                     actor: self.actor,
                     dir,
-                });
-            }
+                })
+            } else {
+                // walk
+                EventResult::chain(PlayerWalk {
+                    actor: self.actor,
+                    dir,
+                })
+            };
         }
 
         EventResult::GotoNextFrame

@@ -149,7 +149,7 @@ impl WorldRenderer {
     }
 
     fn render_shadow(&mut self, rdr: &mut Snow2d, world: &World) {
-        let blur = false;
+        let blur = true;
         self.shadow_render.render_ofs(rdr, world, blur);
         self.shadow_render.blend_to_screen(rdr, &world.cam);
     }
