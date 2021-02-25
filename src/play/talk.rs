@@ -2,16 +2,14 @@
 Talk
 */
 
-use {
-    rokol::fons::{FontBook, FontConfig},
-    std::borrow::Cow,
-};
+use {rokol::fons::FontTexture, std::borrow::Cow};
 
 use snow2d::{
     asset::AssetCacheAny,
     gfx::{
         geom2d::*,
         tex::{NineSliceSprite, SpriteData},
+        text::font::FontStyle,
     },
     ui::{node::*, Layer},
     utils::{arena::Index, ez, pool::Handle, tweak::*},
@@ -68,12 +66,12 @@ impl<'a> TalkViewCommand<'a> {
     fn layout(
         &self,
         tcfg: &TalkConfig,
-        fb: &FontBook,
-        fcfg: &FontConfig,
+        fb: &FontTexture,
+        fstyle: &FontStyle,
         world: &World,
     ) -> TalkLayout {
         let pos = Self::base_pos(world, self.to);
-        self.layout_impl(tcfg, fb, fcfg, pos)
+        self.layout_impl(tcfg, fb, fstyle, pos)
     }
 
     fn base_pos(world: &World, actor: Index<Actor>) -> Vec2f {
@@ -86,11 +84,12 @@ impl<'a> TalkViewCommand<'a> {
     fn layout_impl(
         &self,
         tcfg: &TalkConfig,
-        fb: &FontBook,
-        fcfg: &FontConfig,
+        fb: &FontTexture,
+        fstyle: &FontStyle,
         pos: Vec2f,
     ) -> TalkLayout {
-        let mut win_rect = fb.text_bounds(pos, fcfg, &self.txt);
+        let mut win_rect =
+            fb.text_bounds_multiline(&self.txt, pos, fstyle.fontsize, fstyle.line_spacing);
 
         // FIXME: the hard-coded y alignment
         let mut baloon_pos = Vec2f::new(pos.x, pos.y + tweak!(11.0));
@@ -208,7 +207,14 @@ pub struct PlayTalk {
 
 impl PlayTalk {
     pub fn new(talk: TalkViewCommand<'_>, gl: &mut Global, layer: Index<Layer>) -> Self {
-        let layout = talk.layout(&talk.cfg, &gl.ice.rdr.fontbook, &gl.ice.font_cfg, &gl.world);
+        // FIXME: use custom config
+        let fstyle = FontStyle {
+            font_ix: unsafe { snow2d::gfx::text::font::FontIx::from_raw(1) },
+            fontsize: 20.0,
+            // FIXME: layout only works with this spacing. why?
+            line_spacing: 4.0,
+        };
+        let layout = talk.layout(&talk.cfg, &gl.ice.rdr.fontbook.tex, &fstyle, &gl.world);
         let surface = TalkSurface::new(layout, &mut gl.ice.assets);
 
         let layer = &mut gl.ui.layers[layer];

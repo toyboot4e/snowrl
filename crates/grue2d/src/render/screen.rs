@@ -122,8 +122,16 @@ impl ShadowRenderer {
                 [0.0, 0.0, 1.0, 0.0],
                 [0.0, 0.0, 0.0, 1.0]
             );
+            let win_size = ra::size_f();
             let proj = M_INV_Y
-                * glam::Mat4::orthographic_rh_gl(0.0, 1280.0 + 4.0, 720.0 + 4.0, 0.0, 0.0, 1.0)
+                * glam::Mat4::orthographic_rh_gl(
+                    0.0,
+                    win_size[0] + 4.0,
+                    win_size[1] + 4.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                )
                 * tfm;
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
             // let bytes: &[u8] = std::slice::from_raw_parts(

@@ -14,7 +14,7 @@ pub mod utils;
 
 use std::time::{Duration, Instant};
 
-use rokol::{fons::FontConfig, gfx as rg};
+use rokol::gfx as rg;
 
 use crate::{
     asset::AssetCacheAny,
@@ -33,8 +33,6 @@ pub struct Ice {
     pa_blue: rg::PassAction,
     /// 2D renderer
     pub rdr: Snow2d,
-    /// Default font configuration
-    pub font_cfg: FontConfig,
     /// Audio context
     pub audio: Audio,
     pub music_player: MusicPlayer,
@@ -49,7 +47,7 @@ pub struct Ice {
 }
 
 impl Ice {
-    pub fn new(title: String, snow: Snow2d, font_cfg: FontConfig) -> Self {
+    pub fn new(title: String, snow: Snow2d) -> Self {
         // TODO: don't unwrap
         let audio = unsafe { Audio::create().unwrap() };
 
@@ -57,7 +55,6 @@ impl Ice {
             window_title: title,
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             rdr: snow,
-            font_cfg,
             audio: audio.clone(),
             music_player: MusicPlayer::new(audio.clone()),
             assets: AssetCacheAny::new(),

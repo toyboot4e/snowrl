@@ -84,9 +84,49 @@ impl SnowRl {
         gl.world_render
             .render(&gl.world, &mut gl.ice, WorldRenderFlag::ALL);
 
+        Self::test_text_style(gl);
+
         let cam_mat = gl.world.cam.to_mat4();
         for (_ix, layer) in &mut gl.ui.layers {
             layer.render(&mut gl.ice, cam_mat);
         }
+    }
+
+    fn test_text_style(gl: &mut grue2d::Global) {
+        use snow2d::gfx::{geom2d::*, text::prelude::*};
+        let text = "snow2d graphics!";
+
+        let layout = TextLayout {
+            text: &text,
+            lines: vec![LineLayout {
+                line_spans: vec![
+                    LineLayoutSpan {
+                        text_slice: &text[0..6],
+                        first_quad_ix: 0,
+                        quad_span: QuadSpan { from: 0, to: 6 },
+                        style: TextStyle {
+                            color: [128, 128, 128, 255],
+                            is_bold: false,
+                        },
+                    },
+                    LineLayoutSpan {
+                        text_slice: &text[7..16],
+                        first_quad_ix: 0,
+                        quad_span: QuadSpan { from: 7, to: 16 },
+                        style: TextStyle {
+                            color: [255, 0, 0, 255],
+                            is_bold: true,
+                        },
+                    },
+                ],
+            }],
+        };
+
+        snow2d::gfx::text::render_line(
+            &layout.lines[0],
+            text,
+            Vec2f::new(100.0, 100.0),
+            &mut gl.ice.rdr,
+        );
     }
 }
