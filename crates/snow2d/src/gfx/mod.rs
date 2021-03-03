@@ -30,7 +30,7 @@ use self::{
     draw::*,
     geom2d::*,
     tex::RenderTexture,
-    text::font::{FontBook, FontStore},
+    text::FontBook,
 };
 
 /// 4 bytes color data
@@ -214,9 +214,9 @@ impl Snow2d {
         Self {
             batch: Batch::default(),
             fontbook: {
-                let mut fontbook = FontBook {
+                let fontbook = FontBook {
                     tex: FontTexture::new(256, 256),
-                    store: FontStore::default(),
+                    storage: Default::default(),
                 };
                 fontbook.tex.set_align(fons::Align::TOP | fons::Align::LEFT);
                 fontbook

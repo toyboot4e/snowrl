@@ -10,7 +10,9 @@ pub extern crate rlbox;
 pub mod fsm;
 pub mod render;
 pub mod rl;
-pub mod vi;
+
+mod resources;
+pub use resources::*;
 
 pub(crate) mod utils;
 
@@ -26,7 +28,6 @@ use crate::{
     fsm::*,
     render::WorldRenderer,
     rl::{script::ScriptRef, turn::anim::AnimPlayer, world::World},
-    vi::VInput,
 };
 
 pub extern crate hot_crate;
@@ -96,14 +97,17 @@ impl GlueRl {
 /// TODO: consider using `Global<T>` for additional contexts
 #[derive(Debug)]
 pub struct Global {
+    // SnowRL-only context
     pub world: World,
-    pub ice: Ice,
     pub world_render: WorldRenderer,
     pub vi: VInput,
+    pub fonts: Fonts,
+    // generic game context
+    pub ice: Ice,
     pub ui: Ui,
-    /// Roguelike game animations
+    // game data
     pub anims: AnimPlayer,
-    /// TODO: extract it to user data
+    // TODO: extract it to user data
     pub script_to_play: Option<ScriptRef>,
 }
 

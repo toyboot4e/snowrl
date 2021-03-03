@@ -3,7 +3,7 @@ User interface (sprites and animations)
 */
 
 pub mod anim;
-pub mod builder;
+pub mod anim_builder;
 pub mod node;
 
 use {glam::Mat4, std::time::Duration};
@@ -65,7 +65,7 @@ impl Layer {
     }
 
     pub fn render(&mut self, ice: &mut Ice, cam_mat: Mat4) {
-        let mut screen = ice.rdr.screen(PassConfig {
+        let mut screen = ice.snow.screen(PassConfig {
             tfm: match self.coord {
                 CoordSystem::Screen => None,
                 CoordSystem::World => Some(cam_mat),
@@ -101,8 +101,8 @@ impl std::ops::DerefMut for AnimArena {
 }
 
 impl AnimArena {
-    pub fn builder(&mut self) -> builder::AnimBuilder {
-        builder::AnimBuilder::new(self)
+    pub fn builder(&mut self) -> anim_builder::AnimBuilder {
+        anim_builder::AnimBuilder::new(self)
     }
 
     /// Ticks and applies tweens

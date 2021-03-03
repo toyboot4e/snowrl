@@ -1,17 +1,27 @@
 /*!
-The virtual inputs for SnowRL
+Resources, global objects specific to SnowRL
 */
 
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use snow2d::input::{vi::*, Input, Key};
+use snow2d::{
+    gfx::text::font::FontSetHandle,
+    input::{vi::*, Input, Key},
+    utils::arena::Index,
+};
 
 /// TODO: rm
 const REPEAT_FIRST_FRAMES: u64 = 10;
 /// TODO: rm
 const REPEAT_MULTI_FRAMES: u64 = 6;
+
+/// Collection of fonts
+#[derive(Debug)]
+pub struct Fonts {
+    pub default: Index<FontSetHandle>,
+}
 
 /// Collection of virtual inputs
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,7 +40,7 @@ pub struct VInput {
 }
 
 impl VInput {
-    /// TODO: use serde
+    /// TODO: load from serde
     pub fn new() -> Self {
         let dir_repeat = KeyRepeatConfig::Repeat {
             first: Duration::from_nanos(1_000_000_000 / 60 * REPEAT_FIRST_FRAMES),

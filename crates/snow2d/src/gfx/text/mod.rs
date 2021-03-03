@@ -3,36 +3,119 @@ Text rendering
 */
 
 pub mod font;
-pub mod layout;
+pub mod render;
 pub mod style;
+pub mod view;
 
 pub mod prelude {
     //! Imports all the text view types
-    pub use super::{font, layout::*, style::*};
+    pub use super::{font, style::*, view::*, FontBook};
 }
 
 use rokol::fons::FonsQuad;
+use std::{borrow::Cow, fs, io};
 
-use crate::gfx::{batch::QuadData, draw::*, geom2d::Vec2f, Snow2d};
+use crate::{
+    gfx::{batch::QuadData, draw::*, geom2d::Vec2f, Snow2d},
+    utils::arena::{Arena, Index},
+};
 
-use self::layout::*;
+use self::{font::*, view::*};
 
-/// Renders [`layout::LineLayout`]
-pub fn render_line<'a>(line: &LineLayout<'a>, text: &str, base_pos: Vec2f, snow: &mut Snow2d) {
+pub type Result<T> = std::io::Result<T>;
+
+/// Bundle of font texture and font storage
+#[derive(Debug)]
+pub struct FontBook {
+    pub tex: FontTexture,
+    pub storage: Arena<FontSetHandle>,
+}
+
+impl FontBook {
+    pub fn load_family(&mut self, font_set: &FontSetDesc) -> Result<Index<FontSetHandle>> {
+        let set = FontSetHandle {
+            name: font_set.name.clone(),
+            regular: self.load_font(&font_set.regular)?,
+            bold: if let Some(font) = &font_set.bold {
+                Some(self.load_font(font)?)
+            } else {
+                None
+            },
+            italic: if let Some(font) = &font_set.italic {
+                Some(self.load_font(font)?)
+            } else {
+                None
+            },
+        };
+
+        let key = self.storage.insert(set);
+
+        Ok(key)
+    }
+
+    fn load_font(&mut self, font: &FontDesc) -> Result<FontHandle> {
+        let mem: Cow<[u8]> = match &font.load {
+            LoadDesc::Path(p) => {
+                let x = fs::read(p)?;
+                Cow::Owned(x)
+            }
+            LoadDesc::Mem(m) => Cow::Borrowed(m),
+        };
+
+        let ix = self
+            .tex
+            .add_font_mem(&font.name, mem.as_ref())
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+        log::trace!("font {:?} loaded at index `{:?}`", font.name, ix);
+
+        Ok(FontHandle { ix })
+    }
+}
+
+// --------------------------------------------------------------------------------
+// Immediate-mode rendering procedures
+
+/// Renders [`view::LineView`]
+pub fn render_line<'a>(
+    line: &LineView<'a>,
+    text: &str,
+    base_pos: Vec2f,
+    snow: &mut Snow2d,
+    font_set: Index<FontSetHandle>,
+) {
     let fb = &mut snow.fontbook;
     let batch = &mut snow.batch;
 
-    // TODO: use quad buffer in text renderer
-    // TODO: use non-immediate batcher
-    let quads = fb.tex.text_iter(text).unwrap().collect::<Vec<_>>();
-    for sp in &line.line_spans {
-        for i in sp.quad_indices() {
-            let fons_quad = &quads[i as usize];
+    // TODO: use quad buffer in text renderer?
+    // TODO: use non-immediate batcher?
 
-            let q = batch.next_quad_mut(fb.tex.img());
-            self::set_text_quad(q, fons_quad, base_pos, sp.style.color);
+    // TODO: use font set, also in talk.rs
+    // TODO: efficient rich text layout
+    let font_set = &fb.storage[font_set];
+    fb.tex.set_font(font_set.regular.ix);
+    let regular_quads = fb.tex.text_iter(text).unwrap().collect::<Vec<_>>();
+    fb.tex.set_font(font_set.bold.as_ref().unwrap().ix);
+    let bold_quads = fb.tex.text_iter(text).unwrap().collect::<Vec<_>>();
+
+    for sp in &line.line_spans {
+        if sp.style.is_bold {
+            for i in sp.quad_indices() {
+                let fons_quad = &bold_quads[i as usize];
+                let q = batch.next_quad_mut(fb.tex.img());
+                self::set_text_quad(q, fons_quad, base_pos, sp.style.color);
+            }
+        } else {
+            for i in sp.quad_indices() {
+                let fons_quad = &regular_quads[i as usize];
+                let q = batch.next_quad_mut(fb.tex.img());
+                self::set_text_quad(q, fons_quad, base_pos, sp.style.color);
+            }
         }
     }
+
+    // reset to default font
+    fb.tex.set_font(unsafe { FontIx::from_raw(0) });
 }
 
 /// Sets a text quad

@@ -32,7 +32,7 @@ pub struct Ice {
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
     /// 2D renderer
-    pub rdr: Snow2d,
+    pub snow: Snow2d,
     /// Audio context
     pub audio: Audio,
     pub music_player: MusicPlayer,
@@ -54,7 +54,7 @@ impl Ice {
         Self {
             window_title: title,
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
-            rdr: snow,
+            snow,
             audio: audio.clone(),
             music_player: MusicPlayer::new(audio.clone()),
             assets: AssetCacheAny::new(),
@@ -80,7 +80,7 @@ impl Ice {
 
     /// Updates font texture
     pub fn pre_render(&mut self) {
-        self.rdr.pre_render();
+        self.snow.pre_render();
         // FIXME: use real dt
         self.dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
     }

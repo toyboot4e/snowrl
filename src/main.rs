@@ -1,9 +1,6 @@
 //! TODO: filter debug/error log on release build
 
-use rokol::{
-    fons::{self, FontConfig},
-    Rokol,
-};
+use rokol::Rokol;
 
 use snow2d::ui::{CoordSystem, Layer};
 
@@ -18,6 +15,7 @@ use grue2d::{
         turn::anim::AnimPlayer,
         world::{actor::Actor, World},
     },
+    Fonts, VInput,
 };
 
 use snowrl::{
@@ -33,8 +31,10 @@ fn main() -> rokol::Result {
     let rokol = rokol::Rokol {
         w: 1280,
         h: 720,
-        title: "SnowRL".to_string(),
         use_high_dpi: false,
+        // TODO: text-only high DPI game application (other items should be scaled)
+        // use_high_dpi: true,
+        title: "SnowRL".to_string(),
         ..Default::default()
     };
 
@@ -54,30 +54,35 @@ fn main() -> rokol::Result {
 fn new_game(rokol: Rokol) -> GlueRl {
     let title = rokol.title;
 
-    // create generic game context
-    let mut ice = {
-        let mut snow = unsafe { Snow2d::new() };
+    let mut ice = Ice::new(title, unsafe { Snow2d::new() });
 
-        let font_cfg = FontConfig {
-            font: {
-                // FIXME: font and font path
-                let font = include_bytes!("../assets_embedded/mplus-1p-regular.ttf");
-                let ix = snow
-                    .fontbook
-                    .stash()
-                    .add_font_mem("mplus-1p-regular", font)
-                    .unwrap();
-                snow.fontbook
-                    .stash()
-                    .set_align(fons::Align::TOP | fons::Align::LEFT);
-                ix
-            },
-            fontsize: crate::consts::DEFAULT_FONT_SIZE,
-            line_spacing: crate::consts::DEFAULT_LINE_SPACE,
-        };
-        snow.fontbook.apply_cfg(&font_cfg);
+    ice.snow
+        .fontbook
+        .tex
+        .set_size(crate::consts::DEFAULT_FONT_SIZE);
+    // line_spacing: crate::consts::DEFAULT_LINE_SPACE,
 
-        Ice::new(title, snow, font_cfg)
+    let fonts = Fonts {
+        default: {
+            use snow2d::gfx::text::font::*;
+            let family_desc = FontSetDesc {
+                name: "mplus-1p".to_string(),
+                regular: FontDesc {
+                    name: "mplus-1p-regular".to_string(),
+                    load: include_bytes!("../assets_embedded/mplus-1p-regular.ttf")
+                        .as_ref()
+                        .into(),
+                },
+                bold: Some(FontDesc {
+                    name: "mplus-1p-bold".to_string(),
+                    load: include_bytes!("../assets_embedded/mplus-1p-bold.ttf")
+                        .as_ref()
+                        .into(),
+                }),
+                italic: None,
+            };
+            ice.snow.fontbook.load_family(&family_desc).unwrap()
+        },
     };
 
     // create our game context
@@ -91,21 +96,15 @@ fn new_game(rokol: Rokol) -> GlueRl {
 
         Global {
             world,
+            world_render: WorldRenderer::default(),
             ice,
+            fonts,
             vi: VInput::new(),
             ui: Default::default(),
-            world_render: WorldRenderer::default(),
             anims: AnimPlayer::default(),
             script_to_play: None,
         }
     };
-
-    // TODO: remove this debug print
-    {
-        let x = ron::ser::to_string_pretty(&gl.vi, Default::default()).unwrap();
-        println!("{}", x);
-        let _y: VInput = ron::de::from_str(&x).unwrap();
-    }
 
     // create our control
     let fsm = {

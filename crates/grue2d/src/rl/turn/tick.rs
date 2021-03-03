@@ -22,7 +22,7 @@ use crate::{
         world::{actor::Actor, World},
     },
     utils::Cheat,
-    vi::VInput,
+    VInput,
 };
 
 /// TODO: remove me

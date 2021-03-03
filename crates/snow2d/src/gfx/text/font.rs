@@ -1,48 +1,66 @@
+/*!
+Font resource handling
+*/
+
 use std::path::PathBuf;
 
 pub use rokol::fons::{fontstash::FontIx, FontTexture};
 
+// --------------------------------------------------------------------------------
+// Desc types for loading
+
+/// Bytes loading description
 #[derive(Debug)]
-pub struct FontBook {
-    pub tex: FontTexture,
-    pub store: FontStore,
+pub enum LoadDesc<'a> {
+    Path(PathBuf),
+    Mem(&'a [u8]),
 }
 
-#[derive(Debug, Default)]
-pub struct FontStore {
-    //
+impl<'a> From<PathBuf> for LoadDesc<'a> {
+    fn from(x: PathBuf) -> Self {
+        Self::Path(x)
+    }
+}
+
+impl<'a> From<&'a [u8]> for LoadDesc<'a> {
+    fn from(x: &'a [u8]) -> Self {
+        Self::Mem(x)
+    }
 }
 
 #[derive(Debug)]
-pub struct FontFamily {
-    pub regular: FontData,
-    pub bold: Option<FontData>,
-    pub italic: Option<FontData>,
-}
-
-#[derive(Debug)]
-pub struct FontData {
+pub struct FontSetDesc<'a> {
     pub name: String,
-    pub path: PathBuf,
+    pub regular: FontDesc<'a>,
+    pub bold: Option<FontDesc<'a>>,
+    pub italic: Option<FontDesc<'a>>,
+}
+
+#[derive(Debug)]
+pub struct FontDesc<'a> {
+    pub name: String,
+    pub load: LoadDesc<'a>,
+}
+
+// --------------------------------------------------------------------------------
+// Font handles
+
+#[derive(Debug, Clone, Copy)]
+pub struct FontHandle {
     pub ix: FontIx,
 }
 
-#[derive(Debug)]
-pub struct FontFamilyDesc {
-    //
-}
-
-pub struct FontUse {
-    pub family: FontFamily,
-    pub style: FontStyle,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FontFace {
+    Regular,
+    Bold,
+    Italic,
 }
 
 #[derive(Debug, Clone)]
-pub struct FontStyle {
-    pub font_ix: FontIx,
-    pub fontsize: f32,
-    pub line_spacing: f32,
-    // pub is_bold: bool,
-    // pub is_italic: bool,
-    // pub shadow: TextShadowStyle
+pub struct FontSetHandle {
+    pub name: String,
+    pub regular: FontHandle,
+    pub bold: Option<FontHandle>,
+    pub italic: Option<FontHandle>,
 }

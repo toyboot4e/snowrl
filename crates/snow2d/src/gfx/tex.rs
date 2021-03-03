@@ -177,7 +177,7 @@ impl Default for SpriteData {
     }
 }
 
-/// A nine slice texture is suitable for e.g., window image
+/// Suitable for, e.g., window image
 #[derive(Debug, Clone)]
 pub struct NineSliceSprite {
     pub tex: Asset<Texture2dDrop>,

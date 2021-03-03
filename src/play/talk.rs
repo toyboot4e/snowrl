@@ -9,7 +9,7 @@ use snow2d::{
     gfx::{
         geom2d::*,
         tex::{NineSliceSprite, SpriteData},
-        text::font::FontStyle,
+        text::style::FontStyle,
     },
     ui::{node::*, Layer},
     utils::{arena::Index, ez, pool::Handle, tweak::*},
@@ -92,7 +92,7 @@ impl<'a> TalkViewCommand<'a> {
             fb.text_bounds_multiline(&self.txt, pos, fstyle.fontsize, fstyle.line_spacing);
 
         // FIXME: the hard-coded y alignment
-        let mut baloon_pos = Vec2f::new(pos.x, pos.y + tweak!(11.0));
+        let mut baloon_pos = Vec2f::new(pos.x, pos.y + tweak!(10.0));
 
         // align horizontally the center of the window
         win_rect[0] -= win_rect[2] / 2.0;
@@ -122,15 +122,15 @@ impl<'a> TalkViewCommand<'a> {
     }
 }
 
-/// Renderer-agnostic talk surface
+/// Data to draw talk
 #[derive(Debug)]
-struct TalkSurface {
+struct TalkView {
     layout: TalkLayout,
     win_sprite: NineSliceSprite,
     baloons: [SpriteData; 4],
 }
 
-impl TalkSurface {
+impl TalkView {
     pub fn new(layout: TalkLayout, assets: &mut AssetCacheAny) -> Self {
         let win_sprite = NineSliceSprite {
             tex: assets.load_sync(paths::img::sourve::A).unwrap(),
@@ -201,7 +201,7 @@ struct TalkNodes {
 #[derive(Debug)]
 pub struct PlayTalk {
     cfg: TalkConfig,
-    surface: TalkSurface,
+    view: TalkView,
     nodes: TalkNodes,
 }
 
@@ -214,26 +214,26 @@ impl PlayTalk {
             // FIXME: layout only works with this spacing. why?
             line_spacing: 4.0,
         };
-        let layout = talk.layout(&talk.cfg, &gl.ice.rdr.fontbook.tex, &fstyle, &gl.world);
-        let surface = TalkSurface::new(layout, &mut gl.ice.assets);
+        let layout = talk.layout(&talk.cfg, &gl.ice.snow.fontbook.tex, &fstyle, &gl.world);
+        let view = TalkView::new(layout, &mut gl.ice.assets);
 
         let layer = &mut gl.ui.layers[layer];
         let nodes = TalkNodes {
             win: layer.nodes.add({
-                let mut win = Node::from(surface.win());
-                win.params.pos = surface.layout.win.left_up().into();
+                let mut win = Node::from(view.win());
+                win.params.pos = view.layout.win.left_up().into();
                 win
             }),
             txt: layer.nodes.add({
                 let mut txt = Node::from(Text {
                     txt: talk.txt.into_owned(),
                 });
-                txt.params.pos = surface.layout.txt.into();
+                txt.params.pos = view.layout.txt.into();
                 txt
             }),
             baloon: layer.nodes.add({
-                let mut baloon = Node::from(surface.baloon(&talk.cfg));
-                baloon.params.pos = surface.layout.baloon.into();
+                let mut baloon = Node::from(view.baloon(&talk.cfg));
+                baloon.params.pos = view.layout.baloon.into();
                 baloon
             }),
         };
@@ -241,7 +241,7 @@ impl PlayTalk {
         let dt = ez::EasedDt::new(consts::TALK_WIN_ANIM_TIME, consts::TALK_WIN_EASE);
         let mut b = layer.anims.builder();
 
-        let rect = &surface.layout.win;
+        let rect = &view.layout.win;
         b.dt(dt)
             .node(&nodes.win)
             .pos([(rect.x + rect.w / 2.0, rect.y), (rect.x, rect.y)])
@@ -250,7 +250,7 @@ impl PlayTalk {
 
         Self {
             cfg: talk.cfg,
-            surface,
+            view,
             nodes,
         }
     }

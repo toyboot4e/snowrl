@@ -67,23 +67,27 @@ impl WorldRenderer {
     pub fn render(&mut self, world: &World, ice: &mut Ice, flags: WorldRenderFlag) {
         if flags.contains(WorldRenderFlag::MAP | WorldRenderFlag::ACTORS) {
             // use world coordinates
-            let mut screen = ice.rdr.screen(PassConfig {
+            let mut screen = ice.snow.screen(PassConfig {
                 pa: &self.pa_blue,
                 tfm: Some(world.cam.to_mat4()),
                 shd: None,
             });
 
             if flags.contains(WorldRenderFlag::MAP) {
-                Self::render_map(&mut screen, &world);
+                Self::render_map(&mut screen, &world, 0..100);
             }
 
             if flags.contains(WorldRenderFlag::ACTORS) {
                 self.render_actors(&mut screen, &world, ice.dt);
             }
+
+            if flags.contains(WorldRenderFlag::MAP) {
+                Self::render_map(&mut screen, &world, 100..);
+            }
         }
 
         if flags.contains(WorldRenderFlag::SHADOW) {
-            self.render_shadow(&mut ice.rdr, world);
+            self.render_shadow(&mut ice.snow, world);
         }
 
         if flags.contains(WorldRenderFlag::SNOW) {
@@ -91,22 +95,27 @@ impl WorldRenderer {
         }
     }
 
-    fn render_map(screen: &mut impl DrawApi, world: &World) {
+    fn render_map(
+        screen: &mut impl DrawApi,
+        world: &World,
+        layer_range: impl std::ops::RangeBounds<i32>,
+    ) {
         tiled_render::render_tiled(
             screen,
             &world.map.tiled,
             &world.map.idmap,
             world.cam.bounds(),
+            layer_range,
         );
-
-        // FIXME: can't draw rects
-        // rlbox::render::tiled::render_rects_on_non_blocking_cells(
-        //     screen,
-        //     &world.map.tiled,
-        //     &world.map.rlmap.blocks,
-        //     &bounds, // FIXME: copy
-        // );
     }
+
+    // TODO: fn render_map_cell_rects(
+    // rlbox::render::tiled::render_rects_on_non_blocking_cells(
+    //     screen,
+    //     &world.map.tiled,
+    //     &world.map.rlmap.blocks,
+    //     &bounds, // FIXME: copy
+    // );
 
     // TODO: maybe use camera matrix
     fn render_actors(&mut self, screen: &mut impl DrawApi, world: &World, dt: Duration) {

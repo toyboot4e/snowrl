@@ -1,5 +1,5 @@
 /*!
-UI nodes
+UI nodes (renderables)
 
 [`Handle`] of UI nodes are strong references, so a node won't freed until nothing refers to it.
 */
