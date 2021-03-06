@@ -1,5 +1,5 @@
 /*!
-Crate-local utilities
+Cheat the borrow checker using raw pointer
 */
 
 /// Lifetime-free mutable reference to type `T`

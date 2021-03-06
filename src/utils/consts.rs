@@ -20,7 +20,7 @@ pub const TALK_WIN_ANIM_TIME: f32 = 10.0 / 60.0;
 pub const TALK_WIN_EASE: ez::Ease = ez::Ease::ExpOut;
 
 /// Walk duration in seconds
-pub const WALK_TIME: f32 = 8.0 / 60.0;
+pub const WALK_SECS: f32 = 8.0 / 60.0;
 
 pub const WALK_EASE: ez::Ease = ez::Ease::Linear;
 

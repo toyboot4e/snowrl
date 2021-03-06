@@ -2,6 +2,7 @@
 Generic utilities
 */
 
+pub mod cheat;
 pub mod ez;
 pub mod pool;
 

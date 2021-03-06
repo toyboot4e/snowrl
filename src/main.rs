@@ -1,12 +1,17 @@
 //! TODO: filter debug/error log on release build
 
 use rokol::Rokol;
-
 use snow2d::ui::{CoordSystem, Layer};
+use std::{fs, io::prelude::*};
 
 use rlbox::{
     rl::grid2d::*,
-    view::{actor::ActorImage, camera::*, map::TiledRlMap, shadow::Shadow},
+    view::{
+        actor::{ActorImage, DirAnimDesc, DirAnimKind},
+        camera::*,
+        map::TiledRlMap,
+        shadow::Shadow,
+    },
 };
 
 use grue2d::{
@@ -163,7 +168,7 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
             is_moving: false,
         },
         map,
-        shadow: Shadow::new(radius, map_size, consts::WALK_TIME, consts::FOV_EASE),
+        shadow: Shadow::new(radius, map_size, consts::WALK_SECS, consts::FOV_EASE),
         entities: Arena::with_capacity(20),
     };
 
@@ -178,57 +183,84 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
 }
 
 fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
+    unsafe {
+        snow2d::asset::AssetDeState::start(&mut ice.assets).unwrap();
+    }
+
     let cache = ice.assets.cache_mut::<Texture2dDrop>().unwrap();
 
     // player
-    // let tex = cache.load_sync(paths::CHICKEN).unwrap();
-    let tex = cache.load_sync(paths::IKA_CHAN).unwrap();
-    let tex_scales = [1.0, 1.0];
+    let mut player: Actor = snow2d::asset::deserialize_ron(crate::paths::actors::PLAYER)?;
+    player.img.warp(player.pos, player.dir);
+    w.entities.insert(player);
 
-    let img = {
-        let mut img = ActorImage::new(
-            tex,
-            consts::ACTOR_FPS,
-            consts::WALK_TIME,
-            consts::WALK_EASE,
-            [12, 23].into(),
-            Dir8::S,
-        )?;
+    unsafe {
+        snow2d::asset::AssetDeState::end().unwrap();
+    }
 
-        // FIXME: consider offsets
-        for frame_sprite in img.frames_mut() {
-            frame_sprite.scales = tex_scales;
-        }
-
-        img
-    };
-
-    w.entities.insert({
-        let mut player = Actor {
-            pos: [20, 16].into(),
-            dir: Dir8::S,
-            img: img.clone(),
-            stats: ActorStats {
-                hp: 100,
-                atk: 50,
-                def: 20,
-            },
-        };
-        player.img.warp(player.pos, player.dir);
-        player
-    });
+    // // let tex = cache.load_sync(paths::CHICKEN).unwrap();
+    // let tex = cache.load_sync(paths::IKA_CHAN).unwrap();
+    // let tex_scales = [1.0, 1.0];
+    //
+    // let img = {
+    //     let mut img = ActorImage::new(
+    //         DirAnimDesc {
+    //             tex,
+    //             kind: DirAnimKind::Dir8,
+    //             fps: consts::ACTOR_FPS,
+    //         },
+    //         ez::EasedDtDesc {
+    //             target: consts::WALK_SECS,
+    //             ease: consts::WALK_EASE,
+    //         },
+    //         [12, 23].into(),
+    //         Dir8::S,
+    //     );
+    //
+    //     // FIXME: consider offsets
+    //     for frame_sprite in img.frames_mut() {
+    //         frame_sprite.scales = tex_scales;
+    //     }
+    //
+    //     img
+    // };
+    //
+    // w.entities.insert({
+    //     let mut actor = Actor {
+    //         pos: [20, 16].into(),
+    //         dir: Dir8::S,
+    //         img: img.clone(),
+    //         stats: ActorStats {
+    //             hp: 100,
+    //             atk: 50,
+    //             def: 20,
+    //         },
+    //     };
+    //
+    //     actor.img.warp(actor.pos, actor.dir);
+    //
+    //     let x = ron::ser::to_string(&actor)?;
+    //     log::trace!("{:#?}", x);
+    //
+    //     actor
+    // });
 
     // non-player characters
 
     let tex = cache.load_sync(paths::img::pochi::WHAT).unwrap();
     let img = ActorImage::new(
-        tex,
-        consts::ACTOR_FPS,
-        consts::WALK_TIME,
-        consts::WALK_EASE,
+        DirAnimDesc {
+            tex,
+            kind: DirAnimKind::Dir8,
+            fps: consts::ACTOR_FPS,
+        },
+        ez::EasedDtDesc {
+            target: consts::WALK_SECS,
+            ease: consts::WALK_EASE,
+        },
         [0, 0].into(),
         Dir8::S,
-    )?;
+    );
 
     w.entities.insert({
         let mut actor = Actor {

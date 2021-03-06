@@ -36,4 +36,5 @@ arraytools = "0.1.5"
 trait_enum = "0.5.0"
 enum_dispatch = "0.3.5"
 serde = "1.0.123"
+ron = "0.6.4"
 

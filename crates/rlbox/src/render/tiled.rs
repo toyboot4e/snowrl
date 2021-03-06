@@ -110,7 +110,6 @@ pub fn render_tiled(
     for layer in tiled.layers.iter().filter(|l| l.visible) {
         // [0-9]+
         let int_name = layer.name.chars().take_while(|p| p.is_digit(10));
-        log::trace!("{:?}", int_name);
         let number = match int_name.collect::<String>().parse::<i32>() {
             Ok(num) => num,
             Err(_err) => continue,

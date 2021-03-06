@@ -163,12 +163,24 @@ impl<T: Lerp + Clone> Tweened<T> {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct EasedDtDesc {
+    pub target: f32,
+    pub ease: Ease,
+}
+
+impl Into<EasedDt> for EasedDtDesc {
+    fn into(self) -> EasedDt {
+        EasedDt::new(self.target, self.ease)
+    }
+}
+
 /// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` with easing on `get`
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EasedDt {
-    target: f32,
-    accum: f32,
+    pub target: f32,
     pub ease: Ease,
+    accum: f32,
 }
 
 impl Default for EasedDt {
@@ -187,6 +199,13 @@ impl EasedDt {
             target: target_secs,
             accum: 0.0,
             ease,
+        }
+    }
+
+    pub fn to_desc(&self) -> EasedDtDesc {
+        EasedDtDesc {
+            target: self.target,
+            ease: self.ease,
         }
     }
 
@@ -215,10 +234,6 @@ impl EasedDt {
 
     pub fn get(&self) -> f32 {
         self.ease.map(self.accum / self.target)
-    }
-
-    pub fn set_target(&mut self, secs: f32) {
-        self.target = secs;
     }
 }
 

@@ -1,19 +1,22 @@
 /*!
-
 Asset cache and reference-counted asset references
 
-TODO fixes:
+# Serde support
 
-* release cache on no owner
-* do not allocate PathBuf
+1. Asset data should be serialized as `PathBuf`.
+2. Asset handles should be serialized without creating duplicates (a.k.a. intering).
 
-TODO features:
+# TODOs
 
-* weak pointer?
-* serde (interning `Arc` asset handles)
-* async loading
-* dynamic loading
+* Fix
+    * release cache on no owner
+    * do not allocate PathBuf
 
+* Features
+    * weak pointer?
+    * serde (interning `Arc` asset handles)
+    * async loading
+    * dynamic loading
 */
 
 #![allow(dead_code)]
@@ -34,7 +37,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use anyhow::Context;
 use downcast_rs::{impl_downcast, Downcast};
+use once_cell::sync::OnceCell;
+use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
+
+use crate::utils::cheat::Cheat;
 
 /// Get asset path relative to `assets` directory
 pub fn path(path: impl AsRef<Path>) -> PathBuf {
@@ -42,6 +50,21 @@ pub fn path(path: impl AsRef<Path>) -> PathBuf {
     let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let assets = PathBuf::from(root).join("assets");
     assets.join(path)
+}
+
+pub fn deserialize_ron<'a, T: serde::de::DeserializeOwned>(
+    key: impl Into<AssetKey<'a>>,
+) -> anyhow::Result<T> {
+    use std::fs;
+
+    let path = path(key.into().deref());
+    log::trace!("deserializing `{}`", path.display());
+    let s = fs::read_to_string(&path)
+        .map_err(anyhow::Error::msg)
+        .with_context(|| format!("Unable to read asset file at `{}`", path.display()))?;
+    ron::de::from_str::<T>(&s)
+        .map_err(anyhow::Error::msg)
+        .with_context(|| format!("Unable to create asset from file `{}`", path.display()))
 }
 
 /// Asset data
@@ -102,7 +125,24 @@ impl<T: AssetItem> Asset<T> {
 /// Key to load asset
 ///
 /// TODO: use newtype struct while enabling static construction (or use IntoAssetKey)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(from = "PathBuf")]
+#[serde(into = "PathBuf")]
 pub struct AssetKey<'a>(Cow<'a, Path>);
+
+// TODO: interning on serde
+
+impl<'a> From<PathBuf> for AssetKey<'a> {
+    fn from(p: PathBuf) -> Self {
+        Self(Cow::from(p))
+    }
+}
+
+impl<'a> Into<PathBuf> for AssetKey<'a> {
+    fn into(self) -> PathBuf {
+        self.0.into_owned()
+    }
+}
 
 impl<'a> AssetKey<'a> {
     pub fn new(p: impl Into<Cow<'a, Path>>) -> Self {
@@ -287,69 +327,78 @@ impl AssetCacheAny {
     }
 }
 
-pub mod serde {
-    //! Serde support
+/// Deserialize assets without making duplicates using thread-local variable
+#[derive(Debug)]
+pub struct AssetDeState {
+    cache: Cheat<AssetCacheAny>,
+}
 
-    use ::serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
-    use once_cell::sync::OnceCell;
+static mut DE_STATE: OnceCell<AssetDeState> = OnceCell::new();
 
-    use super::*;
-
-    /// Deserialize assets without making duplicates
-    pub struct AssetDeState {
-        cache: AssetCacheAny,
+impl AssetDeState {
+    /// Make sure the memory location of `cache` doesn't change until we call `end`
+    pub unsafe fn start(cache: &mut AssetCacheAny) -> std::result::Result<(), Self> {
+        DE_STATE.set(Self {
+            cache: Cheat::new(cache),
+        })
     }
 
-    impl AssetDeState {
-        pub unsafe fn start(&mut self) -> std::result::Result<(), Self> {
-            DE_STATE.set(Self {
-                cache: AssetCacheAny::new(),
-            })
-        }
-
-        pub unsafe fn end(&mut self) -> std::result::Result<Self, ()> {
-            DE_STATE.take().ok_or(())
+    pub unsafe fn end() -> std::result::Result<(), ()> {
+        match DE_STATE.take() {
+            Some(_) => Ok(()),
+            None => Err(()),
         }
     }
 
-    static mut DE_STATE: OnceCell<AssetDeState> = OnceCell::new();
-
-    impl<T: AssetItem> Serialize for Asset<T> {
-        fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            // serialize as PathBuf
-            self.path.serialize(serializer)
-        }
+    pub unsafe fn cache_mut() -> Option<Cheat<AssetCacheAny>> {
+        DE_STATE.get_mut().map(|me| Cheat::clone(&me.cache))
     }
+}
 
-    // TODO: Ensure to not panic while deserializing
-    impl<'de, T: AssetItem> Deserialize<'de> for Asset<T> {
-        fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            // deserialize as PathBuf
-            let path = <PathBuf as Deserialize>::deserialize(deserializer).unwrap();
-            let state = unsafe {
-                DE_STATE
-                    .get_mut()
-                    .ok_or_else(|| {
-                        format!(
-                            "Unable to find asset cache for type {}",
-                            std::any::type_name::<T>()
-                        )
-                    })
-                    .unwrap()
-            };
-            // FIXME: don't allocate pathbuf
-            let item = state
-                .cache
-                .load_sync(AssetKey::new(&path))
-                .map_err(|e| format!("Error while loading asset: {}", e))
-                .unwrap();
-            Ok(item)
-        }
+impl<T: AssetItem> Serialize for Asset<T> {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // serialize as PathBuf
+        self.path.serialize(serializer)
     }
+}
+
+// TODO: Ensure to not panic while deserializing
+impl<'de, T: AssetItem> Deserialize<'de> for Asset<T> {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // deserialize as PathBuf
+        log::trace!("a");
+        let path = <PathBuf as Deserialize>::deserialize(deserializer)
+            .map_err(|e| format!("Unable to load asset as `PathBuf`: {}", e))
+            .unwrap();
+
+        // load asset
+        log::trace!("b");
+        let state = unsafe {
+            DE_STATE
+                .get_mut()
+                .ok_or_else(|| "Unable to find asset cache")
+                .unwrap()
+        };
+
+        // FIXME: don't allocate pathbuf
+        log::trace!("c");
+        let item = state
+            .cache
+            .load_sync(AssetKey::new(&path))
+            .map_err(|e| format!("Error while loading asset: {}", e))
+            .unwrap();
+
+        Ok(item)
+    }
+}
+
+/// Serialize assets without making duplicates
+pub struct AssetSeState {
+    // cache: AssetCacheAny,
 }

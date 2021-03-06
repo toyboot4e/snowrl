@@ -97,7 +97,7 @@ impl WorldRenderer {
                 Self::render_map(&mut screen, &world, 0..100);
             }
 
-            self.update_actors(&world, ice.dt);
+            self.update_actor_images(&world, ice.dt);
             if flags.contains(WorldRenderFlag::ACTORS) {
                 self.render_actors(&mut screen, &world);
             }
@@ -138,7 +138,7 @@ impl WorldRenderer {
     //     &bounds,
     // );
 
-    fn update_actors(&mut self, world: &World, dt: Duration) {
+    fn update_actor_images(&mut self, world: &World, dt: Duration) {
         self.sort_buf.clear();
 
         // cull and sort actors, updating interpolation value
@@ -174,7 +174,7 @@ impl WorldRenderer {
         }
     }
 
-    /// Render actors in world coordinates. Call `update_actors` first
+    /// Render actors in world coordinates. Call `update_actor_images` first
     fn render_actors(&mut self, screen: &mut impl DrawApi, world: &World) {
         self.sort_buf.sort_by(ActorSortEntry::cmp);
 

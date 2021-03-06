@@ -14,8 +14,6 @@ pub mod rl;
 mod resources;
 pub use resources::*;
 
-pub(crate) mod utils;
-
 use {
     rokol::{
         app::{self as ra, RApp},
