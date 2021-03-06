@@ -14,6 +14,14 @@ pub struct Actor {
     pub pos: Vec2i,
     pub dir: Dir8,
     pub img: ActorImage,
+    pub stats: ActorStats,
+}
+
+#[derive(Debug, Clone)]
+pub struct ActorStats {
+    pub hp: u32,
+    pub atk: u32,
+    pub def: u32,
 }
 
 // pub struct ActorList {

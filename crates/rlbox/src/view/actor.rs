@@ -115,8 +115,10 @@ fn gen_dir_anim_with(
                             let mut sprite = SpriteData {
                                 tex: tex.clone(),
                                 uv_rect: gen_uv_rect(*ix),
+                                rot: 0.0,
                                 origin: [0.5, 0.5],
-                                ..Default::default()
+                                scales: [1.0, 1.0],
+                                color: Color::WHITE,
                             };
 
                             f(&mut sprite);

@@ -163,22 +163,63 @@ pub struct SpriteData {
     pub color: Color,
 }
 
-impl Default for SpriteData {
-    fn default() -> Self {
+impl SpriteData {
+    pub fn from_tex(tex: Asset<Texture2dDrop>) -> Self {
         Self {
-            tex: Asset::empty(),
+            tex,
             uv_rect: [0.0, 0.0, 1.0, 1.0],
             rot: 0.0,
-            // left-up corner
             origin: [0.0, 0.0],
             scales: [1.0, 1.0],
             color: Color::WHITE,
         }
     }
+
+    pub fn builder(tex: Asset<Texture2dDrop>) -> SpriteBuilder {
+        SpriteBuilder {
+            sprite: Self::from_tex(tex),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SpriteBuilder {
+    pub sprite: SpriteData,
+}
+
+impl SpriteBuilder {
+    pub fn build(&self) -> SpriteData {
+        self.sprite.clone()
+    }
+
+    pub fn uv_rect(&mut self, uv_rect: [f32; 4]) -> &mut Self {
+        self.sprite.uv_rect = uv_rect;
+        self
+    }
+
+    pub fn rot(&mut self, rot: f32) -> &mut Self {
+        self.sprite.rot = rot;
+        self
+    }
+
+    pub fn origin(&mut self, origin: [f32; 2]) -> &mut Self {
+        self.sprite.origin = origin;
+        self
+    }
+
+    pub fn scales(&mut self, scales: [f32; 2]) -> &mut Self {
+        self.sprite.scales = scales;
+        self
+    }
+
+    pub fn color(&mut self, color: Color) -> &mut Self {
+        self.sprite.color = color;
+        self
+    }
 }
 
 /// Suitable for, e.g., window image
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NineSliceSprite {
     pub tex: Asset<Texture2dDrop>,
 }

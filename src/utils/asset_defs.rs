@@ -26,26 +26,13 @@ pub mod title {
             let tex = assets.load_sync(paths::img::title::CHOICES)?;
             let unit = 1.0 / 3.0;
 
-            let s = SpriteData {
-                tex: tex.clone(),
-                uv_rect: [0.0, unit * 0.0, 1.0, unit],
-                scales: [0.5, 0.5],
-                ..Default::default()
-            };
+            let mut s = SpriteData::builder(tex.clone());
+            s.uv_rect([0.0, unit * 0.0, 1.0, unit]).scales([0.5, 0.5]);
 
             Ok([
-                SpriteData {
-                    uv_rect: [0.0, unit * 0.0, 1.0, unit],
-                    ..s.clone()
-                },
-                SpriteData {
-                    uv_rect: [0.0, unit * 1.0, 1.0, unit],
-                    ..s.clone()
-                },
-                SpriteData {
-                    uv_rect: [0.0, unit * 2.0, 1.0, unit],
-                    ..s.clone()
-                },
+                s.uv_rect([0.0, unit * 0.0, 1.0, unit]).build(),
+                s.uv_rect([0.0, unit * 1.0, 1.0, unit]).build(),
+                s.uv_rect([0.0, unit * 2.0, 1.0, unit]).build(),
             ])
         }
     }
@@ -55,11 +42,10 @@ pub mod title {
     impl AssetDef for Logo {
         type Target = SpriteData;
         fn load(assets: &mut AssetCacheAny) -> Result<Self::Target> {
-            Ok(SpriteData {
-                tex: assets.load_sync(paths::img::title::SNOWRL)?,
-                uv_rect: [0.0, 0.0, 1.0, 1.0],
-                scales: [0.5, 0.5],
-                ..Default::default()
+            Ok({
+                let mut s = SpriteData::from_tex(assets.load_sync(paths::img::title::SNOWRL)?);
+                s.scales = [0.5, 0.5];
+                s
             })
         }
     }

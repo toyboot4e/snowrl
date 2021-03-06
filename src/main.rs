@@ -13,7 +13,7 @@ use grue2d::{
     render::WorldRenderer,
     rl::{
         turn::anim::AnimPlayer,
-        world::{actor::Actor, World},
+        world::{actor::*, World},
     },
     Fonts, VInput,
 };
@@ -208,6 +208,11 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
             pos: [20, 16].into(),
             dir: Dir8::S,
             img: img.clone(),
+            stats: ActorStats {
+                hp: 100,
+                atk: 50,
+                def: 20,
+            },
         };
         player.img.warp(player.pos, player.dir);
         player
@@ -230,6 +235,11 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
             pos: [14, 12].into(),
             dir: Dir8::S,
             img: img.clone(),
+            stats: ActorStats {
+                hp: 100,
+                atk: 50,
+                def: 20,
+            },
         };
         actor.img.warp(actor.pos, actor.dir);
         actor
@@ -240,6 +250,11 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
             pos: [25, 18].into(),
             dir: Dir8::S,
             img: img.clone(),
+            stats: ActorStats {
+                hp: 100,
+                atk: 50,
+                def: 20,
+            },
         };
         actor.img.warp(actor.pos, actor.dir);
         actor
