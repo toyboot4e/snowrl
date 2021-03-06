@@ -1,11 +1,9 @@
 /*!
-
-Graphics
+Graphics module built
 
 # Coordinate system
 
-Same as OpenGL or school math (left-handed and column-major).
-
+Same as OpenGL or school math (right-handed and column-major).
 */
 
 pub mod geom2d;
@@ -18,6 +16,8 @@ pub mod batch;
 pub mod draw;
 
 pub mod text;
+
+use serde::{Deserialize, Serialize};
 
 use rokol::{
     app as ra,
@@ -34,7 +34,7 @@ use self::{
 };
 
 /// 4 bytes color data
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Color {
     pub r: u8,
     pub g: u8,

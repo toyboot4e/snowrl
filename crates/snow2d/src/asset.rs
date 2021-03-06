@@ -5,6 +5,7 @@ Asset cache and reference-counted asset references
 TODO fixes:
 
 * release cache on no owner
+* do not allocate PathBuf
 
 TODO features:
 
@@ -29,6 +30,7 @@ use std::{
     fmt, io,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
+    rc::Rc,
     sync::{Arc, Mutex},
 };
 
@@ -57,23 +59,23 @@ pub trait AssetLoader: fmt::Debug + Sized + 'static {
 #[derive(Debug)]
 pub struct Asset<T: AssetItem> {
     item: Option<Arc<Mutex<T>>>,
+    path: Rc<PathBuf>,
 }
+
+// TODO: impl deref with dummy asset
 
 impl<T: AssetItem> Clone for Asset<T> {
     fn clone(&self) -> Self {
         Self {
             item: self.item.as_ref().map(|x| Arc::clone(x)),
+            path: Rc::clone(&self.path),
         }
     }
 }
 
 impl<T: AssetItem> Asset<T> {
-    pub fn empty() -> Self {
-        Self { item: None }
-    }
-
-    pub fn is_loaded() -> bool {
-        true
+    pub fn is_loaded(&self) -> bool {
+        self.item.is_some()
     }
 
     /// Tries to get `&T`, fails if the asset is not loaded or failed to load
@@ -145,46 +147,19 @@ impl AssetId {
     }
 }
 
+/// Access to an [`AssetItem`] with metadata
+#[derive(Debug)]
+struct AssetCacheEntry<T: AssetItem> {
+    id: AssetId,
+    path: Rc<PathBuf>,
+    asset: Asset<T>,
+}
+
 /// Cache of a specific [`AssetItem`] type
 #[derive(Debug)]
 pub struct AssetCacheT<T: AssetItem> {
     entries: Vec<AssetCacheEntry<T>>,
     loader: T::Loader,
-}
-
-#[derive(Debug)]
-struct AssetCacheEntry<T: AssetItem> {
-    id: AssetId,
-    path: PathBuf,
-    asset: Asset<T>,
-}
-
-trait FreeUnused: fmt::Debug + Downcast {
-    fn free_unused(&mut self);
-}
-
-impl_downcast!(FreeUnused);
-
-impl<T: AssetItem> FreeUnused for AssetCacheT<T> {
-    fn free_unused(&mut self) {
-        let mut i = 0;
-        let mut len = self.entries.len();
-        while i < len {
-            if let Some(item) = &mut self.entries[i].asset.item {
-                if Arc::strong_count(item) == 1 {
-                    log::debug!(
-                        "free asset with path `{}` in slot `{}` of cache for type `{}`",
-                        self.entries[i].path.display(),
-                        i,
-                        std::any::type_name::<T>(),
-                    );
-                    self.entries.remove(i);
-                    len -= 1;
-                }
-            }
-            i += 1;
-        }
-    }
 }
 
 impl<T: AssetItem> AssetCacheT<T> {
@@ -215,23 +190,53 @@ impl<T: AssetItem> AssetCacheT<T> {
     }
 
     fn load_new_sync(&mut self, id: AssetId) -> Result<Asset<T>> {
-        let path = self::path(&id.identity);
+        let path = Rc::new(self::path(&id.identity));
 
         let asset = Asset {
             item: {
                 let item = self.loader.load(&path)?;
                 Some(Arc::new(Mutex::new(item)))
             },
+            path: Rc::clone(&path),
         };
 
         let entry = AssetCacheEntry {
             id,
-            path,
+            path: Rc::clone(&path),
             asset: asset.clone(),
         };
         self.entries.push(entry);
 
         Ok(asset)
+    }
+}
+
+/// Upcast of [`AssetCacheT`]
+trait FreeUnused: fmt::Debug + Downcast {
+    fn free_unused(&mut self);
+}
+
+impl_downcast!(FreeUnused);
+
+impl<T: AssetItem> FreeUnused for AssetCacheT<T> {
+    fn free_unused(&mut self) {
+        let mut i = 0;
+        let mut len = self.entries.len();
+        while i < len {
+            if let Some(item) = &mut self.entries[i].asset.item {
+                if Arc::strong_count(item) == 1 {
+                    log::debug!(
+                        "free asset with path `{}` in slot `{}` of cache for type `{}`",
+                        self.entries[i].path.display(),
+                        i,
+                        std::any::type_name::<T>(),
+                    );
+                    self.entries.remove(i);
+                    len -= 1;
+                }
+            }
+            i += 1;
+        }
     }
 }
 
@@ -279,5 +284,72 @@ impl AssetCacheAny {
                 )
             })?
             .load_sync(key)
+    }
+}
+
+pub mod serde {
+    //! Serde support
+
+    use ::serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
+    use once_cell::sync::OnceCell;
+
+    use super::*;
+
+    /// Deserialize assets without making duplicates
+    pub struct AssetDeState {
+        cache: AssetCacheAny,
+    }
+
+    impl AssetDeState {
+        pub unsafe fn start(&mut self) -> std::result::Result<(), Self> {
+            DE_STATE.set(Self {
+                cache: AssetCacheAny::new(),
+            })
+        }
+
+        pub unsafe fn end(&mut self) -> std::result::Result<Self, ()> {
+            DE_STATE.take().ok_or(())
+        }
+    }
+
+    static mut DE_STATE: OnceCell<AssetDeState> = OnceCell::new();
+
+    impl<T: AssetItem> Serialize for Asset<T> {
+        fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            // serialize as PathBuf
+            self.path.serialize(serializer)
+        }
+    }
+
+    // TODO: Ensure to not panic while deserializing
+    impl<'de, T: AssetItem> Deserialize<'de> for Asset<T> {
+        fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            // deserialize as PathBuf
+            let path = <PathBuf as Deserialize>::deserialize(deserializer).unwrap();
+            let state = unsafe {
+                DE_STATE
+                    .get_mut()
+                    .ok_or_else(|| {
+                        format!(
+                            "Unable to find asset cache for type {}",
+                            std::any::type_name::<T>()
+                        )
+                    })
+                    .unwrap()
+            };
+            // FIXME: don't allocate pathbuf
+            let item = state
+                .cache
+                .load_sync(AssetKey::new(&path))
+                .map_err(|e| format!("Error while loading asset: {}", e))
+                .unwrap();
+            Ok(item)
+        }
     }
 }

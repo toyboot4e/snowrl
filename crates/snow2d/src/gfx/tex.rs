@@ -11,6 +11,7 @@ They implement traits in the [`draw`] module.
 use {
     image::GenericImageView,
     rokol::gfx::{self as rg, BakedResource},
+    serde::{Deserialize, Serialize},
     std::path::Path,
 };
 
@@ -144,7 +145,7 @@ impl AssetLoader for TextureLoader {
 }
 
 /// Texture with uv values
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SharedSubTexture2d {
     pub tex: Asset<Texture2dDrop>,
     /// [x, y, width, height]
@@ -152,7 +153,7 @@ pub struct SharedSubTexture2d {
 }
 
 /// Full-featured texture
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpriteData {
     pub tex: Asset<Texture2dDrop>,
     /// [x, y, width, height]

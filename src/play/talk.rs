@@ -137,36 +137,14 @@ impl TalkView {
         };
 
         let b = assets.load_sync(paths::img::sourve::BALOON).unwrap();
+        let mut sprite = SpriteData::builder(b);
+        sprite.origin([0.5, 0.5]);
 
         let baloons = [
-            SpriteData {
-                tex: b.clone(),
-                uv_rect: [0.0, 0.0, 0.5, 0.5],
-                // REMARK: we'll specify the center of the top-center of the baloon
-                origin: [0.5, 0.5],
-                ..Default::default()
-            },
-            SpriteData {
-                tex: b.clone(),
-                uv_rect: [0.5, 0.0, 0.5, 0.5],
-                // REMARK: we'll specify the center of the top-center of the baloon
-                origin: [0.5, 0.5],
-                ..Default::default()
-            },
-            SpriteData {
-                tex: b.clone(),
-                uv_rect: [0.0, 0.5, 0.5, 0.5],
-                // REMARK: we'll specify the center of the top-center of the baloon
-                origin: [0.5, 0.5],
-                ..Default::default()
-            },
-            SpriteData {
-                tex: b.clone(),
-                uv_rect: [0.5, 0.5, 0.5, 0.5],
-                // REMARK: we'll specify the center of the top-center of the baloon
-                origin: [0.5, 0.5],
-                ..Default::default()
-            },
+            sprite.uv_rect([0.0, 0.0, 0.5, 0.5]).build(),
+            sprite.uv_rect([0.5, 0.0, 0.5, 0.5]).build(),
+            sprite.uv_rect([0.0, 0.5, 0.5, 0.5]).build(),
+            sprite.uv_rect([0.5, 0.5, 0.5, 0.5]).build(),
         ];
 
         Self {

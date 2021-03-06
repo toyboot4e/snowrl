@@ -8,8 +8,9 @@ prototpyes.
 */
 
 use rlbox::{rl::grid2d::*, view::actor::ActorImage};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Actor {
     pub pos: Vec2i,
     pub dir: Dir8,
@@ -17,7 +18,7 @@ pub struct Actor {
     pub stats: ActorStats,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActorStats {
     pub hp: u32,
     pub atk: u32,

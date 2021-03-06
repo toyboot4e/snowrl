@@ -4,12 +4,15 @@ Frame-based actor sprite animation
 
 use std::{collections::HashMap, time::Duration};
 
+use serde::{Deserialize, Serialize};
+
 use snow2d::{
     asset::Asset,
     gfx::{
         draw::*,
         geom2d::*,
         tex::{SpriteData, Texture2dDrop},
+        Color,
     },
     utils::ez,
 };
@@ -135,7 +138,7 @@ fn gen_dir_anim_with(
 }
 
 /// An animatable actor image
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActorImage {
     anim_state: FrameAnimState<Dir8, SpriteData>,
     state: DoubleSwap<ActorSnapshot>,
@@ -145,7 +148,7 @@ pub struct ActorImage {
 }
 
 /// Interpolate two snapshots to draw actor
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 struct ActorSnapshot {
     pos: Vec2i,
     dir: Dir8,
@@ -162,7 +165,6 @@ impl ActorImage {
         dir: Dir8,
     ) -> snow2d::gfx::tex::Result<Self> {
         let anim = self::gen_anim_auto(&tex, anim_fps);
-
         let data = ActorSnapshot { pos, dir };
 
         Ok(Self {

@@ -1,6 +1,8 @@
 /*!
 Trivial utilities
- */
+*/
+
+use serde::{Deserialize, Serialize};
 
 pub mod consts {
     //! TODO: remove
@@ -10,7 +12,7 @@ pub mod consts {
 }
 
 /// Raw double buffer with interpolation value
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DoubleTrack<T> {
     /// Front
     pub a: T,
@@ -38,7 +40,7 @@ impl<T> DoubleTrack<T> {
 }
 
 /// Double buffer that can internally swap buffers without copy
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DoubleSwap<T> {
     /// Front buffer at initial state
     a: T,

@@ -96,11 +96,11 @@ impl SnowRl {
         use snow2d::gfx::{geom2d::*, text::prelude::*};
         let text = "snow2d graphics!";
 
-        let layout = TextLayout {
+        let layout = TextView {
             text: &text,
-            lines: vec![LineLayout {
+            lines: vec![LineView {
                 line_spans: vec![
-                    LineLayoutSpan {
+                    LineSpanView {
                         text_slice: &text[0..6],
                         first_quad_ix: 0,
                         quad_span: QuadSpan { from: 0, to: 6 },
@@ -109,7 +109,7 @@ impl SnowRl {
                             is_bold: false,
                         },
                     },
-                    LineLayoutSpan {
+                    LineSpanView {
                         text_slice: &text[7..16],
                         first_quad_ix: 0,
                         quad_span: QuadSpan { from: 7, to: 16 },
@@ -122,11 +122,13 @@ impl SnowRl {
             }],
         };
 
+        let (font_set_handle, _) = gl.ice.snow.fontbook.storage.get_by_slot(0).unwrap();
         snow2d::gfx::text::render_line(
             &layout.lines[0],
             text,
             Vec2f::new(100.0, 100.0),
-            &mut gl.ice.rdr,
+            &mut gl.ice.snow,
+            font_set_handle,
         );
     }
 }

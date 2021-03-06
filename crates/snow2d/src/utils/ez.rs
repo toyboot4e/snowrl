@@ -17,6 +17,7 @@ fn update_follow_camera() {
 ```
 */
 
+use serde::{Deserialize, Serialize};
 use std::{
     f32::consts::{FRAC_PI_2, PI},
     time::Duration,
@@ -104,7 +105,7 @@ pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
 }
 
 /// Generates tweened values
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Tweened<T: Lerp + Clone> {
     pub a: T,
     pub b: T,
@@ -163,7 +164,7 @@ impl<T: Lerp + Clone> Tweened<T> {
 }
 
 /// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` with easing on `get`
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EasedDt {
     target: f32,
     accum: f32,
@@ -222,7 +223,7 @@ impl EasedDt {
 }
 
 /// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` on `get`
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct LinearDt {
     target: f32,
     accum: f32,
@@ -262,7 +263,7 @@ impl LinearDt {
 }
 
 /// Easing function dispatched dynamically
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Ease {
     Linear,
     //

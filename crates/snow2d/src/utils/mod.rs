@@ -28,6 +28,8 @@ pub mod arena {
 /// ---
 pub use enum_dispatch::enum_dispatch;
 
+pub use once_cell;
+
 /// [`trait_enum::trait_enum`] re-exported
 ///
 /// ---
