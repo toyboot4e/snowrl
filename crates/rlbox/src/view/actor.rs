@@ -238,7 +238,7 @@ impl ActorImage {
         }
     }
 
-    /// Be sure to call [`ActorImage::call`] and set speed properties after creation
+    /// Be sure to call [`ActorImage::warp`] and set speed properties after creation
     pub fn from_desc_default(desc: &ActorImageDesc) -> Self {
         Self::from_desc(
             desc,
@@ -378,9 +378,9 @@ impl ActorImage {
 /// `serde` representation of [`ActorImage`]: embedded or external definition of [`ActorImageDesc`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ActorImageSerde {
-    /// Retrieve [`ActorImadgeDesc`] from static type object storage
+    /// Retrieve [`ActorImageDesc`] from static type object storage
     Reference(TypeObjectId<ActorImageDesc>),
-    /// Embed [`ActorImadgeDesc`]
+    /// Embed [`ActorImageDesc`]
     Embedded(ActorImageDesc),
 }
 

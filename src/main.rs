@@ -1,19 +1,16 @@
 //! TODO: filter debug/error log on release build
 
 use rokol::Rokol;
-use std::{fs, io::prelude::*};
 
 use snow2d::{
-    asset::StaticAssetKey,
     ui::{CoordSystem, Layer},
-    utils::type_object::{TypeObject, TypeObjectStorage, TypeObjectStorageBuilder},
+    utils::type_object::TypeObject,
 };
 
 use rlbox::{
     rl::grid2d::*,
     view::{
-        actor::{ActorImage, ActorImageDesc, DirAnimKind},
-        camera::*,
+        camera::{Camera2d, FollowCamera2d, TransformParams2d},
         map::TiledRlMap,
         shadow::Shadow,
     },
@@ -25,10 +22,11 @@ use grue2d::{
         turn::anim::AnimPlayer,
         world::{actor::*, World},
     },
-    Fonts, VInput,
+    VInput,
 };
 
 use snowrl::{
+    init,
     prelude::*,
     states,
     utils::{consts, paths},
@@ -64,46 +62,12 @@ fn main() -> rokol::Result {
 fn new_game(rokol: Rokol) -> GlueRl {
     let title = rokol.title;
 
-    let mut ice = Ice::new(title, unsafe { Snow2d::new() });
-
-    ice.snow
-        .fontbook
-        .tex
-        .set_size(crate::consts::DEFAULT_FONT_SIZE);
-    // line_spacing: crate::consts::DEFAULT_LINE_SPACE,
-
-    let fonts = Fonts {
-        default: {
-            use snow2d::gfx::text::font::*;
-            let family_desc = FontSetDesc {
-                name: "mplus-1p".to_string(),
-                regular: FontDesc {
-                    name: "mplus-1p-regular".to_string(),
-                    load: include_bytes!("../assets_embedded/mplus-1p-regular.ttf")
-                        .as_ref()
-                        .into(),
-                },
-                bold: Some(FontDesc {
-                    name: "mplus-1p-bold".to_string(),
-                    load: include_bytes!("../assets_embedded/mplus-1p-bold.ttf")
-                        .as_ref()
-                        .into(),
-                }),
-                italic: None,
-            };
-            ice.snow.fontbook.load_family(&family_desc).unwrap()
-        },
-    };
-
     // create our game context
     let mut gl = {
-        ice.assets
-            .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
-
-        audio::asset::register_asset_loaders(&mut ice.assets, &ice.audio.clone());
-        self::load_type_objects(&mut ice);
-
+        let mut ice = Ice::new(title, unsafe { Snow2d::new() });
+        init::init_assets(&mut ice).unwrap();
         let world = self::init_world(&mut ice).unwrap();
+        let fonts = init::load_fonts(&mut ice);
 
         Global {
             world,
@@ -142,26 +106,6 @@ fn new_game(rokol: Rokol) -> GlueRl {
     GlueRl::new(gl, fsm)
 }
 
-/// TODO: use `init.rs`
-fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
-    unsafe {
-        snow2d::asset::AssetDeState::start(&mut ice.assets).unwrap();
-    }
-
-    unsafe {
-        TypeObjectStorageBuilder::begin()
-            .unwrap()
-            .register::<ActorImageDesc, StaticAssetKey>(crate::paths::actors::ACTOR_IMAGES)?
-            .register::<ActorType, StaticAssetKey>(crate::paths::actors::ACTOR_TYPES)?;
-    }
-
-    unsafe {
-        snow2d::asset::AssetDeState::end().unwrap();
-    }
-
-    Ok(())
-}
-
 fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
     let map = TiledRlMap::new(
         paths::map::tmx::TILES,
@@ -198,75 +142,52 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
         entities: Arena::with_capacity(20),
     };
 
-    self::load_actors(&mut world, ice)?;
-
-    // just set FoV:
-    // shadow.calculate(player.pos, &map.rlmap);
-    // or animate initial FoV:
-    world.shadow.mark_dirty();
-
-    Ok(world)
-}
-
-fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
+    // Be sure to set [`AssetDeState`] while we're loading assets
     unsafe {
         snow2d::asset::AssetDeState::start(&mut ice.assets).unwrap();
     }
 
-    let cache = ice.assets.cache_mut::<Texture2dDrop>().unwrap();
-
-    // player
-    let mut player: Actor = ActorType::from_type_key(&"ika-chan".into())?.to_actor();
-    player.pos = [14, 10].into();
-    player.img.warp(player.pos, player.dir);
-    w.entities.insert(player);
+    self::load_actors(&mut world)?;
 
     unsafe {
         snow2d::asset::AssetDeState::end().unwrap();
     }
 
-    // non-player characters
+    // animate initial FoV:
+    world.shadow.mark_dirty();
+    // just set FoV:
+    // shadow.calculate(player.pos, &map.rlmap);
 
-    let tex = cache.load_sync(paths::img::pochi::WHAT).unwrap();
-    let img = ActorImage::from_desc(
-        &ActorImageDesc {
-            tex,
-            kind: DirAnimKind::Dir8,
-        },
-        ez::EasedDtDesc {
-            target: consts::WALK_SECS,
-            ease: consts::WALK_EASE,
-        },
-        [0, 0].into(),
-        Dir8::S,
-    );
+    Ok(world)
+}
+
+fn load_actors(w: &mut World) -> anyhow::Result<()> {
+    // TODO: ActorBuilder::from_type
+
+    // player
+    let player: Actor = {
+        let mut player = ActorType::from_type_key(&"ika-chan".into())?.to_actor();
+        player.pos = [14, 10].into();
+        player.img.warp(player.pos, player.dir);
+        player
+    };
+    w.entities.insert(player);
+
+    // non-player characters
+    let actor: Actor = ActorType::from_type_key(&"mokusei-san".into())?.to_actor();
 
     w.entities.insert({
-        let mut actor = Actor {
-            pos: [14, 12].into(),
-            dir: Dir8::S,
-            img: img.clone(),
-            stats: ActorStats {
-                hp: 100,
-                atk: 50,
-                def: 20,
-            },
-        };
+        let mut actor = actor.clone();
+        actor.pos = [14, 12].into();
+        actor.dir = Dir8::S;
         actor.img.warp(actor.pos, actor.dir);
         actor
     });
 
     w.entities.insert({
-        let mut actor = Actor {
-            pos: [25, 18].into(),
-            dir: Dir8::S,
-            img: img.clone(),
-            stats: ActorStats {
-                hp: 100,
-                atk: 50,
-                def: 20,
-            },
-        };
+        let mut actor = actor.clone();
+        actor.pos = [25, 18].into();
+        actor.dir = Dir8::S;
         actor.img.warp(actor.pos, actor.dir);
         actor
     });

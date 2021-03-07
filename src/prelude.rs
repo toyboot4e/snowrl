@@ -15,6 +15,6 @@ pub use snow2d::{
     Ice,
 };
 
-pub use grue2d::{Global, GlueRl, VInput};
+pub use grue2d::{Fonts, Global, GlueRl, VInput};
 
 pub use crate::utils::{consts, paths};

@@ -5,6 +5,7 @@ Snow the roguelike game built on [`grue2d`]
 pub extern crate grue2d;
 
 pub mod utils;
+pub mod init;
 
 pub mod play;
 pub mod prelude;
