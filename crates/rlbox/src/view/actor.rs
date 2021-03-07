@@ -16,11 +16,8 @@ use snow2d::{
     },
     utils::{
         ez,
-        typeobj::{
-            SerdeViaTypeObject, TypeObject, TypeObjectId, SerdeRepr,
-        },
+        tyobj::{self, SerdeRepr, SerdeViaTypeObject, TypeObject, TypeObjectId},
     },
-    impl_serde_via_type_object,
 };
 
 use crate::{
@@ -36,7 +33,7 @@ pub const ACTOR_FPS: f32 = 4.0;
 pub const ACTOR_WALK_TIME: f32 = 8.0 / 60.0;
 
 /// Duration in seconds to change direction in 45 degrees
-pub const CHANGE_DIR_TIME: f32 = 2.0 / 60.0;
+pub const CHANGE_DIR_TIME: f32 = 1.0 / 60.0;
 
 /// Generate character walking animation with some heuristic
 fn gen_anim_auto(
@@ -188,8 +185,6 @@ pub struct ActorImageDesc {
 
 impl TypeObject for ActorImageDesc {}
 
-// impl_from_type_object!(ActorImage, ActorImageDesc);
-
 impl ActorImageDesc {
     pub fn gen_anim_patterns(&self) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
         self.kind.gen_anim_patterns(&self.tex, self::ACTOR_FPS)
@@ -243,16 +238,16 @@ impl ActorImage {
         }
     }
 
-    pub fn from_desc_default(
-        desc: &ActorImageDesc,
-    ) -> Self {
-        Self::from_desc(desc,
+    pub fn from_desc_default(desc: &ActorImageDesc) -> Self {
+        Self::from_desc(
+            desc,
             ez::EasedDtDesc {
                 target: self::ACTOR_WALK_TIME,
                 ease: ez::Ease::Linear,
             },
             Vec2i::default(),
-            Dir8::S,)
+            Dir8::S,
+        )
     }
 }
 
@@ -260,12 +255,13 @@ impl SerdeViaTypeObject for ActorImage {
     type TypeObject = ActorImageDesc;
 
     fn from_type_object(obj: &Self::TypeObject) -> Self {
-        Self::from_desc_default(
-            obj,
-        )
+        Self::from_desc_default(obj)
     }
 
-    fn from_type_object_with_id(obj: &Self::TypeObject, id: &TypeObjectId<Self::TypeObject>) -> Self {
+    fn from_type_object_with_id(
+        obj: &Self::TypeObject,
+        id: &TypeObjectId<Self::TypeObject>,
+    ) -> Self {
         let mut img = Self::from_type_object(&obj);
         img.serde_repr = SerdeRepr::Reference(id.clone());
         img
@@ -276,7 +272,7 @@ impl SerdeViaTypeObject for ActorImage {
     }
 }
 
-impl_serde_via_type_object!(ActorImageDesc, ActorImage);
+tyobj::connect_repr_target!(ActorImageDesc, ActorImage);
 
 /// Lifecycle
 impl ActorImage {
@@ -332,14 +328,14 @@ impl ActorImage {
         self.dir_anim_state.set_pattern(dir, true);
     }
 
-    /// Position in world coordinates, used for like camera
+    /// Position in world coordinates. This is common among various sizes of images, so suitable for
+    /// e.g., camera.
     ///
     /// Align the center of the sprite to the center of the cell.
     pub fn pos_world_centered(&self, tiled: &tiled::Map) -> Vec2f {
         let pos_prev = self.align_center(self.state_diff.b().pos, tiled);
         let pos_curr = self.align_center(self.state_diff.a().pos, tiled);
-
-        let mut pos = pos_prev * (1.0 - self.walk_dt.get()) + pos_curr * self.walk_dt.get();
+        let mut pos = self.walk_dt.lerp(pos_prev, pos_curr);
         pos.floor_mut();
         pos
     }
@@ -353,8 +349,7 @@ impl ActorImage {
     pub fn render_pos_world(&self, tiled: &tiled::Map) -> Vec2f {
         let pos_prev = self.align_render(self.state_diff.b().pos, tiled);
         let pos_curr = self.align_render(self.state_diff.a().pos, tiled);
-
-        let mut pos = pos_prev * (1.0 - self.walk_dt.get()) + pos_curr * self.walk_dt.get();
+        let mut pos = self.walk_dt.lerp(pos_prev, pos_curr);
         pos.floor_mut();
         pos
     }

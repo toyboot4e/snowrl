@@ -3,18 +3,7 @@
 
 [easing]: https://easings.net/
 
-# TIP
-
-Exponential tween can be replaced with simple calculation every frame:
-
-```no_run
-fn update_follow_camera() {
-    camera_position += target_delta_position * lerp_speed;
-    // P(t) := target_delta_position
-    // P(t + dt) = (1.0 - lerp_speed) * P(t)
-    // ^ This is actually a derivative function of `exp(-Ct)`
-}
-```
+TIP: Exponential tween can be replaced with simple calculation in every frame.
 */
 
 use serde::{Deserialize, Serialize};
@@ -235,6 +224,10 @@ impl EasedDt {
     pub fn get(&self) -> f32 {
         self.ease.map(self.accum / self.target)
     }
+
+    pub fn lerp<T: Lerp>(&self, v1: T, v2: T) -> T {
+        Lerp::lerp(v1, v2, self.get())
+    }
 }
 
 /// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` on `get`
@@ -274,6 +267,10 @@ impl LinearDt {
 
     pub fn get_eased(&self, ease: Ease) -> f32 {
         ease.map(self.get())
+    }
+
+    pub fn lerp<T: Lerp>(&self, v1: T, v2: T) -> T {
+        Lerp::lerp(v1, v2, self.get())
     }
 }
 

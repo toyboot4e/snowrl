@@ -15,6 +15,8 @@ use rlbox::{
 
 use self::actor::*;
 
+pub type Entities = Arena<Actor>;
+
 /// The rougelike game world
 ///
 /// Turn-based game state should be outside of this struct.
@@ -24,7 +26,7 @@ pub struct World {
     pub cam_follow: FollowCamera2d,
     pub map: TiledRlMap,
     pub shadow: Shadow,
-    pub entities: Arena<Actor>,
+    pub entities: Entities,
 }
 
 /// Lifecycle

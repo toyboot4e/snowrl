@@ -1,13 +1,12 @@
 /*!
-
-Animations for the roguelike game
+Animations for the builtin events
 
 They're created referencing rogulike events and then we forget about original events.
-
 */
 
 use {
     downcast_rs::{impl_downcast, Downcast},
+    rlbox::rl::grid2d::*,
     snow2d::{utils::arena::Index, Ice},
     std::{collections::VecDeque, fmt, time::Duration},
 };
@@ -204,6 +203,41 @@ impl Anim for WalkAnim {
         self.dt += ucx.ice.dt;
 
         if self.dt.as_secs_f32() >= WALK_TIME {
+            AnimResult::Finish
+        } else {
+            AnimResult::GotoNextFrame
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SwingAnim {
+    pub actor: Index<Actor>,
+    pub dir: Dir8,
+    pub duration: f32,
+    pub dt: Duration,
+}
+
+impl SwingAnim {
+    pub fn new(actor: Index<Actor>, dir: Dir8, duration: f32) -> Self {
+        Self {
+            actor,
+            dir,
+            duration,
+            dt: Duration::default(),
+        }
+    }
+}
+
+impl Anim for SwingAnim {
+    fn on_start(&mut self, ucx: &mut AnimUpdateContext) {
+        // log::trace!("{:?}", self.actors);
+    }
+
+    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
+        self.dt += ucx.ice.dt;
+
+        if self.dt.as_secs_f32() >= self.duration {
             AnimResult::Finish
         } else {
             AnimResult::GotoNextFrame

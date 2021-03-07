@@ -133,6 +133,10 @@ impl Vec2i {
     pub fn len_f32(&self) -> f32 {
         self.len_f32_squared().sqrt()
     }
+
+    pub fn offset(&self, v: impl Into<Vec2i>) -> Self {
+        self + v.into()
+    }
 }
 
 impl Into<[i32; 2]> for Vec2i {

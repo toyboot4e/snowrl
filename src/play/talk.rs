@@ -92,7 +92,7 @@ impl<'a> TalkViewCommand<'a> {
             fb.text_bounds_multiline(&self.txt, pos, fstyle.fontsize, fstyle.line_spacing);
 
         // FIXME: the hard-coded y alignment
-        let mut baloon_pos = Vec2f::new(pos.x, pos.y + tweak!(10.0));
+        let mut baloon_pos = Vec2f::new(pos.x, pos.y + tweak!(11.0));
 
         // align horizontally the center of the window
         win_rect[0] -= win_rect[2] / 2.0;
@@ -103,7 +103,7 @@ impl<'a> TalkViewCommand<'a> {
 
         if tcfg.dir == TalkDirection::Down {
             // inverse horizontally
-            baloon_pos.y += tweak!(61.0);
+            baloon_pos.y += tweak!(59.0);
             txt_pos.y = pos.y + (pos.y - txt_pos.y);
             win_rect[1] = pos.y + (pos.y - win_rect[1]);
         }

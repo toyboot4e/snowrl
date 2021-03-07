@@ -9,7 +9,7 @@ prototpyes.
 
 use serde::{Deserialize, Serialize};
 
-use snow2d::utils::typeobj::{SerdeRepr, TypeObject};
+use snow2d::utils::tyobj::{SerdeRepr, TypeObject};
 
 use rlbox::{
     rl::grid2d::*,

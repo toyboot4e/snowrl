@@ -1,3 +1,7 @@
+/*!
+Fov/FoW view
+*/
+
 use std::time::Duration;
 
 use snow2d::utils::ez;

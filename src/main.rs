@@ -4,7 +4,7 @@ use rokol::Rokol;
 
 use snow2d::{
     ui::{CoordSystem, Layer},
-    utils::typeobj::TypeObject,
+    utils::tyobj::TypeObject,
 };
 
 use rlbox::{

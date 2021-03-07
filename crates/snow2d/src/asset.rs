@@ -3,20 +3,14 @@ Asset cache and reference-counted asset references
 
 # Serde support
 
-1. Asset data should be serialized as `PathBuf`.
-2. Asset handles should be serialized without creating duplicates (a.k.a. intering).
+1. Asset handles should be serialized without creating duplicates (a.k.a. intering). Set global
+[`AssetCacheAny`] via [`AssetDeState`].
+2. Asset data should be serialized as `PathBuf`. TODO: copy-free asset key
 
 # TODOs
 
-* Fix
-    * release cache on no owner
-    * do not allocate PathBuf
-
-* Features
-    * weak pointer?
-    * serde (interning `Arc` asset handles)
-    * async loading
-    * dynamic loading
+* async loading
+* hot reloading (tiled map, actor image, etc.)
 */
 
 #![allow(dead_code)]
@@ -390,7 +384,7 @@ impl<'de, T: AssetItem> Deserialize<'de> for Asset<T> {
             .map_err(|e| format!("Unable to load asset as `PathBuf`: {}", e))
             .unwrap();
 
-        // load asset
+        // then load asset
         let state = unsafe {
             DE_STATE
                 .get_mut()

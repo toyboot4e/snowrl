@@ -1,11 +1,11 @@
 /*!
-Generic utilities
+Core utilities
 */
 
 pub mod cheat;
 pub mod ez;
 pub mod pool;
-pub mod typeobj;
+pub mod tyobj;
 
 /// [`arraytools::ArrayTools`] re-exported
 ///
