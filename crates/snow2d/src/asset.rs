@@ -64,7 +64,13 @@ pub fn deserialize_ron<'a, T: serde::de::DeserializeOwned>(
         .with_context(|| format!("Unable to read asset file at `{}`", path.display()))?;
     ron::de::from_str::<T>(&s)
         .map_err(anyhow::Error::msg)
-        .with_context(|| format!("Unable to create asset from file `{}`", path.display()))
+        .with_context(|| {
+            format!(
+                "Unable to create asset from file `{}` for type {}",
+                path.display(),
+                std::any::type_name::<T>()
+            )
+        })
 }
 
 /// Asset data
@@ -214,10 +220,10 @@ impl<T: AssetItem> AssetCacheT<T> {
         let key = key.into();
         let id = AssetId::from_key(&key);
         if let Some(a) = self.search_cache(&id) {
-            log::trace!("(cache found for {})", key.display());
+            log::trace!("(cache found for `{}` of type `{}`)", key.display(),  std::any::type_name::<T>());
             Ok(a)
         } else {
-            log::debug!("loading {}", key.display());
+            log::debug!("loading asset `{}` of type `{}`", key.display(), std::any::type_name::<T>());
             self.load_new_sync(id)
         }
     }
@@ -372,13 +378,11 @@ impl<'de, T: AssetItem> Deserialize<'de> for Asset<T> {
         D: Deserializer<'de>,
     {
         // deserialize as PathBuf
-        log::trace!("a");
         let path = <PathBuf as Deserialize>::deserialize(deserializer)
             .map_err(|e| format!("Unable to load asset as `PathBuf`: {}", e))
             .unwrap();
 
         // load asset
-        log::trace!("b");
         let state = unsafe {
             DE_STATE
                 .get_mut()
@@ -386,12 +390,10 @@ impl<'de, T: AssetItem> Deserialize<'de> for Asset<T> {
                 .unwrap()
         };
 
-        // FIXME: don't allocate pathbuf
-        log::trace!("c");
         let item = state
             .cache
             .load_sync(AssetKey::new(&path))
-            .map_err(|e| format!("Error while loading asset: {}", e))
+            .map_err(|e| format!("Error while loading asset at `{}`: {}",path.display(), e))
             .unwrap();
 
         Ok(item)

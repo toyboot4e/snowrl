@@ -232,7 +232,7 @@ pub struct Handle<T> {
     index: Index,
     gen: Gen,
     sender: Sender<Message>,
-    _phantom: PhantomData<T>,
+    _phantom: PhantomData<fn() -> T>,
 }
 
 impl<T> Handle<T> {
@@ -269,7 +269,7 @@ impl<T> Drop for Handle<T> {
 pub struct WeakHandle<T> {
     index: Index,
     gen: Gen,
-    _phantom: PhantomData<T>,
+    _phantom: PhantomData<fn() -> T>,
 }
 
 impl<T> From<Handle<T>> for WeakHandle<T> {

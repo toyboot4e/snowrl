@@ -12,7 +12,7 @@ use {
 pub struct StaticMesh<V> {
     bind: rg::Bindings,
     n_indices: usize,
-    _phantom: PhantomData<V>,
+    _phantom: PhantomData<fn() -> V>,
 }
 
 impl<V> Drop for StaticMesh<V> {
@@ -66,7 +66,7 @@ pub struct DynamicMesh<V> {
     pub bind: rg::Bindings,
     pub n_indices: usize,
     pub verts: Vec<V>,
-    _phantom: PhantomData<V>,
+    _phantom: PhantomData<fn() -> V>,
 }
 
 impl<V> Drop for DynamicMesh<V> {

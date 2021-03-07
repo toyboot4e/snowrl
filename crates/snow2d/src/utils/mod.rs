@@ -5,6 +5,7 @@ Generic utilities
 pub mod cheat;
 pub mod ez;
 pub mod pool;
+pub mod type_object;
 
 /// [`arraytools::ArrayTools`] re-exported
 ///

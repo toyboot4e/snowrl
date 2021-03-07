@@ -7,7 +7,7 @@ use std::{collections::HashMap, time::Duration};
 use serde::{Deserialize, Serialize};
 
 use snow2d::{
-    asset::{Asset, AssetDeState, AssetKey},
+    asset::Asset,
     gfx::{
         draw::*,
         geom2d::*,
@@ -19,9 +19,18 @@ use snow2d::{
 
 use crate::{
     rl::grid2d::*,
-    utils::{consts, DoubleSwap},
+    utils::{DoubleSwap, TypeObject, TypeObjectId, TypeObjectStorage},
     view::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
 };
+
+/// Default actor image FPS
+pub const ACTOR_FPS: f32 = 4.0;
+
+/// Default actor walk duration
+pub const ACTOR_WALK_TIME: f32 = 8.0 / 60.0;
+
+/// Duration in seconds to change direction in 45 degrees
+pub const CHANGE_DIR_TIME: f32 = 2.0 / 60.0;
 
 /// Generate character walking animation with some heuristic
 fn gen_anim_auto(
@@ -159,29 +168,35 @@ impl DirAnimKind {
     }
 }
 
-/// Play facing animation based on this
-// FIXME: serde image scales
+/// After deserialization, we have to
+///
+/// 1. Call [`ActorImage::warp`]
+/// 2. Change speed properties of [`ActorImage`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DirAnimDesc {
+pub struct ActorImageDesc {
     pub tex: Asset<Texture2dDrop>,
     pub kind: DirAnimKind,
-    pub fps: f32,
+    // TODO: scales
+    // TODO: offset
 }
 
-impl DirAnimDesc {
+impl TypeObject for ActorImageDesc {}
+
+impl ActorImageDesc {
     pub fn gen_anim_patterns(&self) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
-        self.kind.gen_anim_patterns(&self.tex, self.fps)
+        self.kind.gen_anim_patterns(&self.tex, self::ACTOR_FPS)
     }
 
     pub fn gen_anim_state(&self, dir: Dir8) -> FrameAnimState<Dir8, SpriteData> {
-        FrameAnimState::new(self.kind.gen_anim_patterns(&self.tex, self.fps), dir)
+        FrameAnimState::new(self.kind.gen_anim_patterns(&self.tex, self::ACTOR_FPS), dir)
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct WalkAnimDesc {
-    pub walk_secs: f32,
-    pub walk_ease: ez::Ease,
+/// Part of internal actor data neededfor visualization
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+struct ActorState {
+    pos: Vec2i,
+    dir: Dir8,
 }
 
 /// An animatable actor image
@@ -190,72 +205,100 @@ pub struct WalkAnimDesc {
 #[serde(into = "ActorImageSerde")]
 pub struct ActorImage {
     dir_anim_state: FrameAnimState<Dir8, SpriteData>,
-    diff: DoubleSwap<ActorSnapshot>,
-    dir: ez::Tweened<Dir8>,
+    state_diff: DoubleSwap<ActorState>,
+    dir_tweem: ez::Tweened<Dir8>,
     /// Interpolation value for walk animation
     walk_dt: ez::EasedDt,
-    /// For easy serde with [`ActorImageSerde`]
-    dir_anim_desc: DirAnimDesc,
-}
-
-/// Interpolate two snapshots to draw actor
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-struct ActorSnapshot {
-    pos: Vec2i,
-    dir: Dir8,
+    /// For deserialization
+    serde_repr: ActorImageSerde,
 }
 
 impl ActorImage {
-    pub fn new(
-        dir_anim_desc: DirAnimDesc,
-        walk_ease_desc: ez::EasedDtDesc,
+    pub fn from_desc(
+        desc: &ActorImageDesc,
+        walk_dt: ez::EasedDtDesc,
         pos: Vec2i,
         dir: Dir8,
     ) -> Self {
-        let data = ActorSnapshot { pos, dir };
+        let data = ActorState { pos, dir };
 
         Self {
-            dir_anim_state: dir_anim_desc.gen_anim_state(dir),
-            diff: DoubleSwap::new(data, data),
-            walk_dt: walk_ease_desc.into(),
-            dir: ez::Tweened {
+            dir_anim_state: desc.gen_anim_state(dir),
+            state_diff: DoubleSwap::new(data, data),
+            walk_dt: walk_dt.into(),
+            dir_tweem: ez::Tweened {
                 a: dir,
                 b: dir,
                 dt: ez::EasedDt::completed(),
             },
-            dir_anim_desc,
+            serde_repr: ActorImageSerde::Embedded(desc.clone()),
         }
     }
 
-    /// Sets position and direction without animation
-    pub fn warp(&mut self, pos: Vec2i, dir: Dir8) {
-        let next_snap = ActorSnapshot { dir, pos };
-        self.diff.set_a(next_snap);
-        self.diff.set_b(next_snap);
-        self.dir_anim_state.set_pattern(dir, true);
+    /// Be sure to call [`ActorImage::call`] and set speed properties after creation
+    pub fn from_desc_default(desc: &ActorImageDesc) -> Self {
+        Self::from_desc(
+            desc,
+            ez::EasedDtDesc {
+                target: self::ACTOR_WALK_TIME,
+                ease: ez::Ease::Linear,
+            },
+            Vec2i::default(),
+            Dir8::S,
+        )
     }
 
+    /// Create [`ActorImage`] from `serde` representaiton
+    // FIXME: implement it with trait
+    pub fn from_serde_repr_default(repr: &ActorImageSerde) -> Self {
+        match repr {
+            ActorImageSerde::Reference(id) => {
+                log::trace!("reference");
+                let storage = TypeObjectStorage::get_map::<ActorImageDesc>().unwrap();
+                let desc = storage.get(id).unwrap_or_else(|| {
+                    panic!(
+                        "Unable to find type object with ID `{:?}` of type `{}`",
+                        id,
+                        std::any::type_name::<ActorImageDesc>()
+                    )
+                });
+                log::trace!("LOAD DESC");
+                let mut img = Self::from_desc_default(&desc);
+                img.serde_repr = repr.clone();
+                img
+            }
+            ActorImageSerde::Embedded(desc) => Self::from_desc_default(desc),
+        }
+    }
+}
+
+/// Lifecycle
+impl ActorImage {
     /// Updates the image with (new) actor position and direction
     pub fn update(&mut self, dt: Duration, pos: Vec2i, dir: Dir8) {
-        let (dir_diff, pos_diff) = (dir != self.diff.a().dir, pos != self.diff.a().pos);
+        let (dir_diff, pos_diff) = (
+            dir != self.state_diff.a().dir,
+            pos != self.state_diff.a().pos,
+        );
 
         if dir_diff {
             if pos_diff {
                 // rotate instantly
-                self.dir = ez::Tweened {
-                    a: self.dir.a,
+                self.dir_tweem = ez::Tweened {
+                    a: self.dir_tweem.a,
                     b: dir,
                     dt: ez::EasedDt::completed(),
                 };
             } else {
                 // NOTE: it always animate with rotation
-                self.dir = ez::tween_dirs(self.diff.a().dir, dir, consts::CHANGE_DIR_TIME);
+                self.dir_tweem =
+                    ez::tween_dirs(self.state_diff.a().dir, dir, self::CHANGE_DIR_TIME);
             }
         }
 
         // update direction of the animation
-        self.dir.tick(dt);
-        self.dir_anim_state.set_pattern(self.dir.get(), false);
+        self.dir_tweem.tick(dt);
+        self.dir_anim_state.set_pattern(self.dir_tweem.get(), false);
 
         // update interpolation value for walk animation
         if pos_diff {
@@ -264,21 +307,31 @@ impl ActorImage {
         self.walk_dt.tick(dt);
 
         if pos_diff || dir_diff {
-            self.diff.swap();
-            let next_snap = ActorSnapshot { dir, pos };
-            self.diff.set_a(next_snap);
+            self.state_diff.swap();
+            let next_snap = ActorState { dir, pos };
+            self.state_diff.set_a(next_snap);
         }
 
         // update animation frame
         self.dir_anim_state.tick(dt);
+    }
+}
+
+impl ActorImage {
+    /// Sets position and direction without animation
+    pub fn warp(&mut self, pos: Vec2i, dir: Dir8) {
+        let next_snap = ActorState { dir, pos };
+        self.state_diff.set_a(next_snap);
+        self.state_diff.set_b(next_snap);
+        self.dir_anim_state.set_pattern(dir, true);
     }
 
     /// Position in world coordinates, used for like camera
     ///
     /// Align the center of the sprite to the center of the cell.
     pub fn pos_world_centered(&self, tiled: &tiled::Map) -> Vec2f {
-        let pos_prev = self.align_center(self.diff.b().pos, tiled);
-        let pos_curr = self.align_center(self.diff.a().pos, tiled);
+        let pos_prev = self.align_center(self.state_diff.b().pos, tiled);
+        let pos_curr = self.align_center(self.state_diff.a().pos, tiled);
 
         let mut pos = pos_prev * (1.0 - self.walk_dt.get()) + pos_curr * self.walk_dt.get();
         pos.floor_mut();
@@ -292,8 +345,8 @@ impl ActorImage {
 
     /// Position in world coordinates, used for like rendering actors
     pub fn render_pos_world(&self, tiled: &tiled::Map) -> Vec2f {
-        let pos_prev = self.align_render(self.diff.b().pos, tiled);
-        let pos_curr = self.align_render(self.diff.a().pos, tiled);
+        let pos_prev = self.align_render(self.state_diff.b().pos, tiled);
+        let pos_curr = self.align_render(self.state_diff.a().pos, tiled);
 
         let mut pos = pos_prev * (1.0 - self.walk_dt.get()) + pos_curr * self.walk_dt.get();
         pos.floor_mut();
@@ -319,29 +372,24 @@ impl ActorImage {
     }
 }
 
-/// Serde representation of [`ActorImage`]
-///
-/// It doesn't retrive position and direction, so `warp` the image after deserializatin.
+/// `serde` representation of [`ActorImage`]: embedded or external definition of [`ActorImageDesc`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ActorImageSerde {
-    dir_anim_desc: DirAnimDesc,
-    // TODO: maybe use default?
-    walk_anim_desc: ez::EasedDtDesc,
+pub enum ActorImageSerde {
+    /// Retrieve [`ActorImadgeDesc`] from static type object storage
+    Reference(TypeObjectId<ActorImageDesc>),
+    /// Embed [`ActorImadgeDesc`]
+    Embedded(ActorImageDesc),
 }
 
 impl From<ActorImage> for ActorImageSerde {
     fn from(img: ActorImage) -> Self {
-        Self {
-            dir_anim_desc: img.dir_anim_desc,
-            walk_anim_desc: img.walk_dt.to_desc(),
-            // pos: img.diff.a().pos,
-            // dir: img.diff.a().dir,
-        }
+        img.serde_repr
     }
 }
 
 impl From<ActorImageSerde> for ActorImage {
-    fn from(s: ActorImageSerde) -> ActorImage {
-        ActorImage::new(s.dir_anim_desc, s.walk_anim_desc, Vec2i::default(), Dir8::S)
+    fn from(repr: ActorImageSerde) -> ActorImage {
+        log::trace!("from ActorImageSerde");
+        ActorImage::from_serde_repr_default(&repr)
     }
 }

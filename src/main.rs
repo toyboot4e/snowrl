@@ -1,13 +1,18 @@
 //! TODO: filter debug/error log on release build
 
 use rokol::Rokol;
-use snow2d::ui::{CoordSystem, Layer};
 use std::{fs, io::prelude::*};
+
+use snow2d::{
+    asset::StaticAssetKey,
+    ui::{CoordSystem, Layer},
+};
 
 use rlbox::{
     rl::grid2d::*,
+    utils::TypeObject,
     view::{
-        actor::{ActorImage, DirAnimDesc, DirAnimKind},
+        actor::{ActorImage, ActorImageDesc, DirAnimKind},
         camera::*,
         map::TiledRlMap,
         shadow::Shadow,
@@ -96,6 +101,7 @@ fn new_game(rokol: Rokol) -> GlueRl {
             .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
 
         audio::asset::register_asset_loaders(&mut ice.assets, &ice.audio.clone());
+        self::load_type_objects(&mut ice);
 
         let world = self::init_world(&mut ice).unwrap();
 
@@ -134,6 +140,35 @@ fn new_game(rokol: Rokol) -> GlueRl {
     };
 
     GlueRl::new(gl, fsm)
+}
+
+/// TODO: use `init.rs`
+fn load_type_objects(ice: &mut Ice) {
+    unsafe {
+        snow2d::asset::AssetDeState::start(&mut ice.assets).unwrap();
+    }
+
+    use rlbox::utils::TypeObjectStorage;
+    TypeObjectStorage::init().unwrap();
+    {
+        log::trace!("registering type object storage for type `ActorImageDesc`");
+        TypeObjectStorage::register_type_objects::<ActorImageDesc, StaticAssetKey>(
+            crate::paths::actors::ACTOR_IMAGES,
+        )
+        .unwrap();
+
+        log::trace!("registering type object storage for type `ActorType`");
+        TypeObjectStorage::register_type_objects::<ActorType, StaticAssetKey>(
+            crate::paths::actors::ACTOR_TYPES,
+        )
+        .unwrap();
+    }
+
+    unsafe {
+        snow2d::asset::AssetDeState::end().unwrap();
+    }
+
+    log::trace!("loaded type objects");
 }
 
 fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
@@ -190,7 +225,8 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
     let cache = ice.assets.cache_mut::<Texture2dDrop>().unwrap();
 
     // player
-    let mut player: Actor = snow2d::asset::deserialize_ron(crate::paths::actors::PLAYER)?;
+    let mut player: Actor = ActorType::from_type_key(&"ika-chan".into())?.to_actor();
+    player.pos = [14, 10].into();
     player.img.warp(player.pos, player.dir);
     w.entities.insert(player);
 
@@ -198,61 +234,13 @@ fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
         snow2d::asset::AssetDeState::end().unwrap();
     }
 
-    // // let tex = cache.load_sync(paths::CHICKEN).unwrap();
-    // let tex = cache.load_sync(paths::IKA_CHAN).unwrap();
-    // let tex_scales = [1.0, 1.0];
-    //
-    // let img = {
-    //     let mut img = ActorImage::new(
-    //         DirAnimDesc {
-    //             tex,
-    //             kind: DirAnimKind::Dir8,
-    //             fps: consts::ACTOR_FPS,
-    //         },
-    //         ez::EasedDtDesc {
-    //             target: consts::WALK_SECS,
-    //             ease: consts::WALK_EASE,
-    //         },
-    //         [12, 23].into(),
-    //         Dir8::S,
-    //     );
-    //
-    //     // FIXME: consider offsets
-    //     for frame_sprite in img.frames_mut() {
-    //         frame_sprite.scales = tex_scales;
-    //     }
-    //
-    //     img
-    // };
-    //
-    // w.entities.insert({
-    //     let mut actor = Actor {
-    //         pos: [20, 16].into(),
-    //         dir: Dir8::S,
-    //         img: img.clone(),
-    //         stats: ActorStats {
-    //             hp: 100,
-    //             atk: 50,
-    //             def: 20,
-    //         },
-    //     };
-    //
-    //     actor.img.warp(actor.pos, actor.dir);
-    //
-    //     let x = ron::ser::to_string(&actor)?;
-    //     log::trace!("{:#?}", x);
-    //
-    //     actor
-    // });
-
     // non-player characters
 
     let tex = cache.load_sync(paths::img::pochi::WHAT).unwrap();
-    let img = ActorImage::new(
-        DirAnimDesc {
+    let img = ActorImage::from_desc(
+        &ActorImageDesc {
             tex,
             kind: DirAnimKind::Dir8,
-            fps: consts::ACTOR_FPS,
         },
         ez::EasedDtDesc {
             target: consts::WALK_SECS,

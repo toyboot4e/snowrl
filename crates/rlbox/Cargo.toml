@@ -16,7 +16,7 @@ snow2d = { path = "../snow2d" }
 
 log = "0.4.11"
 env_logger = "0.8.2"
-anyhow = "1.0.33"
+anyhow = "1.0.38"
 thiserror = "1.0.21"
 
 image = "0.23.12"
@@ -28,4 +28,6 @@ bitflags = "1.2.1"
 once_cell = "1.5.2"
 rand = "0.7.3"
 serde = "1.0.123"
+downcast-rs = "1.2.0"
+derivative = "2.2.0"
 

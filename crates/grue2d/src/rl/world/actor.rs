@@ -7,7 +7,11 @@ prototpyes.
 
 */
 
-use rlbox::{rl::grid2d::*, view::actor::ActorImage};
+use rlbox::{
+    rl::grid2d::*,
+    utils::TypeObject,
+    view::actor::{ActorImage, ActorImageSerde},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,6 +27,39 @@ pub struct ActorStats {
     pub hp: u32,
     pub atk: u32,
     pub def: u32,
+}
+
+/// FIXME: allow reference
+pub struct TypeObjectId(String);
+
+impl TypeObjectId {
+    pub fn from_raw(id: impl Into<String>) -> Self {
+        Self(id.into())
+    }
+
+    pub fn raw(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Type object for [`Actor`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActorType {
+    pub stats: ActorStats,
+    pub img: ActorImageSerde,
+}
+
+impl TypeObject for ActorType {}
+
+impl ActorType {
+    pub fn to_actor(&self) -> Actor {
+        Actor {
+            pos: Default::default(),
+            dir: Dir8::S,
+            img: ActorImage::from_serde_repr_default(&self.img),
+            stats: self.stats.clone(),
+        }
+    }
 }
 
 // pub struct ActorList {
