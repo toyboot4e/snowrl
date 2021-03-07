@@ -6,7 +6,7 @@ use std::{fs, io::prelude::*};
 use snow2d::{
     asset::StaticAssetKey,
     ui::{CoordSystem, Layer},
-    utils::type_object::TypeObject,
+    utils::type_object::{TypeObject, TypeObjectStorage, TypeObjectStorageBuilder},
 };
 
 use rlbox::{
@@ -143,32 +143,23 @@ fn new_game(rokol: Rokol) -> GlueRl {
 }
 
 /// TODO: use `init.rs`
-fn load_type_objects(ice: &mut Ice) {
+fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
     unsafe {
         snow2d::asset::AssetDeState::start(&mut ice.assets).unwrap();
     }
 
-    use snow2d::utils::type_object::TypeObjectStorage;
-    TypeObjectStorage::init().unwrap();
-    {
-        log::trace!("registering type object storage for type `ActorImageDesc`");
-        TypeObjectStorage::register_type_objects::<ActorImageDesc, StaticAssetKey>(
-            crate::paths::actors::ACTOR_IMAGES,
-        )
-        .unwrap();
-
-        log::trace!("registering type object storage for type `ActorType`");
-        TypeObjectStorage::register_type_objects::<ActorType, StaticAssetKey>(
-            crate::paths::actors::ACTOR_TYPES,
-        )
-        .unwrap();
+    unsafe {
+        TypeObjectStorageBuilder::begin()
+            .unwrap()
+            .register::<ActorImageDesc, StaticAssetKey>(crate::paths::actors::ACTOR_IMAGES)?
+            .register::<ActorType, StaticAssetKey>(crate::paths::actors::ACTOR_TYPES)?;
     }
 
     unsafe {
         snow2d::asset::AssetDeState::end().unwrap();
     }
 
-    log::trace!("loaded type objects");
+    Ok(())
 }
 
 fn init_world(ice: &mut Ice) -> anyhow::Result<World> {

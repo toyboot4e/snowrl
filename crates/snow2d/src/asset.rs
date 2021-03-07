@@ -220,10 +220,18 @@ impl<T: AssetItem> AssetCacheT<T> {
         let key = key.into();
         let id = AssetId::from_key(&key);
         if let Some(a) = self.search_cache(&id) {
-            log::trace!("(cache found for `{}` of type `{}`)", key.display(),  std::any::type_name::<T>());
+            log::trace!(
+                "(cache found for `{}` of type `{}`)",
+                key.display(),
+                std::any::type_name::<T>()
+            );
             Ok(a)
         } else {
-            log::debug!("loading asset `{}` of type `{}`", key.display(), std::any::type_name::<T>());
+            log::debug!(
+                "loading asset `{}` of type `{}`",
+                key.display(),
+                std::any::type_name::<T>()
+            );
             self.load_new_sync(id)
         }
     }
@@ -393,7 +401,7 @@ impl<'de, T: AssetItem> Deserialize<'de> for Asset<T> {
         let item = state
             .cache
             .load_sync(AssetKey::new(&path))
-            .map_err(|e| format!("Error while loading asset at `{}`: {}",path.display(), e))
+            .map_err(|e| format!("Error while loading asset at `{}`: {}", path.display(), e))
             .unwrap();
 
         Ok(item)
