@@ -7,13 +7,14 @@ prototpyes.
 
 */
 
-use rlbox::{
-    rl::grid2d::*,
-    utils::TypeObject,
-    view::actor::{ActorImage, ActorImageSerde},
-};
 use serde::{Deserialize, Serialize};
 
+use snow2d::utils::type_object::TypeObject;
+
+use rlbox::{
+    rl::grid2d::*,
+    view::actor::{ActorImage, ActorImageSerde},
+};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Actor {
     pub pos: Vec2i,

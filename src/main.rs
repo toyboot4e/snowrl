@@ -6,11 +6,11 @@ use std::{fs, io::prelude::*};
 use snow2d::{
     asset::StaticAssetKey,
     ui::{CoordSystem, Layer},
+    utils::type_object::TypeObject,
 };
 
 use rlbox::{
     rl::grid2d::*,
-    utils::TypeObject,
     view::{
         actor::{ActorImage, ActorImageDesc, DirAnimKind},
         camera::*,
@@ -148,7 +148,7 @@ fn load_type_objects(ice: &mut Ice) {
         snow2d::asset::AssetDeState::start(&mut ice.assets).unwrap();
     }
 
-    use rlbox::utils::TypeObjectStorage;
+    use snow2d::utils::type_object::TypeObjectStorage;
     TypeObjectStorage::init().unwrap();
     {
         log::trace!("registering type object storage for type `ActorImageDesc`");

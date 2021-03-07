@@ -14,12 +14,15 @@ use snow2d::{
         tex::{SpriteData, Texture2dDrop},
         Color,
     },
-    utils::ez,
+    utils::{
+        ez,
+        type_object::{TypeObject, TypeObjectId, TypeObjectStorage},
+    },
 };
 
 use crate::{
     rl::grid2d::*,
-    utils::{DoubleSwap, TypeObject, TypeObjectId, TypeObjectStorage},
+    utils::DoubleSwap,
     view::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
 };
 
