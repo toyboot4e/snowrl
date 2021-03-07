@@ -2,7 +2,7 @@
 SnowRL initialization module
 */
 
-use snow2d::{asset::StaticAssetKey, utils::type_object::TypeObjectStorageBuilder, Ice};
+use snow2d::{asset::StaticAssetKey, utils::typeobj::TypeObjectStorageBuilder, Ice};
 
 use rlbox::view::actor::ActorImageDesc;
 

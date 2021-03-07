@@ -16,7 +16,7 @@ use snow2d::{
     },
     utils::{
         ez,
-        type_object::{
+        typeobj::{
             SerdeViaTypeObject, TypeObject, TypeObjectId, SerdeRepr,
         },
     },
