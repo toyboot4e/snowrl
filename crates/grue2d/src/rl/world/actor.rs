@@ -9,12 +9,13 @@ prototpyes.
 
 use serde::{Deserialize, Serialize};
 
-use snow2d::utils::type_object::TypeObject;
+use snow2d::utils::type_object::{SerdeRepr, TypeObject};
 
 use rlbox::{
     rl::grid2d::*,
-    view::actor::{ActorImage, ActorImageSerde},
+    view::actor::{ActorImage, ActorImageDesc},
 };
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Actor {
     pub pos: Vec2i,
@@ -30,24 +31,11 @@ pub struct ActorStats {
     pub def: u32,
 }
 
-/// FIXME: allow reference
-pub struct TypeObjectId(String);
-
-impl TypeObjectId {
-    pub fn from_raw(id: impl Into<String>) -> Self {
-        Self(id.into())
-    }
-
-    pub fn raw(&self) -> &str {
-        &self.0
-    }
-}
-
 /// Type object for [`Actor`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActorType {
+    pub img: SerdeRepr<ActorImageDesc>,
     pub stats: ActorStats,
-    pub img: ActorImageSerde,
 }
 
 impl TypeObject for ActorType {}
@@ -57,22 +45,14 @@ impl ActorType {
         Actor {
             pos: Default::default(),
             dir: Dir8::S,
-            img: ActorImage::from_serde_repr_default(&self.img),
+            img: self
+                .img
+                .map(|desc| ActorImage::from_desc_default(desc))
+                .unwrap(),
             stats: self.stats.clone(),
         }
     }
 }
-
-// pub struct ActorList {
-//     actors: Vec<Actor>,
-// }
-
-// pub struct ActorId {
-//     /// Index
-//     ix: usize,
-//     /// Generation
-//     gen: usize,
-// }
 
 // pub trait Behavior {
 //     fn gen_ev(&mut self, bcx: &mut BehaviorContext) -> Box<dyn Event>;

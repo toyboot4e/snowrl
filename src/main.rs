@@ -165,8 +165,8 @@ fn load_actors(w: &mut World) -> anyhow::Result<()> {
     // TODO: ActorBuilder::from_type
 
     // player
-    let player: Actor = {
-        let mut player = ActorType::from_type_key(&"ika-chan".into())?.to_actor();
+    let player = {
+        let mut player: Actor = ActorType::from_type_key(&"ika-chan".into())?.to_actor();
         player.pos = [14, 10].into();
         player.img.warp(player.pos, player.dir);
         player

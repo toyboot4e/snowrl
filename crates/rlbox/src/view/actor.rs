@@ -16,8 +16,11 @@ use snow2d::{
     },
     utils::{
         ez,
-        type_object::{TypeObject, TypeObjectId, TypeObjectStorage},
+        type_object::{
+            SerdeViaTypeObject, TypeObject, TypeObjectId, SerdeRepr,
+        },
     },
+    impl_serde_via_type_object,
 };
 
 use crate::{
@@ -185,6 +188,8 @@ pub struct ActorImageDesc {
 
 impl TypeObject for ActorImageDesc {}
 
+// impl_from_type_object!(ActorImage, ActorImageDesc);
+
 impl ActorImageDesc {
     pub fn gen_anim_patterns(&self) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
         self.kind.gen_anim_patterns(&self.tex, self::ACTOR_FPS)
@@ -204,8 +209,8 @@ struct ActorState {
 
 /// An animatable actor image
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(from = "ActorImageSerde")]
-#[serde(into = "ActorImageSerde")]
+#[serde(from = "SerdeRepr<ActorImageDesc>")]
+#[serde(into = "SerdeRepr<ActorImageDesc>")]
 pub struct ActorImage {
     dir_anim_state: FrameAnimState<Dir8, SpriteData>,
     state_diff: DoubleSwap<ActorState>,
@@ -213,7 +218,7 @@ pub struct ActorImage {
     /// Interpolation value for walk animation
     walk_dt: ez::EasedDt,
     /// For deserialization
-    serde_repr: ActorImageSerde,
+    serde_repr: SerdeRepr<ActorImageDesc>,
 }
 
 impl ActorImage {
@@ -234,46 +239,44 @@ impl ActorImage {
                 b: dir,
                 dt: ez::EasedDt::completed(),
             },
-            serde_repr: ActorImageSerde::Embedded(desc.clone()),
+            serde_repr: SerdeRepr::Embedded(desc.clone()),
         }
     }
 
-    /// Be sure to call [`ActorImage::warp`] and set speed properties after creation
-    pub fn from_desc_default(desc: &ActorImageDesc) -> Self {
-        Self::from_desc(
-            desc,
+    pub fn from_desc_default(
+        desc: &ActorImageDesc,
+    ) -> Self {
+        Self::from_desc(desc,
             ez::EasedDtDesc {
                 target: self::ACTOR_WALK_TIME,
                 ease: ez::Ease::Linear,
             },
             Vec2i::default(),
-            Dir8::S,
+            Dir8::S,)
+    }
+}
+
+impl SerdeViaTypeObject for ActorImage {
+    type TypeObject = ActorImageDesc;
+
+    fn from_type_object(obj: &Self::TypeObject) -> Self {
+        Self::from_desc_default(
+            obj,
         )
     }
 
-    /// Create [`ActorImage`] from `serde` representaiton
-    // FIXME: implement it with trait
-    pub fn from_serde_repr_default(repr: &ActorImageSerde) -> Self {
-        match repr {
-            ActorImageSerde::Reference(id) => {
-                log::trace!("reference");
-                let storage = TypeObjectStorage::get_map::<ActorImageDesc>().unwrap();
-                let desc = storage.get(id).unwrap_or_else(|| {
-                    panic!(
-                        "Unable to find type object with ID `{:?}` of type `{}`",
-                        id,
-                        std::any::type_name::<ActorImageDesc>()
-                    )
-                });
-                log::trace!("LOAD DESC");
-                let mut img = Self::from_desc_default(&desc);
-                img.serde_repr = repr.clone();
-                img
-            }
-            ActorImageSerde::Embedded(desc) => Self::from_desc_default(desc),
-        }
+    fn from_type_object_with_id(obj: &Self::TypeObject, id: &TypeObjectId<Self::TypeObject>) -> Self {
+        let mut img = Self::from_type_object(&obj);
+        img.serde_repr = SerdeRepr::Reference(id.clone());
+        img
+    }
+
+    fn into_type_object_repr(target: Self) -> SerdeRepr<Self::TypeObject> {
+        target.serde_repr
     }
 }
+
+impl_serde_via_type_object!(ActorImageDesc, ActorImage);
 
 /// Lifecycle
 impl ActorImage {
@@ -372,27 +375,5 @@ impl ActorImage {
     /// Used to modify frame animation sprites after loading
     pub fn frames_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut SpriteData> {
         self.dir_anim_state.frames_mut()
-    }
-}
-
-/// `serde` representation of [`ActorImage`]: embedded or external definition of [`ActorImageDesc`]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ActorImageSerde {
-    /// Retrieve [`ActorImageDesc`] from static type object storage
-    Reference(TypeObjectId<ActorImageDesc>),
-    /// Embed [`ActorImageDesc`]
-    Embedded(ActorImageDesc),
-}
-
-impl From<ActorImage> for ActorImageSerde {
-    fn from(img: ActorImage) -> Self {
-        img.serde_repr
-    }
-}
-
-impl From<ActorImageSerde> for ActorImage {
-    fn from(repr: ActorImageSerde) -> ActorImage {
-        log::trace!("from ActorImageSerde");
-        ActorImage::from_serde_repr_default(&repr)
     }
 }

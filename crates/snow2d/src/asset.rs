@@ -66,7 +66,7 @@ pub fn deserialize_ron<'a, T: serde::de::DeserializeOwned>(
         .map_err(anyhow::Error::msg)
         .with_context(|| {
             format!(
-                "Unable to create asset from file `{}` for type {}",
+                "Unable deserialize `{}` for type {}",
                 path.display(),
                 std::any::type_name::<T>()
             )
@@ -280,7 +280,7 @@ impl<T: AssetItem> FreeUnused for AssetCacheT<T> {
             if let Some(item) = &mut self.entries[i].asset.item {
                 if Arc::strong_count(item) == 1 {
                     log::debug!(
-                        "free asset with path `{}` in slot `{}` of cache for type `{}`",
+                        "free asset at `{}` in slot `{}` of cache for type `{}`",
                         self.entries[i].path.display(),
                         i,
                         std::any::type_name::<T>(),

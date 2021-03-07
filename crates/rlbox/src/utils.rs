@@ -4,32 +4,6 @@ Utilities
 
 use serde::{Deserialize, Serialize};
 
-// /// Storage of any type
-// #[derive(Debug)]
-// pub struct AnyMap {
-//     map: HashMap<TypeId, Box<dyn Any>>,
-// }
-//
-// impl AnyMap {
-//     pub fn new() -> Self {
-//         Self {
-//             map: Default::default(),
-//         }
-//     }
-//
-//     pub fn with_capacity(cap: usize) -> Self {
-//         Self {
-//             map: HashMap::with_capacity(cap),
-//         }
-//     }
-//
-//     pub fn get<T: 'static>(&self) -> Option<&T> {
-//         self.map
-//             .get(&TypeId::of::<T>())
-//             .map(|any| any.downcast_ref::<T>().unwrap())
-//     }
-// }
-
 /// Raw double buffer with interpolation value
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DoubleTrack<T> {
