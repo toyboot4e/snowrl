@@ -4,8 +4,8 @@ Snow the roguelike game built on [`grue2d`]
 
 pub extern crate grue2d;
 
-pub mod utils;
 pub mod init;
+pub mod utils;
 
 pub mod play;
 pub mod prelude;
@@ -13,7 +13,7 @@ pub mod scenes;
 pub mod states;
 
 use {
-    grue2d::{hot_crate, render::WorldRenderFlag, GlueRl},
+    grue2d::{hot_crate, render::WorldRenderFlag, GlueRl, UiLayer},
     rokol::{
         app::{Event, RApp},
         gfx as rg,
@@ -89,9 +89,11 @@ impl SnowRl {
         Self::test_text_style(gl);
 
         let cam_mat = gl.world.cam.to_mat4();
-        for (_ix, layer) in &mut gl.ui.layers {
-            layer.render(&mut gl.ice, cam_mat);
-        }
+        gl.ui.get_mut(UiLayer::Actors).render(&mut gl.ice, cam_mat);
+        gl.ui
+            .get_mut(UiLayer::OnActors)
+            .render(&mut gl.ice, cam_mat);
+        gl.ui.get_mut(UiLayer::Screen).render(&mut gl.ice, cam_mat);
     }
 
     fn test_text_style(gl: &mut grue2d::Global) {

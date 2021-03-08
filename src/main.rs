@@ -22,7 +22,7 @@ use grue2d::{
         turn::anim::AnimPlayer,
         world::{actor::*, World},
     },
-    VInput,
+    Ui, VInput,
 };
 
 use snowrl::{
@@ -75,7 +75,7 @@ fn new_game(rokol: Rokol) -> GlueRl {
             ice,
             fonts,
             vi: VInput::new(),
-            ui: Default::default(),
+            ui: Ui::new(),
             anims: AnimPlayer::default(),
             script_to_play: None,
         }
@@ -91,11 +91,7 @@ fn new_game(rokol: Rokol) -> GlueRl {
         // fsm.insert(states::Title::new(&mut gl.ice));
         fsm.insert(states::Title::new(&mut gl.ice, &mut gl.ui));
 
-        let world_ui_layer_ix = gl.ui.layers.insert(Layer::new(CoordSystem::World));
-        fsm.insert(states::PlayScript::new(
-            &mut gl.ice.assets,
-            world_ui_layer_ix,
-        ));
+        fsm.insert(states::PlayScript::new(&mut gl.ice.assets));
 
         fsm.push::<states::Roguelike>(&mut gl);
         fsm.push::<states::Title>(&mut gl);

@@ -1,5 +1,5 @@
 /*!
-Resources, global objects specific to SnowRL
+Global resource type specific for SnowRL
 */
 
 use std::time::Duration;
@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use snow2d::{
     gfx::text::font::FontSetHandle,
     input::{vi::*, Input, Key},
+    ui::{CoordSystem, Layer},
     utils::arena::Index,
 };
 
@@ -17,13 +18,59 @@ const REPEAT_FIRST_FRAMES: u64 = 10;
 /// TODO: rm
 const REPEAT_MULTI_FRAMES: u64 = 6;
 
-/// Collection of fonts
+/// SnowRL UI layer collection
+#[derive(Debug)]
+pub struct Ui {
+    actors: Layer,
+    on_actors: Layer,
+    screen: Layer,
+}
+
+pub enum UiLayer {
+    Actors,
+    OnActors,
+    Screen,
+}
+
+impl Ui {
+    pub fn new() -> Self {
+        Self {
+            actors: Layer::new(CoordSystem::World),
+            on_actors: Layer::new(CoordSystem::World),
+            screen: Layer::new(CoordSystem::Screen),
+        }
+    }
+
+    pub fn get(&self, layer: UiLayer) -> &Layer {
+        match layer {
+            UiLayer::Actors => &self.actors,
+            UiLayer::OnActors => &self.on_actors,
+            UiLayer::Screen => &self.screen,
+        }
+    }
+
+    pub fn get_mut(&mut self, layer: UiLayer) -> &mut Layer {
+        match layer {
+            UiLayer::Actors => &mut self.actors,
+            UiLayer::OnActors => &mut self.on_actors,
+            UiLayer::Screen => &mut self.screen,
+        }
+    }
+
+    pub fn update(&mut self, dt: Duration) {
+        self.actors.update(dt);
+        self.on_actors.update(dt);
+        self.screen.update(dt);
+    }
+}
+
+/// SnowRL font collection
 #[derive(Debug)]
 pub struct Fonts {
     pub default: Index<FontSetHandle>,
 }
 
-/// Collection of virtual inputs
+/// SnowRL virtual input collection
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VInput {
     /// Diractional input

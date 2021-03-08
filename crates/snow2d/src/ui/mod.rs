@@ -13,7 +13,7 @@ use crate::{
     utils::{
         arena::Arena,
         cheat::Cheat,
-        pool::{Handle, Pool, Slot},
+        pool::{Pool, Slot},
     },
     Ice,
 };
@@ -30,20 +30,6 @@ pub enum CoordSystem {
     Screen,
     /// Used world coordinates to render nodes. Follow camera automatically
     World,
-}
-
-/// UI scene composed of layers
-#[derive(Debug, Default)]
-pub struct Ui {
-    pub layers: Arena<Layer>,
-}
-
-impl Ui {
-    pub fn update(&mut self, dt: Duration) {
-        for (_ix, layer) in &mut self.layers {
-            layer.update(dt);
-        }
-    }
 }
 
 /// Nodes and animations
@@ -63,7 +49,7 @@ impl Layer {
         }
     }
 
-    fn update(&mut self, dt: Duration) {
+    pub fn update(&mut self, dt: Duration) {
         // apply animations
         self.anims.update(dt, &mut self.nodes);
 
@@ -74,7 +60,7 @@ impl Layer {
             let mut nodes = Cheat::new(&mut self.nodes);
             for node in nodes.iter_mut() {
                 // update cache
-                Self::update_node_rec(self, node, None);
+                self.update_node_rec(node, None);
             }
         }
         // TODO: sort nodes

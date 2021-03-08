@@ -4,15 +4,11 @@ UI scenes
 
 pub mod title;
 
-use snow2d::{
-    ui::{CoordSystem, Layer, Ui},
-    utils::arena::Index,
-    Ice,
-};
+use snow2d::Ice;
 
 use rlbox::rl::grid2d::*;
 
-use grue2d::Global;
+use grue2d::{Global, Ui, UiLayer};
 
 #[derive(Debug)]
 pub struct Title {
@@ -21,8 +17,6 @@ pub struct Title {
     assets: title::TitleAssets,
     nodes: title::TitleNodes,
     anims: title::TitleAnims,
-    /// Temporary layer for title
-    layer_ix: Index<Layer>,
 }
 
 impl Title {
@@ -33,8 +27,7 @@ impl Title {
         let state = title::TitleState { cursor: 0 };
         let mut assets = title::TitleAssets::new(assets);
 
-        let layer_ix = ui.layers.insert(Layer::new(CoordSystem::Screen));
-        let layer = &mut ui.layers[layer_ix];
+        let layer = ui.get_mut(UiLayer::Screen);
 
         let nodes = title::TitleNodes::new(&cfg, &mut layer.nodes, &mut assets);
         let cursor = 0;
@@ -46,12 +39,11 @@ impl Title {
             assets,
             nodes,
             anims,
-            layer_ix,
         }
     }
 
     pub fn handle_input(&mut self, gl: &mut Global) -> Option<title::Choice> {
-        let layer = &mut gl.ui.layers[self.layer_ix];
+        let layer = gl.ui.get_mut(UiLayer::Screen);
 
         if let Some(dir) = gl.vi.dir.dir4_pressed() {
             let y_sign = dir.y_sign();

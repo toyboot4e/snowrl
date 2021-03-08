@@ -19,7 +19,7 @@ use {
         app::{self as ra, RApp},
         gfx as rg, Rokol,
     },
-    snow2d::{gfx::geom2d::Vec2f, ui::Ui, Ice},
+    snow2d::{gfx::geom2d::Vec2f, Ice},
 };
 
 use crate::{
@@ -95,21 +95,21 @@ impl GlueRl {
 /// TODO: consider using `Global<T>` for additional contexts
 #[derive(Debug)]
 pub struct Global {
-    // SnowRL-only context
+    // SnowRL resource types
     pub world: World,
     pub world_render: WorldRenderer,
     pub vi: VInput,
     pub fonts: Fonts,
+    pub ui: Ui,
     // generic game context
     pub ice: Ice,
-    pub ui: Ui,
     // game data
     pub anims: AnimPlayer,
     // TODO: extract it to user data
     pub script_to_play: Option<ScriptRef>,
 }
 
-/// Lifecycle of the contexts
+/// Lifecycle of SnowRL
 impl Global {
     pub fn event(&mut self, ev: &ra::Event) {
         self.ice.event(ev);
@@ -119,8 +119,10 @@ impl Global {
     //
     /// Called before updating the FSM (game state).
     pub fn pre_update(&mut self) {
+        // update resources
         self.ice.pre_update();
         self.vi.update(&self.ice.input, self.ice.dt);
+        // actor image
         self.world.update(&mut self.ice);
     }
 

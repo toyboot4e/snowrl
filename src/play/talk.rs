@@ -17,7 +17,7 @@ use snow2d::{
 
 use grue2d::{
     rl::world::{actor::Actor, World},
-    Global,
+    Global, UiLayer,
 };
 
 use crate::utils::{consts, paths};
@@ -184,7 +184,7 @@ pub struct PlayTalk {
 }
 
 impl PlayTalk {
-    pub fn new(talk: TalkViewCommand<'_>, gl: &mut Global, layer: Index<Layer>) -> Self {
+    pub fn new(talk: TalkViewCommand<'_>, gl: &mut Global) -> Self {
         // FIXME: use custom config
         let fstyle = FontStyle {
             font_ix: unsafe { snow2d::gfx::text::font::FontIx::from_raw(1) },
@@ -195,7 +195,7 @@ impl PlayTalk {
         let layout = talk.layout(&talk.cfg, &gl.ice.snow.fontbook.tex, &fstyle, &gl.world);
         let view = TalkView::new(layout, &mut gl.ice.assets);
 
-        let layer = &mut gl.ui.layers[layer];
+        let layer = &mut gl.ui.get_mut(UiLayer::OnActors);
         let nodes = TalkNodes {
             win: layer.nodes.add({
                 let mut win = Node::from(view.win());
