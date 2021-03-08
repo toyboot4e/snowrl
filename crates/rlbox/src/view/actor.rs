@@ -345,8 +345,8 @@ impl ActorImage {
         crate::render::tiled::t2w_center(pos, &tiled)
     }
 
-    /// Position in world coordinates, used for like rendering actors
-    pub fn render_pos_world(&self, tiled: &tiled::Map) -> Vec2f {
+    /// Position in world coordinates with offsets for rendering
+    pub fn pos_world_render(&self, tiled: &tiled::Map) -> Vec2f {
         let pos_prev = self.align_render(self.state_diff.b().pos, tiled);
         let pos_curr = self.align_render(self.state_diff.a().pos, tiled);
         let mut pos = self.walk_dt.lerp(pos_prev, pos_curr);

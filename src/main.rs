@@ -2,10 +2,7 @@
 
 use rokol::Rokol;
 
-use snow2d::{
-    ui::{CoordSystem, Layer},
-    utils::tyobj::TypeObject,
-};
+use snow2d::utils::tyobj::TypeObject;
 
 use rlbox::{
     rl::grid2d::*,

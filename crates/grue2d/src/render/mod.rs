@@ -193,7 +193,7 @@ impl WorldRenderer {
             } as u8;
 
             let actor = &world.entities[entry.actor_index];
-            let pos = actor.img.render_pos_world(&world.map.tiled);
+            let pos = actor.img.pos_world_render(&world.map.tiled);
 
             screen
                 .sprite(actor.img.sprite())

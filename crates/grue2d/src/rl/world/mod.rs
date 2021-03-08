@@ -1,4 +1,6 @@
-//! The game world, internals and the GUI
+/*!
+The game world, internals and the GUI
+*/
 
 pub mod actor;
 

@@ -12,6 +12,9 @@ use crate::{
 // Re-exported as [`Node`] variants
 pub use crate::gfx::tex::{NineSliceSprite, SpriteData};
 
+/// Rendering order [0, 1] (the higher, the latter)
+pub type Order = f32;
+
 /// Common geometry data that animations can operate on
 #[derive(Debug, Clone, Default)]
 pub struct DrawParams {
@@ -98,7 +101,8 @@ pub struct Node {
     /// Weak references to children
     children: Vec<Handle<Node>>,
     // TODO: dirty flag,
-    // TODO: z,
+    /// Rendering order [0, 1] (the higher, the latter)
+    pub order: Order,
 }
 
 impl From<Draw> for Node {
@@ -120,6 +124,7 @@ impl From<Draw> for Node {
             params: params.clone(),
             cache: params.clone(),
             children: vec![],
+            order: 1.0,
         }
     }
 }

@@ -4,7 +4,7 @@ Stack-based game states
 
 use std::{any::TypeId, borrow::Cow};
 
-use snow2d::{ui::Layer, utils::arena::Index};
+use snow2d::utils::arena::Index;
 
 use grue2d::{
     fsm::{GameState, StateCommand, StateReturn},

@@ -296,7 +296,7 @@ impl<T> Pool<T> {
         }
     }
 
-    pub fn get_by_slot_mut(&mut self, slot: Slot) -> Option<&mut T> {
+    pub fn get_mut_by_slot(&mut self, slot: Slot) -> Option<&mut T> {
         let entry = self.entries.get_mut(slot.0 as usize)?;
         if entry.gen.is_none() {
             None
