@@ -12,6 +12,7 @@ use crate::{
     gfx::PassConfig,
     utils::{
         arena::Arena,
+        cheat::Cheat,
         pool::{Handle, Pool, Slot},
     },
     Ice,
@@ -69,26 +70,21 @@ impl Layer {
         self.nodes.sync_refcounts();
 
         // calculate geometry
-        for slot in self.nodes.slots() {
-            // update cache
-            unsafe { self.update_node_rec(slot, None);}
+        unsafe {
+            let mut nodes = Cheat::new(&mut self.nodes);
+            for node in nodes.iter_mut() {
+                // update cache
+                Self::update_node_rec(self, node, None);
+            }
         }
         // TODO: sort nodes
     }
 
-    unsafe fn update_node_rec(&self, child: Slot, parent: Option<Slot>) {
+    unsafe fn update_node_rec(&mut self, child: &mut Node, parent: Option<Slot>) {
+        child.cache = child.params.clone();
         if let Some(parent) = parent {
-            let [child, parent] =
-                [
-                    self.nodes.get_by_slot_unsafe(child).unwrap(),
-                    self.nodes.get_by_slot_unsafe(parent).unwrap(),
-                ]
-            ;
-            child.cache = child.params.clone();
+            let parent = self.nodes.get_by_slot_mut(parent).unwrap();
             parent.cache.transform_mut(&mut child.cache);
-        } else {
-            let child = self.nodes.get_by_slot_unsafe(child).unwrap();
-            child.cache = child.params.clone();
         }
     }
 

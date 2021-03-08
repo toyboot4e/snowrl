@@ -305,11 +305,6 @@ impl<T> Pool<T> {
         }
     }
 
-    pub unsafe fn get_by_slot_unsafe(&self, slot: Slot) -> Option<&mut T> {
-        self.get_by_slot(slot)
-            .map(|item| &mut *(item as *const _ as *mut _))
-    }
-
     // TODO: use specific iterator?
     pub fn slots(&self) -> impl Iterator<Item = Slot> + '_ {
         self.entries
