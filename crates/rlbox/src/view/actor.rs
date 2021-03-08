@@ -14,8 +14,10 @@ use snow2d::{
         tex::{SpriteData, Texture2dDrop},
         Color,
     },
+    ui::node::Node,
     utils::{
         ez,
+        pool::Handle,
         tyobj::{self, SerdeRepr, SerdeViaTypeObject, TypeObject, TypeObjectId},
     },
 };
@@ -371,4 +373,10 @@ impl ActorImage {
     pub fn frames_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut SpriteData> {
         self.dir_anim_state.frames_mut()
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ActorNodes {
+    pub img: Handle<Node>,
+    pub hp: Handle<Node>,
 }

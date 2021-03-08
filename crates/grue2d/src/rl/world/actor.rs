@@ -1,28 +1,26 @@
 /*!
-
 Game entity with GUI
 
 Ideally, internals should be separated from graphics, but coupling them would be good for
 prototpyes.
-
 */
 
 use serde::{Deserialize, Serialize};
 
-use snow2d::utils::tyobj::{SerdeRepr, TypeObject};
+use snow2d::{
+    ui,
+    utils::{
+        arena::Index,
+        tyobj::{SerdeRepr, TypeObject, TypeObjectId},
+    },
+};
 
 use rlbox::{
     rl::grid2d::*,
-    view::actor::{ActorImage, ActorImageDesc},
+    view::actor::{ActorImage, ActorImageDesc, ActorNodes},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Actor {
-    pub pos: Vec2i,
-    pub dir: Dir8,
-    pub img: ActorImage,
-    pub stats: ActorStats,
-}
+use crate::{rl::world::World, Ui, UiLayer};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActorStats {
@@ -40,20 +38,74 @@ pub struct ActorType {
 
 impl TypeObject for ActorType {}
 
-impl ActorType {
-    pub fn to_actor(&self) -> Actor {
-        Actor {
-            pos: Default::default(),
-            dir: Dir8::S,
-            img: self
-                .img
-                .map(|desc| ActorImage::from_desc_default(desc))
-                .unwrap(),
-            stats: self.stats.clone(),
-        }
-    }
+/// Serde representation of actor
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActorSerde {
+    pub type_: SerdeRepr<ActorType>,
+    pub pos: Vec2i,
+    pub dir: Dir8,
 }
 
-// pub trait Behavior {
-//     fn gen_ev(&mut self, bcx: &mut BehaviorContext) -> Box<dyn Event>;
-// }
+/// Runtime represntation of actor
+#[derive(Debug, Clone)]
+pub struct Actor {
+    pub pos: Vec2i,
+    pub dir: Dir8,
+    pub img: ActorImage,
+    pub stats: ActorStats,
+    pub nodes: ActorNodes,
+}
+
+#[derive(Debug, Clone)]
+pub struct ActorSpawn {
+    pub type_: TypeObjectId<ActorType>,
+    pub pos: Vec2i,
+    pub dir: Dir8,
+}
+
+impl ActorSpawn {
+    pub fn new(type_: impl Into<TypeObjectId<ActorType>>) -> Self {
+        Self {
+            type_: type_.into(),
+            pos: Vec2i::default(),
+            dir: Dir8::S,
+        }
+    }
+
+    pub fn pos(&mut self, pos: impl Into<Vec2i>) -> &mut Self {
+        self.pos = pos.into();
+        self
+    }
+
+    pub fn dir(&mut self, dir: Dir8) -> &mut Self {
+        self.dir = dir;
+        self
+    }
+
+    pub fn spawn(&self, world: &mut World, ui: &mut Ui) -> anyhow::Result<Index<Actor>> {
+        let type_ = ActorType::from_type_key(&"ika-chan".into())?;
+        let img: ActorImage = type_
+            .img
+            .map(|desc| ActorImage::from_desc_default(desc))
+            .unwrap();
+
+        let layer = ui.get_mut(UiLayer::Actors);
+        let nodes = ActorNodes {
+            img: layer.nodes.add(ui::node::Text {
+                txt: "a".to_string(),
+            }),
+            hp: layer.nodes.add(img.sprite()),
+        };
+
+        let mut actor = Actor {
+            pos: self.pos,
+            dir: self.dir,
+            img,
+            stats: type_.stats.clone(),
+            nodes,
+        };
+        actor.img.warp(self.pos, self.dir);
+
+        Ok(world.entities.insert(actor))
+    }
+}

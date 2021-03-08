@@ -84,7 +84,7 @@ impl SnowRl {
 
         // TODO: schedule rendering
         gl.world_render
-            .render(&gl.world, &mut gl.ice, WorldRenderFlag::ALL);
+            .render(&gl.world, &mut gl.ice, &mut gl.ui, WorldRenderFlag::ALL);
 
         Self::test_text_style(gl);
 

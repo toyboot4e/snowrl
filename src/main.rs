@@ -63,7 +63,9 @@ fn new_game(rokol: Rokol) -> GlueRl {
     let mut gl = {
         let mut ice = Ice::new(title, unsafe { Snow2d::new() });
         init::init_assets(&mut ice).unwrap();
-        let world = self::init_world(&mut ice).unwrap();
+
+        let mut ui = Ui::new();
+        let world = self::init_world(&mut ice, &mut ui).unwrap();
         let fonts = init::load_fonts(&mut ice);
 
         Global {
@@ -72,7 +74,7 @@ fn new_game(rokol: Rokol) -> GlueRl {
             ice,
             fonts,
             vi: VInput::new(),
-            ui: Ui::new(),
+            ui,
             anims: AnimPlayer::default(),
             script_to_play: None,
         }
@@ -99,7 +101,7 @@ fn new_game(rokol: Rokol) -> GlueRl {
     GlueRl::new(gl, fsm)
 }
 
-fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
+fn init_world(ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<World> {
     let map = TiledRlMap::new(
         paths::map::tmx::TILES,
         ice.assets.cache_mut::<Texture2dDrop>().unwrap(),
@@ -140,7 +142,7 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
         snow2d::asset::AssetDeState::start(&mut ice.assets).unwrap();
     }
 
-    self::load_actors(&mut world)?;
+    self::load_actors(&mut world, ui)?;
 
     unsafe {
         snow2d::asset::AssetDeState::end().unwrap();
@@ -154,36 +156,20 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
     Ok(world)
 }
 
-fn load_actors(w: &mut World) -> anyhow::Result<()> {
+fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
     // TODO: ActorBuilder::from_type
 
     // player
-    let player = {
-        let mut player: Actor = ActorType::from_type_key(&"ika-chan".into())?.to_actor();
-        player.pos = [14, 10].into();
-        player.img.warp(player.pos, player.dir);
-        player
-    };
-    w.entities.insert(player);
+    ActorSpawn::new("ika-chan")
+        .pos([14, 10])
+        .dir(Dir8::S)
+        .spawn(world, ui)?;
 
     // non-player characters
-    let actor: Actor = ActorType::from_type_key(&"mokusei-san".into())?.to_actor();
+    let mut spawn = ActorSpawn::new("mokusei-san");
 
-    w.entities.insert({
-        let mut actor = actor.clone();
-        actor.pos = [14, 12].into();
-        actor.dir = Dir8::S;
-        actor.img.warp(actor.pos, actor.dir);
-        actor
-    });
-
-    w.entities.insert({
-        let mut actor = actor.clone();
-        actor.pos = [25, 18].into();
-        actor.dir = Dir8::S;
-        actor.img.warp(actor.pos, actor.dir);
-        actor
-    });
+    spawn.pos([14, 12]).dir(Dir8::W).spawn(world, ui)?;
+    spawn.pos([25, 18]).dir(Dir8::E).spawn(world, ui)?;
 
     Ok(())
 }

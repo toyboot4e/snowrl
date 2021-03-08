@@ -109,7 +109,7 @@ pub struct Global {
     pub script_to_play: Option<ScriptRef>,
 }
 
-/// Lifecycle of SnowRL
+/// Lifecycle of SnowRL resources
 impl Global {
     pub fn event(&mut self, ev: &ra::Event) {
         self.ice.event(ev);

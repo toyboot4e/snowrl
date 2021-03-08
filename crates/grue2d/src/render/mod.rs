@@ -16,7 +16,10 @@ use {
     std::time::Duration,
 };
 
-use crate::rl::world::{actor::Actor, World};
+use crate::{
+    rl::world::{actor::Actor, World},
+    Ui,
+};
 
 /// TODO: remove
 const WALK_TIME: f32 = 8.0 / 60.0;
@@ -84,7 +87,7 @@ impl WorldRenderer {
     }
 
     /// Renders the world (maybe partially)
-    pub fn render(&mut self, world: &World, ice: &mut Ice, flags: WorldRenderFlag) {
+    pub fn render(&mut self, world: &World, ice: &mut Ice, ui: &mut Ui, flags: WorldRenderFlag) {
         if flags.contains(WorldRenderFlag::MAP | WorldRenderFlag::ACTORS) {
             // use world coordinates
             let mut screen = ice.snow.screen(PassConfig {
