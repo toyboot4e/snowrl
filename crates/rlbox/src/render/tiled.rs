@@ -101,18 +101,27 @@ pub fn render_tiled(
     tiled: &tiled::Map,
     idmap: &GidTextureMap,
     px_bounds: impl Into<Rect2f>,
+    layer_range: impl std::ops::RangeBounds<i32>,
 ) {
     let px_bounds: Rect2f = px_bounds.into();
     let grid_bounds = self::grid_bounds_from_pixel_bounds(tiled, &px_bounds);
     let (ys, xs) = self::visible_cells_from_grid_bounds(&grid_bounds);
 
     for layer in tiled.layers.iter().filter(|l| l.visible) {
-        render_tiled_layer(draw, tiled, layer, idmap, ys, xs);
+        // [0-9]+
+        let int_name = layer.name.chars().take_while(|p| p.is_digit(10));
+        let number = match int_name.collect::<String>().parse::<i32>() {
+            Ok(num) => num,
+            Err(_err) => continue,
+        };
+        if layer_range.contains(&number) {
+            render_tiled_layer(draw, tiled, layer, idmap, ys, xs);
+        }
     }
 }
 
 #[inline]
-fn render_tiled_layer(
+pub fn render_tiled_layer(
     draw: &mut impl DrawApi,
     tiled: &tiled::Map,
     layer: &tiled::Layer,

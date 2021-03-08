@@ -3,13 +3,14 @@ Discrete geometry types
 */
 
 use auto_ops::*;
+use serde::{Deserialize, Serialize};
 
 pub use snow2d::input::{Dir4, Dir8, Sign};
 
 // --------------------------------------------------------------------------------
 // Space
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Rect2i {
     pos: Vec2i,
     size: Vec2u,
@@ -71,7 +72,9 @@ impl Rect2i {
     // }
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(from = "[i32; 2]")]
+#[serde(into = "[i32; 2]")]
 pub struct Vec2i {
     pub x: i32,
     pub y: i32,
@@ -130,6 +133,10 @@ impl Vec2i {
     pub fn len_f32(&self) -> f32 {
         self.len_f32_squared().sqrt()
     }
+
+    pub fn offset(&self, v: impl Into<Vec2i>) -> Self {
+        self + v.into()
+    }
 }
 
 impl Into<[i32; 2]> for Vec2i {
@@ -168,7 +175,7 @@ impl From<Dir8> for Vec2i {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Vec2u {
     pub x: u32,
     pub y: u32,

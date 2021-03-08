@@ -14,7 +14,7 @@ pub mod utils;
 
 use std::time::{Duration, Instant};
 
-use rokol::{fons::FontConfig, gfx as rg};
+use rokol::gfx as rg;
 
 use crate::{
     asset::AssetCacheAny,
@@ -32,9 +32,7 @@ pub struct Ice {
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
     /// 2D renderer
-    pub rdr: Snow2d,
-    /// Default font configuration
-    pub font_cfg: FontConfig,
+    pub snow: Snow2d,
     /// Audio context
     pub audio: Audio,
     pub music_player: MusicPlayer,
@@ -49,15 +47,14 @@ pub struct Ice {
 }
 
 impl Ice {
-    pub fn new(title: String, snow: Snow2d, font_cfg: FontConfig) -> Self {
+    pub fn new(title: String, snow: Snow2d) -> Self {
         // TODO: don't unwrap
         let audio = unsafe { Audio::create().unwrap() };
 
         Self {
             window_title: title,
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
-            rdr: snow,
-            font_cfg,
+            snow,
             audio: audio.clone(),
             music_player: MusicPlayer::new(audio.clone()),
             assets: AssetCacheAny::new(),
@@ -83,7 +80,7 @@ impl Ice {
 
     /// Updates font texture
     pub fn pre_render(&mut self) {
-        self.rdr.pre_render();
+        self.snow.pre_render();
         // FIXME: use real dt
         self.dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
     }

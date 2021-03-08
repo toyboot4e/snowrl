@@ -152,6 +152,7 @@ impl FollowCamera2d {
             // avoid sub pixel issues
             cam.params.pos += dpos_clamped;
             // cam.params.pos.floor_mut();
+            cam.params.pos.round_mut();
         }
     }
 }

@@ -13,7 +13,10 @@ use std::{
 
 use {
     downcast_rs::{impl_downcast, Downcast},
-    snow2d::{utils::arena::Index, Ice},
+    snow2d::{
+        utils::{arena::Index, cheat::Cheat},
+        Ice,
+    },
 };
 
 use crate::{
@@ -21,8 +24,7 @@ use crate::{
         turn::{anim::Anim, ev},
         world::{actor::Actor, World},
     },
-    utils::Cheat,
-    vi::VInput,
+    VInput,
 };
 
 /// TODO: remove me

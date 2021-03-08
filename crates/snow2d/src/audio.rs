@@ -82,7 +82,7 @@ pub mod asset {
         {
             assets.add_cache::<T>(AssetCacheT::new(AudioLoader {
                 audio,
-                _phantom: std::marker::PhantomData::<T>::default(),
+                _phantom: std::marker::PhantomData,
             }));
         }
     }

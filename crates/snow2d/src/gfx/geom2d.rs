@@ -1,9 +1,11 @@
 //! 2D geometry types. TODO: remove this
 
 use auto_ops::*;
+use serde::{Deserialize, Serialize};
 
 bitflags::bitflags! {
     #[derive(Default)]
+#[derive(Deserialize, Serialize)]
     pub struct Flips: u8 {
         /// Render the sprite as it is
         const NONE = 0;
@@ -15,7 +17,7 @@ bitflags::bitflags! {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Scaled<T> {
     Px(T),
     Normalized(T),
@@ -39,7 +41,7 @@ impl<T: Default> Default for Scaled<T> {
 /// Skew matrix
 ///
 /// Top-left and bottom-right.
-#[derive(Debug, Clone, PartialEq, Default, Copy)]
+#[derive(Debug, Clone, PartialEq, Default, Copy, Deserialize, Serialize)]
 pub struct Skew2f {
     pub x1: f32,
     pub y1: f32,
@@ -61,7 +63,7 @@ impl Skew2f {
 /// Rotation matrix expanded from a radian value
 ///
 /// Use radian to store rotation. Top-left and bottom-right.
-#[derive(Debug, Clone, PartialEq, Default, Copy)]
+#[derive(Debug, Clone, PartialEq, Default, Copy, Deserialize, Serialize)]
 pub(crate) struct Rot2f {
     pub x1: f32,
     pub y1: f32,
@@ -93,7 +95,7 @@ impl Rot2f {
 }
 
 /// 2D vector, intended for both positions and sizes
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Deserialize, Serialize)]
 pub struct Vec2f {
     pub x: f32,
     pub y: f32,
@@ -237,7 +239,7 @@ impl Into<(f32, f32)> for &Vec2f {
 ///
 /// Note that the `x`, `y` fields correspond top-left point. If you consider an origin at somewhere
 /// else, then those methods don't make sense.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, Deserialize, Serialize)]
 pub struct Rect2f {
     /// Left
     pub x: f32,
@@ -532,7 +534,7 @@ impl Into<[f32; 4]> for &Rect2f {
 /// ```
 ///
 /// TODO: assert on zero division (NAN)?
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
 pub struct Mat2f {
     /// Scale x
     pub m11: f32,

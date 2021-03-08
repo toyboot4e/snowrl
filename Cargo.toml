@@ -38,6 +38,7 @@ thiserror = "1.0.21"
 
 serde = { version = "1.0.120", features = ["derive"] }
 ron = "0.6.4"
+image = "0.23.13"
 
 [build-dependencies]
 convert_case = "0.4.0"

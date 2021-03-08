@@ -9,7 +9,10 @@ e.g. `MeleeAttack` -> `Attack` -> `Hit` -> `GiveDamage`
 TODO: remove non-primitive events
 */
 
-use snow2d::{input::Key, utils::arena::Index};
+use snow2d::{
+    input::Key,
+    utils::{arena::Index, tweak::*},
+};
 
 use rlbox::rl::grid2d::*;
 
@@ -161,14 +164,50 @@ impl Event for Move {
 // --------------------------------------------------------------------------------
 // Higher-level commands
 
-// /// TODO: Attack in direction
-// #[derive(Debug)]
-// pub struct Attack {
-//     pub actor: Index<Actor>,
-//     pub dir: Dir8,
-// }
+/// TODO: Attack in direction
+#[derive(Debug)]
+pub struct MeleeAttack {
+    pub actor: Index<Actor>,
+    pub dir: Option<Dir8>,
+}
 
-// impl GenAnim for Attack {}
+impl Event for MeleeAttack {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        let actor = &ecx.world.entities[self.actor];
+        let target_dir = self.dir.clone().unwrap_or(actor.dir);
+        let target_pos = actor.pos.offset(target_dir);
+
+        if let Some(target) = ecx
+            .world
+            .entities
+            .iter()
+            .find(|(_i, e)| e.pos == target_pos)
+        {
+            // hit entity
+            // EventResult::chain(Hit {
+            // })
+            EventResult::Finish
+        } else {
+            // just swing
+            EventResult::Finish
+            // EventResult::chain(ChangeDir {
+            //     actor: self.actor,
+            //     dir: self.to_dir,
+            // })
+        }
+    }
+}
+
+impl GenAnim for MeleeAttack {
+    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        Some(Box::new(anim::SwingAnim::new(
+            self.actor,
+            self.dir
+                .unwrap_or_else(|| acx.world.entities[self.actor].dir),
+            tweak!(8.0 / 60.0),
+        )))
+    }
+}
 
 // --------------------------------------------------------------------------------
 // Interactive commands
@@ -264,7 +303,7 @@ impl Event for Interact {
 // --------------------------------------------------------------------------------
 // Entity control
 
-/// Interactive command for player input
+/// Interactive command for player input. TODO: Extract the handler
 #[derive(Debug)]
 pub struct PlayerTurn {
     pub actor: Index<Actor>,
@@ -297,11 +336,12 @@ impl PlayerTurn {
 
 impl Event for PlayerTurn {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let (select, turn, rest, dir) = (
+        let (select, turn, rest, dir, enter) = (
             ecx.vi.select.is_pressed(),
             ecx.vi.turn.is_pressed(),
             ecx.vi.rest.is_pressed(),
             ecx.vi.dir.dir8_down(),
+            ecx.ice.input.kbd.is_key_down(Key::Enter),
         );
 
         if select {
@@ -343,6 +383,13 @@ impl Event for PlayerTurn {
                     dir,
                 })
             };
+        }
+
+        if enter {
+            return EventResult::chain(MeleeAttack {
+                actor: self.actor,
+                dir: None,
+            });
         }
 
         EventResult::GotoNextFrame

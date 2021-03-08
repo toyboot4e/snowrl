@@ -1,16 +1,11 @@
 /*!
-Trivial utilities
- */
+Utilities
+*/
 
-pub mod consts {
-    //! TODO: remove
-
-    /// Duration in seconds to change direction in 45 degrees
-    pub const CHANGE_DIR_TIME: f32 = 1.0 / 60.0;
-}
+use serde::{Deserialize, Serialize};
 
 /// Raw double buffer with interpolation value
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DoubleTrack<T> {
     /// Front
     pub a: T,
@@ -38,7 +33,7 @@ impl<T> DoubleTrack<T> {
 }
 
 /// Double buffer that can internally swap buffers without copy
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DoubleSwap<T> {
     /// Front buffer at initial state
     a: T,

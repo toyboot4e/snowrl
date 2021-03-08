@@ -2,10 +2,11 @@
 Frame-based animation states
 */
 
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
 
 /// Option for playing frame-based animation patterns
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum LoopMode {
     /// ABC ABC ABC ..
     Loop,
@@ -20,7 +21,7 @@ pub enum LoopMode {
 }
 
 /// Running | Paused | Stopped
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum LoopState {
     Running,
     Paused,
@@ -28,7 +29,7 @@ pub enum LoopState {
 }
 
 /// Frame-based animation pattern
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FrameAnimPattern<T> {
     frames: Vec<T>,
     fps: f32,
@@ -105,7 +106,7 @@ impl<T> FrameAnimPattern<T> {
 /// Frame-based animation state, composed of paterns
 ///
 /// Animation patterns are selected by keys, which is often `enum`s.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FrameAnimState<K, T>
 where
     K: Eq + std::hash::Hash,

@@ -1,9 +1,11 @@
 /*!
-Generic utilities
+Core utilities
 */
 
+pub mod cheat;
 pub mod ez;
 pub mod pool;
+pub mod tyobj;
 
 /// [`arraytools::ArrayTools`] re-exported
 ///
@@ -27,6 +29,8 @@ pub mod arena {
 ///
 /// ---
 pub use enum_dispatch::enum_dispatch;
+
+pub use once_cell;
 
 /// [`trait_enum::trait_enum`] re-exported
 ///

@@ -209,12 +209,11 @@ impl PlayScript {
             window: NineSliceSprite {
                 tex: cache.load_sync(paths::img::sourve::A).unwrap(),
             },
-            baloon: SpriteData {
-                tex: cache.load_sync(paths::img::sourve::BALOON).unwrap(),
-                uv_rect: [0.0, 0.0, 0.5, 0.5],
-                // REMARK:
-                origin: [0.5, 0.0],
-                ..Default::default()
+            baloon: {
+                SpriteData::builder(cache.load_sync(paths::img::sourve::BALOON).unwrap())
+                    .uv_rect([0.0, 0.0, 0.5, 0.5])
+                    .origin([0.5, 0.0])
+                    .build()
             },
         }
     }

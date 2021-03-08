@@ -69,7 +69,7 @@ impl<'a> AnimBuilder<'a> {
     }
 
     pub fn secs(&mut self, secs: f32) -> &mut Self {
-        self.dt.set_target(secs);
+        self.dt.target = secs;
         self
     }
 

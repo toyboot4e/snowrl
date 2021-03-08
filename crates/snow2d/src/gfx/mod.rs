@@ -1,11 +1,9 @@
 /*!
-
-Graphics
+Graphics module built
 
 # Coordinate system
 
-Same as OpenGL or school math (left-handed and column-major).
-
+Same as OpenGL or school math (right-handed and column-major).
 */
 
 pub mod geom2d;
@@ -19,9 +17,11 @@ pub mod draw;
 
 pub mod text;
 
+use serde::{Deserialize, Serialize};
+
 use rokol::{
     app as ra,
-    fons::{FonsQuad, FontBook},
+    fons::{self as fons, FontTexture},
     gfx::{self as rg, BakedResource},
 };
 
@@ -30,10 +30,11 @@ use self::{
     draw::*,
     geom2d::*,
     tex::RenderTexture,
+    text::FontBook,
 };
 
 /// 4 bytes color data
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -196,7 +197,7 @@ impl<'a> Default for PassConfig<'a> {
 #[derive(Debug)]
 pub struct Snow2d {
     /// Vertex/index buffer and images slots
-    batch: Batch,
+    pub batch: Batch,
     pub fontbook: FontBook,
     /// Shader program for on-screen rendering
     ons_shd: Shader,
@@ -212,7 +213,14 @@ impl Snow2d {
 
         Self {
             batch: Batch::default(),
-            fontbook: FontBook::new(256, 256),
+            fontbook: {
+                let fontbook = FontBook {
+                    tex: FontTexture::new(256, 256),
+                    storage: Default::default(),
+                };
+                fontbook.tex.set_align(fons::Align::TOP | fons::Align::LEFT);
+                fontbook
+            },
             ons_shd: shaders::default_screen(),
             ofs_shd: shaders::default_offscreen(),
         }
@@ -223,7 +231,7 @@ impl Snow2d {
         // this is the proper place to update GPU texture with CPU texture
         unsafe {
             // call it every frame but only once
-            self.fontbook.maybe_update_image();
+            self.fontbook.tex.maybe_update_image();
         }
     }
 
@@ -236,8 +244,8 @@ impl Snow2d {
 
         // FIXME: projection matrix should be set shaders by themselves
         // left, right, bottom, top, near, far
-        // let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
-        let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
+        let win_size = ra::size_f();
+        let mut proj = glam::Mat4::orthographic_rh_gl(0.0, win_size[0], win_size[1], 0.0, 0.0, 1.0);
 
         if let Some(tfm) = cfg.tfm {
             proj = proj * tfm;
@@ -264,7 +272,8 @@ impl Snow2d {
 
         // FIXME: projection matrix should be set shaders by themselves
         // left, right, bottom, top, near, far
-        let mut proj = glam::Mat4::orthographic_rh_gl(0.0, 1280.0, 720.0, 0.0, 0.0, 1.0);
+        let win_size = ra::size_f();
+        let mut proj = glam::Mat4::orthographic_rh_gl(0.0, win_size[0], win_size[1], 0.0, 0.0, 1.0);
 
         if let Some(tfm) = cfg.tfm {
             proj = proj * tfm;
@@ -344,89 +353,48 @@ impl<'a> RenderPass<'a> {
 
         let pos = pos.into();
         let nl_offset = fontsize + nl_space;
-        for (i, line) in text.lines().enumerate() {
-            let pos = pos + Vec2f::new(0.0, nl_offset * i as f32);
-            self.line_with_shadow(line, pos, Vec2f::new(2.0, 2.0));
-        }
-    }
 
-    /// * `base_pos`: left-up corner of text bounds
-    #[inline]
-    fn line(&mut self, text: &str, base_pos: Vec2f) {
-        let img = self.snow.fontbook.img();
-
-        let iter = self.snow.fontbook.text_iter(text).unwrap();
-        for fons_quad in iter {
-            let q = self.next_quad_mut(img);
-            Self::set_quad(q, &fons_quad, base_pos, [255, 255, 255, 255]);
-        }
-    }
-
-    /// * `base_pos`: left-up corner of text bounds
-    #[inline]
-    fn line_with_shadow(&mut self, text: &str, base_pos: Vec2f, shadow_offset: Vec2f) {
-        let img = self.snow.fontbook.img();
-        let shadow_pos = base_pos.offset(shadow_offset);
-
-        let iter = self.snow.fontbook.text_iter(text).unwrap();
-        for fons_quad in iter {
-            let q_shadow = self.next_quad_mut(img);
-            Self::set_quad(q_shadow, &fons_quad, shadow_pos, [0, 0, 0, 255]);
-
-            let q = self.next_quad_mut(img);
-            Self::set_quad(q, &fons_quad, base_pos, [255, 255, 255, 255]);
-        }
-    }
-
-    /// * `base_pos`: left-up corner of text bounds
-    #[inline]
-    fn line_with_multi_shadow(&mut self, text: &str, base_pos: Vec2f, n_shadows: usize) {
-        let img = self.snow.fontbook.img();
-
-        let iter = self.snow.fontbook.text_iter(text).unwrap();
-        for fons_quad in iter {
-            for i in 0..n_shadows {
-                let q_shadow = self.next_quad_mut(img);
-                Self::set_quad(
-                    q_shadow,
-                    &fons_quad,
-                    base_pos.offset((i + 1) as f32 * Vec2f::new(1.0, 1.0)),
-                    [0, 0, 0, 255],
-                );
+        if let Some(shadow_offset) = Some(Vec2f::new(2.0, 2.0)) {
+            for (i, line) in text.lines().enumerate() {
+                let pos = pos + Vec2f::new(0.0, nl_offset * i as f32);
+                self.text_line_with_shadow(line, pos, shadow_offset);
             }
-
-            let q = self.next_quad_mut(img);
-            Self::set_quad(q, &fons_quad, base_pos, [255, 255, 255, 255]);
+        } else {
+            for (i, line) in text.lines().enumerate() {
+                let pos = pos + Vec2f::new(0.0, nl_offset * i as f32);
+                self.text_line(line, pos);
+            }
         }
     }
 
+    /// * `base_pos`: left-up corner of text bounds
     #[inline]
-    fn set_quad(q: &mut QuadData, fons_quad: &FonsQuad, base_pos: Vec2f, color: [u8; 4]) {
-        q[0].uv = [fons_quad.s0, fons_quad.t0];
-        q[1].uv = [fons_quad.s1, fons_quad.t0];
-        q[2].uv = [fons_quad.s0, fons_quad.t1];
-        q[3].uv = [fons_quad.s1, fons_quad.t1];
+    fn text_line(&mut self, text: &str, base_pos: Vec2f) {
+        let img = self.snow.fontbook.tex.img();
 
-        q[0].pos = [
-            fons_quad.x0 as f32 + base_pos.x,
-            fons_quad.y0 as f32 + base_pos.y,
-        ];
-        q[1].pos = [
-            fons_quad.x1 as f32 + base_pos.x,
-            fons_quad.y0 as f32 + base_pos.y,
-        ];
-        q[2].pos = [
-            fons_quad.x0 as f32 + base_pos.x,
-            fons_quad.y1 as f32 + base_pos.y,
-        ];
-        q[3].pos = [
-            fons_quad.x1 as f32 + base_pos.x,
-            fons_quad.y1 as f32 + base_pos.y,
-        ];
+        let iter = self.snow.fontbook.tex.text_iter(text).unwrap();
+        for fons_quad in iter {
+            let q = self.next_quad_mut(img);
+            crate::gfx::text::set_text_quad(q, &fons_quad, base_pos, [255, 255, 255, 255]);
+        }
+    }
 
-        q[0].color = color;
-        q[1].color = color;
-        q[2].color = color;
-        q[3].color = color;
+    /// * `base_pos`: left-up corner of text bounds
+    #[inline]
+    fn text_line_with_shadow(&mut self, text: &str, base_pos: Vec2f, shadow_offset: Vec2f) {
+        let img = self.snow.fontbook.tex.img();
+
+        let iter = self.snow.fontbook.tex.text_iter(text).unwrap();
+        for fons_quad in iter {
+            crate::gfx::text::set_text_quad_with_shadow(
+                self,
+                img,
+                &fons_quad,
+                base_pos,
+                [255, 255, 255, 255],
+                shadow_offset,
+                [0, 0, 0, 255],
+            );
+        }
     }
 }

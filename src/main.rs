@@ -1,26 +1,32 @@
 //! TODO: filter debug/error log on release build
 
-use rokol::{
-    fons::{self, FontConfig},
-    Rokol,
-};
+use rokol::Rokol;
 
-use snow2d::ui::{CoordSystem, Layer};
+use snow2d::{
+    ui::{CoordSystem, Layer},
+    utils::tyobj::TypeObject,
+};
 
 use rlbox::{
     rl::grid2d::*,
-    view::{actor::ActorImage, camera::*, map::TiledRlMap, shadow::Shadow},
+    view::{
+        camera::{Camera2d, FollowCamera2d, TransformParams2d},
+        map::TiledRlMap,
+        shadow::Shadow,
+    },
 };
 
 use grue2d::{
     render::WorldRenderer,
     rl::{
         turn::anim::AnimPlayer,
-        world::{actor::Actor, World},
+        world::{actor::*, World},
     },
+    VInput,
 };
 
 use snowrl::{
+    init,
     prelude::*,
     states,
     utils::{consts, paths},
@@ -33,8 +39,10 @@ fn main() -> rokol::Result {
     let rokol = rokol::Rokol {
         w: 1280,
         h: 720,
-        title: "SnowRL".to_string(),
         use_high_dpi: false,
+        // TODO: text-only high DPI game application (other items should be scaled)
+        // use_high_dpi: true,
+        title: "SnowRL".to_string(),
         ..Default::default()
     };
 
@@ -54,58 +62,24 @@ fn main() -> rokol::Result {
 fn new_game(rokol: Rokol) -> GlueRl {
     let title = rokol.title;
 
-    // create generic game context
-    let mut ice = {
-        let mut snow = unsafe { Snow2d::new() };
-
-        let font_cfg = FontConfig {
-            font: {
-                // FIXME: font and font path
-                let font = include_bytes!("../assets_embedded/mplus-1p-regular.ttf");
-                let ix = snow
-                    .fontbook
-                    .stash()
-                    .add_font_mem("mplus-1p-regular", font)
-                    .unwrap();
-                snow.fontbook
-                    .stash()
-                    .set_align(fons::Align::TOP | fons::Align::LEFT);
-                ix
-            },
-            fontsize: crate::consts::DEFAULT_FONT_SIZE,
-            line_spacing: crate::consts::DEFAULT_LINE_SPACE,
-        };
-        snow.fontbook.apply_cfg(&font_cfg);
-
-        Ice::new(title, snow, font_cfg)
-    };
-
     // create our game context
     let mut gl = {
-        ice.assets
-            .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
-
-        audio::asset::register_asset_loaders(&mut ice.assets, &ice.audio.clone());
-
+        let mut ice = Ice::new(title, unsafe { Snow2d::new() });
+        init::init_assets(&mut ice).unwrap();
         let world = self::init_world(&mut ice).unwrap();
+        let fonts = init::load_fonts(&mut ice);
 
         Global {
             world,
+            world_render: WorldRenderer::default(),
             ice,
+            fonts,
             vi: VInput::new(),
             ui: Default::default(),
-            world_render: WorldRenderer::default(),
             anims: AnimPlayer::default(),
             script_to_play: None,
         }
     };
-
-    // TODO: remove this debug print
-    {
-        let x = ron::ser::to_string_pretty(&gl.vi, Default::default()).unwrap();
-        println!("{}", x);
-        let _y: VInput = ron::de::from_str(&x).unwrap();
-    }
 
     // create our control
     let fsm = {
@@ -164,84 +138,56 @@ fn init_world(ice: &mut Ice) -> anyhow::Result<World> {
             is_moving: false,
         },
         map,
-        shadow: Shadow::new(radius, map_size, consts::WALK_TIME, consts::FOV_EASE),
+        shadow: Shadow::new(radius, map_size, consts::WALK_SECS, consts::FOV_EASE),
         entities: Arena::with_capacity(20),
     };
 
-    self::load_actors(&mut world, ice)?;
+    // Be sure to set [`AssetDeState`] while we're loading assets
+    unsafe {
+        snow2d::asset::AssetDeState::start(&mut ice.assets).unwrap();
+    }
 
+    self::load_actors(&mut world)?;
+
+    unsafe {
+        snow2d::asset::AssetDeState::end().unwrap();
+    }
+
+    // animate initial FoV:
+    world.shadow.mark_dirty();
     // just set FoV:
     // shadow.calculate(player.pos, &map.rlmap);
-    // or animate initial FoV:
-    world.shadow.mark_dirty();
 
     Ok(world)
 }
 
-fn load_actors(w: &mut World, ice: &mut Ice) -> anyhow::Result<()> {
-    let cache = ice.assets.cache_mut::<Texture2dDrop>().unwrap();
+fn load_actors(w: &mut World) -> anyhow::Result<()> {
+    // TODO: ActorBuilder::from_type
 
     // player
-    // let tex = cache.load_sync(paths::CHICKEN).unwrap();
-    let tex = cache.load_sync(paths::IKA_CHAN).unwrap();
-    let tex_scales = [1.0, 1.0];
-
-    let img = {
-        let mut img = ActorImage::new(
-            tex,
-            consts::ACTOR_FPS,
-            consts::WALK_TIME,
-            consts::WALK_EASE,
-            [12, 23].into(),
-            Dir8::S,
-        )?;
-
-        // FIXME: consider offsets
-        for frame_sprite in img.frames_mut() {
-            frame_sprite.scales = tex_scales;
-        }
-
-        img
-    };
-
-    w.entities.insert({
-        let mut player = Actor {
-            pos: [20, 16].into(),
-            dir: Dir8::S,
-            img: img.clone(),
-        };
+    let player = {
+        let mut player: Actor = ActorType::from_type_key(&"ika-chan".into())?.to_actor();
+        player.pos = [14, 10].into();
         player.img.warp(player.pos, player.dir);
         player
-    });
+    };
+    w.entities.insert(player);
 
     // non-player characters
-
-    let tex = cache.load_sync(paths::img::pochi::WHAT).unwrap();
-    let img = ActorImage::new(
-        tex,
-        consts::ACTOR_FPS,
-        consts::WALK_TIME,
-        consts::WALK_EASE,
-        [0, 0].into(),
-        Dir8::S,
-    )?;
+    let actor: Actor = ActorType::from_type_key(&"mokusei-san".into())?.to_actor();
 
     w.entities.insert({
-        let mut actor = Actor {
-            pos: [14, 12].into(),
-            dir: Dir8::S,
-            img: img.clone(),
-        };
+        let mut actor = actor.clone();
+        actor.pos = [14, 12].into();
+        actor.dir = Dir8::S;
         actor.img.warp(actor.pos, actor.dir);
         actor
     });
 
     w.entities.insert({
-        let mut actor = Actor {
-            pos: [25, 18].into(),
-            dir: Dir8::S,
-            img: img.clone(),
-        };
+        let mut actor = actor.clone();
+        actor.pos = [25, 18].into();
+        actor.dir = Dir8::S;
         actor.img.warp(actor.pos, actor.dir);
         actor
     });

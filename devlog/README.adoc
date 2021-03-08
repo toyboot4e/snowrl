@@ -143,3 +143,18 @@ is so nice compared to my `main.rs`.
 
 I'm temped to try ECS, but it would be after finishing SnowRL.
 
+== Utilities
+
+* [inline_tweak](https://docs.rs/inline_tweak/latest/inline_tweak/) for tweaking literals on debug build.
++
+[source,rust]
+++++
+pub mod consts {
+    pub fn walk_time() -> f32 {
+        inline_tweak!(1.0) / 60.0;
+    }
+}
+++++
+* [thunderdome](https://docs.rs/thunderdome/latest/thunderdome/) for generational arena. I'm using a for that uses typed `Index<T>`.
+* [derivative](https://github.com/mcarton/rust-derivative) can handle `#[derive(..)]` with `PhantomData` field: [derive_ord.rs](https://github.com/mcarton/rust-derivative/blob/d3ff6f700c69e02e213f26549f38a97c7165c544/tests/derive-ord.rs#L110)
+
