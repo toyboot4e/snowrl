@@ -312,6 +312,31 @@ impl<T> Pool<T> {
             .enumerate()
             .filter_map(|(i, entry)| entry.gen.map(|_| Slot(i as u32)))
     }
+
+    /// Returns iterator of `(Slot, T)`
+    pub fn enumerate_items(&self) -> impl Iterator<Item = (Slot, &T)> {
+        self.entries.iter().enumerate().filter_map(|(i, entry)| {
+            if entry.gen.is_some() {
+                Some((Slot(i as u32), &entry.item))
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Returns iterator of `(Slot, T)`
+    pub fn enumerate_items_mut(&mut self) -> impl Iterator<Item = (Slot, &mut T)> {
+        self.entries
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(i, entry)| {
+                if entry.gen.is_some() {
+                    Some((Slot(i as u32), &mut entry.item))
+                } else {
+                    None
+                }
+            })
+    }
 }
 
 pub mod iters {
