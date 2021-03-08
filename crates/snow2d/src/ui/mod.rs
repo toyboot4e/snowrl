@@ -10,7 +10,10 @@ use {glam::Mat4, std::time::Duration};
 
 use crate::{
     gfx::PassConfig,
-    utils::{arena::Arena, pool::Pool},
+    utils::{
+        arena::Arena,
+        pool::{Handle, Pool, Slot},
+    },
     Ice,
 };
 
@@ -60,8 +63,33 @@ impl Layer {
     }
 
     fn update(&mut self, dt: Duration) {
+        // apply animations
         self.anims.update(dt, &mut self.nodes);
+
         self.nodes.sync_refcounts();
+
+        // calculate geometry
+        for slot in self.nodes.slots() {
+            // update cache
+            unsafe { self.update_node_rec(slot, None);}
+        }
+        // TODO: sort nodes
+    }
+
+    unsafe fn update_node_rec(&self, child: Slot, parent: Option<Slot>) {
+        if let Some(parent) = parent {
+            let [child, parent] =
+                [
+                    self.nodes.get_by_slot_unsafe(child).unwrap(),
+                    self.nodes.get_by_slot_unsafe(parent).unwrap(),
+                ]
+            ;
+            child.cache = child.params.clone();
+            parent.cache.transform_mut(&mut child.cache);
+        } else {
+            let child = self.nodes.get_by_slot_unsafe(child).unwrap();
+            child.cache = child.params.clone();
+        }
     }
 
     pub fn render(&mut self, ice: &mut Ice, cam_mat: Mat4) {
@@ -73,8 +101,7 @@ impl Layer {
             ..Default::default()
         });
 
-        // TODO: sort nodes
-        for node in self.nodes.iter_mut() {
+        for node in &mut self.nodes {
             node.render(&mut screen);
         }
     }

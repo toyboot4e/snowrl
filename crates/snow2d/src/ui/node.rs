@@ -12,57 +12,6 @@ use crate::{
 // Re-exported as [`Node`] variants
 pub use crate::gfx::tex::{NineSliceSprite, SpriteData};
 
-/// Visible object in a UI layer
-#[derive(Debug, Clone)]
-pub struct Node {
-    pub draw: Draw,
-    /// Common geometry data
-    pub params: DrawParams,
-    /// TODO: Drawing order (1.0 is top, 0.0 is bottom)
-    pub z: f32,
-    /// TODO: transform tree
-    pub children: Vec<Handle<Self>>,
-}
-
-impl From<Draw> for Node {
-    fn from(draw: Draw) -> Self {
-        let params = DrawParams {
-            size: match draw {
-                Draw::Sprite(ref x) => x.sub_tex_size_scaled().into(),
-
-                Draw::NineSlice(ref x) => x.sub_tex_size_scaled().into(),
-                // FIXME: measure text size?
-                Draw::Text(ref _x) => [1.0, 1.0].into(),
-            },
-            ..Default::default()
-        };
-
-        Node {
-            draw,
-            params,
-            children: vec![],
-            z: 0.0,
-        }
-    }
-}
-
-impl Node {
-    pub fn render(&mut self, pass: &mut RenderPass<'_>) {
-        match self.draw {
-            Draw::Sprite(ref x) => {
-                self.params.apply(&mut pass.sprite(x));
-            }
-            Draw::NineSlice(ref x) => {
-                self.params.apply(&mut pass.sprite(x));
-            }
-            Draw::Text(ref x) => {
-                // TODO: custom position
-                pass.text(self.params.pos, &x.txt);
-            }
-        }
-    }
-}
-
 /// Common geometry data that animations can operate on
 #[derive(Debug, Clone, Default)]
 pub struct DrawParams {
@@ -76,11 +25,15 @@ pub struct DrawParams {
 
 impl DrawParams {
     /// Sets up quad parameters
-    pub fn apply<'a, 'b: 'a, B: QuadParamsBuilder>(&self, builder: &'b mut B) -> &'a mut B {
+    pub fn setup_quad<'a, 'b: 'a, B: QuadParamsBuilder>(&self, builder: &'b mut B) -> &'a mut B {
         builder
             .dst_pos_px(self.pos)
             .dst_size_px(self.size)
             .color(self.color)
+    }
+
+    pub fn transform_mut(&self, other: &mut DrawParams) {
+        other.pos += self.pos;
     }
 }
 
@@ -90,6 +43,8 @@ pub enum Draw {
     Sprite(SpriteData),
     NineSlice(NineSliceSprite),
     Text(Text),
+    /// The node is only for parenting
+    None,
 }
 
 macro_rules! impl_into_draw {
@@ -124,10 +79,6 @@ impl_into_draw!(SpriteData, Sprite);
 impl_into_draw!(NineSliceSprite, NineSlice);
 impl_into_draw!(Text, Text);
 
-impl Draw {
-    // pub fn draw(
-}
-
 /// [`Draw`] variant
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Text {
@@ -136,29 +87,61 @@ pub struct Text {
     // TODO: decoration information (spans for colors, etc)
 }
 
-// /// X/Y aligment
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// pub struct Align2d {
-//     pub h: AlignH,
-//     pub v: AlignV,
-// }
+/// Visible object in a UI layer
+#[derive(Debug, Clone)]
+pub struct Node {
+    pub draw: Draw,
+    /// Common geometry data
+    pub params: DrawParams,
+    /// Draw parameter calculated befre rendering
+    pub(crate) cache: DrawParams,
+    /// Weak references to children
+    children: Vec<Handle<Node>>,
+    // TODO: dirty flag,
+    // TODO: z,
+}
 
-// impl Align2d {
-//     pub fn new(h: AlignH, v: AlignV) -> Self {
-//         Self { h, v }
-//     }
-// }
+impl From<Draw> for Node {
+    fn from(draw: Draw) -> Self {
+        let params = DrawParams {
+            size: match draw {
+                // FIXME: parent box size. Node builder?
+                Draw::None => [1.0, 1.0].into(),
+                Draw::Sprite(ref x) => x.sub_tex_size_scaled().into(),
+                Draw::NineSlice(ref x) => x.sub_tex_size_scaled().into(),
+                // FIXME: measure text size?
+                Draw::Text(ref _x) => [1.0, 1.0].into(),
+            },
+            ..Default::default()
+        };
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// pub enum AlignH {
-//     Left,
-//     Center,
-//     Right,
-// }
+        Node {
+            draw,
+            params: params.clone(),
+            cache: params.clone(),
+            children: vec![],
+        }
+    }
+}
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// pub enum AlignV {
-//     Top,
-//     Center,
-//     Bottom,
-// }
+impl Node {
+    pub fn render(&mut self, pass: &mut RenderPass<'_>) {
+        match self.draw {
+            Draw::Sprite(ref x) => {
+                self.params.setup_quad(&mut pass.sprite(x));
+            }
+            Draw::NineSlice(ref x) => {
+                self.params.setup_quad(&mut pass.sprite(x));
+            }
+            Draw::Text(ref x) => {
+                // TODO: custom position
+                pass.text(self.params.pos, &x.txt);
+            }
+            Draw::None => {}
+        }
+    }
+
+    pub fn add_child(&mut self, node: Handle<Self>) {
+        self.children.push(node);
+    }
+}

@@ -68,6 +68,7 @@ impl SnowRl {
         // }
     }
 
+    // TODO: consider using systems for explicit control flow
     #[inline]
     fn update(&mut self) {
         self.grue.gl.pre_update();

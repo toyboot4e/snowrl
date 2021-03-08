@@ -305,6 +305,11 @@ impl<T> Pool<T> {
         }
     }
 
+    pub unsafe fn get_by_slot_unsafe(&self, slot: Slot) -> Option<&mut T> {
+        self.get_by_slot(slot)
+            .map(|item| &mut *(item as *const _ as *mut _))
+    }
+
     // TODO: use specific iterator?
     pub fn slots(&self) -> impl Iterator<Item = Slot> + '_ {
         self.entries
@@ -313,7 +318,7 @@ impl<T> Pool<T> {
             .filter_map(|(i, entry)| entry.gen.map(|_| Slot(i as u32)))
     }
 
-    /// Returns iterator of `(Slot, T)`
+    /// Iterator of `(Slot, &T)`
     pub fn enumerate_items(&self) -> impl Iterator<Item = (Slot, &T)> {
         self.entries.iter().enumerate().filter_map(|(i, entry)| {
             if entry.gen.is_some() {
@@ -324,7 +329,7 @@ impl<T> Pool<T> {
         })
     }
 
-    /// Returns iterator of `(Slot, T)`
+    /// Iterator of `(Slot, &mut T)`
     pub fn enumerate_items_mut(&mut self) -> impl Iterator<Item = (Slot, &mut T)> {
         self.entries
             .iter_mut()
