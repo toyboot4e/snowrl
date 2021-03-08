@@ -35,13 +35,71 @@ type RefCount = u16;
 
 /// Newtype of `U32`
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Index(u32);
+pub struct Slot(u32);
 
 /// Message for reference counting (New | Drop)
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Message {
-    New(Index),
-    Drop(Index),
+    New(Slot),
+    Drop(Slot),
+}
+
+/// Owing index to an item in a [`Pool`]
+///
+/// The identity is NOT guaranteed if you have two `Pools` of the same type.
+#[derive(Debug)]
+pub struct Handle<T> {
+    index: Slot,
+    gen: Gen,
+    sender: Sender<Message>,
+    _phantom: PhantomData<fn() -> T>,
+}
+
+impl<T> Handle<T> {
+    pub fn downgrade(self) -> WeakHandle<T> {
+        WeakHandle {
+            index: self.index,
+            gen: self.gen,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<T> Clone for Handle<T> {
+    fn clone(&self) -> Self {
+        // TODO: fix it because it dies if the pool is already dead?
+        self.sender.send(Message::New(self.index)).unwrap();
+        Self {
+            index: self.index,
+            gen: self.gen,
+            sender: self.sender.clone(),
+            _phantom: Default::default(),
+        }
+    }
+}
+
+impl<T> Drop for Handle<T> {
+    fn drop(&mut self) {
+        // fails if the pool is already dead
+        self.sender.send(Message::Drop(self.index)).ok();
+    }
+}
+
+/// Non-owing index to an item in a [`Pool`] with generational index that can the interested item
+pub struct WeakHandle<T> {
+    index: Slot,
+    gen: Gen,
+    _phantom: PhantomData<fn() -> T>,
+}
+
+impl<T> From<Handle<T>> for WeakHandle<T> {
+    fn from(h: Handle<T>) -> Self {
+        Self {
+            index: h.index,
+            gen: h.gen,
+            _phantom: PhantomData,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -98,7 +156,29 @@ impl<T> Pool<T> {
         }
     }
 
-    fn find_slot(&mut self) -> Option<usize> {
+    /// Update reference counting of internal items
+    pub fn sync_refcounts(&mut self) {
+        while let Ok(mes) = self.receiver.try_recv() {
+            match mes {
+                Message::New(ix) => {
+                    self.entries[ix.0 as usize].ref_count += 1;
+                }
+                Message::Drop(ix) => {
+                    self.entries[ix.0 as usize].ref_count -= 1;
+                    // TODO: is this right
+                    if self.entries[ix.0 as usize].ref_count == 0 {
+                        // invalidate the entry
+                        self.entries[ix.0 as usize].gen = None;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Handle-based accessors
+impl<T> Pool<T> {
+    fn find_emptyslot(&mut self) -> Option<usize> {
         for i in 0..self.entries.len() {
             if let Some(e) = self.entries.get(i) {
                 if e.gen.is_none() {
@@ -122,7 +202,7 @@ impl<T> Pool<T> {
 
         self.gen_count += 1;
 
-        let index = match self.find_slot() {
+        let index = match self.find_emptyslot() {
             Some(i) => {
                 self.entries[i] = entry;
                 i
@@ -141,29 +221,10 @@ impl<T> Pool<T> {
         };
 
         Handle {
-            index: Index(index as u32),
+            index: Slot(index as u32),
             gen: gen.unwrap(),
             sender: self.sender.clone(),
             _phantom: Default::default(),
-        }
-    }
-
-    /// Update reference counting of internal items
-    pub fn sync_refcounts(&mut self) {
-        while let Ok(mes) = self.receiver.try_recv() {
-            match mes {
-                Message::New(ix) => {
-                    self.entries[ix.0 as usize].ref_count += 1;
-                }
-                Message::Drop(ix) => {
-                    self.entries[ix.0 as usize].ref_count -= 1;
-                    // TODO: is this right
-                    if self.entries[ix.0 as usize].ref_count == 0 {
-                        // invalidate the entry
-                        self.entries[ix.0 as usize].gen = None;
-                    }
-                }
-            }
         }
     }
 
@@ -224,61 +285,32 @@ impl<T> ops::IndexMut<&WeakHandle<T>> for Pool<T> {
     }
 }
 
-/// Owing index to an item in a [`Pool`]
-///
-/// The identity is NOT guaranteed if you have two `Pools` of the same type.
-#[derive(Debug)]
-pub struct Handle<T> {
-    index: Index,
-    gen: Gen,
-    sender: Sender<Message>,
-    _phantom: PhantomData<fn() -> T>,
-}
-
-impl<T> Handle<T> {
-    pub fn downgrade(self) -> WeakHandle<T> {
-        WeakHandle {
-            index: self.index,
-            gen: self.gen,
-            _phantom: PhantomData,
+/// Slot-based accessors
+impl<T> Pool<T> {
+    pub fn get_by_slot(&self, slot: Slot) -> Option<&T> {
+        let entry = self.entries.get(slot.0 as usize)?;
+        if entry.gen.is_none() {
+            None
+        } else {
+            Some(&entry.item)
         }
     }
-}
 
-impl<T> Clone for Handle<T> {
-    fn clone(&self) -> Self {
-        // TODO: fix it because it dies if the pool is already dead?
-        self.sender.send(Message::New(self.index)).unwrap();
-        Self {
-            index: self.index,
-            gen: self.gen,
-            sender: self.sender.clone(),
-            _phantom: Default::default(),
+    pub fn get_by_slot_mut(&mut self, slot: Slot) -> Option<&mut T> {
+        let entry = self.entries.get_mut(slot.0 as usize)?;
+        if entry.gen.is_none() {
+            None
+        } else {
+            Some(&mut entry.item)
         }
     }
-}
 
-impl<T> Drop for Handle<T> {
-    fn drop(&mut self) {
-        // fails if the pool is already dead
-        self.sender.send(Message::Drop(self.index)).ok();
-    }
-}
-
-/// Non-owing index to an item in a [`Pool`] with generational index that can the interested item
-pub struct WeakHandle<T> {
-    index: Index,
-    gen: Gen,
-    _phantom: PhantomData<fn() -> T>,
-}
-
-impl<T> From<Handle<T>> for WeakHandle<T> {
-    fn from(h: Handle<T>) -> Self {
-        Self {
-            index: h.index,
-            gen: h.gen,
-            _phantom: PhantomData,
-        }
+    // TODO: use specific iterator?
+    pub fn slots(&self) -> impl Iterator<Item = Slot> + '_ {
+        self.entries
+            .iter()
+            .enumerate()
+            .filter_map(|(i, entry)| entry.gen.map(|_| Slot(i as u32)))
     }
 }
 
