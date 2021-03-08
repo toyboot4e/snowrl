@@ -19,6 +19,7 @@ impl<T> Clone for Cheat<T> {
 }
 
 impl<T> Cheat<T> {
+    #[inline]
     pub unsafe fn new(reference: &T) -> Self {
         Self {
             ptr: reference as *const _ as *mut _,
@@ -29,6 +30,11 @@ impl<T> Cheat<T> {
         Self {
             ptr: std::ptr::null_mut(),
         }
+    }
+
+    #[inline]
+    pub unsafe fn as_mut(&self) -> &mut T {
+        &mut *self.ptr
     }
 }
 

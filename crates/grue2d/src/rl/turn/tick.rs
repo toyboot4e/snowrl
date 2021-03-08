@@ -14,7 +14,7 @@ use std::{
 use {
     downcast_rs::{impl_downcast, Downcast},
     snow2d::{
-        utils::{arena::Index, cheat::Cheat},
+        utils::{arena::Index, Cheat},
         Ice,
     },
 };

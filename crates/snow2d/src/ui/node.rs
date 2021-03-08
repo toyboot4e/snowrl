@@ -6,7 +6,7 @@ UI nodes (renderables)
 
 use crate::{
     gfx::{draw::*, geom2d::*, Color, RenderPass},
-    utils::pool::Handle,
+    utils::pool::{Handle, WeakHandle},
 };
 
 // Re-exported as [`Node`] variants
@@ -50,6 +50,7 @@ pub enum Draw {
     None,
 }
 
+/// DrawVariant -> Draw -> Node
 macro_rules! impl_into_draw {
     ($ty:ident, $var:ident) => {
         impl From<$ty> for Draw {
@@ -97,12 +98,13 @@ pub struct Node {
     /// Common geometry data
     pub params: DrawParams,
     /// Draw parameter calculated befre rendering
-    pub(crate) cache: DrawParams,
-    /// Weak references to children
-    children: Vec<Handle<Node>>,
-    // TODO: dirty flag,
+    pub(super) cache: DrawParams,
     /// Rendering order [0, 1] (the higher, the latter)
     pub order: Order,
+    /// NOTE: Parents are alive if any children is alive
+    pub(super) parent: Option<Handle<Node>>,
+    pub(super) children: Vec<WeakHandle<Node>>,
+    // TODO: dirty flag,
 }
 
 impl From<Draw> for Node {
@@ -118,35 +120,41 @@ impl From<Draw> for Node {
             },
             ..Default::default()
         };
-
         Node {
             draw,
             params: params.clone(),
             cache: params.clone(),
-            children: vec![],
             order: 1.0,
+            children: vec![],
+            parent: None,
         }
     }
 }
 
 impl Node {
     pub fn render(&mut self, pass: &mut RenderPass<'_>) {
+        let params = &self.cache;
         match self.draw {
             Draw::Sprite(ref x) => {
-                self.params.setup_quad(&mut pass.sprite(x));
+                params.setup_quad(&mut pass.sprite(x));
             }
             Draw::NineSlice(ref x) => {
-                self.params.setup_quad(&mut pass.sprite(x));
+                params.setup_quad(&mut pass.sprite(x));
             }
             Draw::Text(ref x) => {
                 // TODO: custom position
-                pass.text(self.params.pos, &x.txt);
+                pass.text(params.pos, &x.txt);
             }
             Draw::None => {}
         }
     }
-
-    pub fn add_child(&mut self, node: Handle<Self>) {
-        self.children.push(node);
-    }
 }
+
+// pub struct NodeBuilder {
+//     draw: Draw,
+//     params: DrawParams,
+//     children:Vec<Node>,
+// }
+
+// impl NodeBuilder {
+// }

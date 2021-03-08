@@ -18,24 +18,22 @@ snow2d_macros = { path = "snow2d_macros" }
 
 log = "0.4.11"
 env_logger = "0.8.2"
-anyhow = "1.0.33"
-thiserror = "1.0.21"
 
 image = "0.23.12"
 glam = "0.11.2"
 
+anyhow = "1.0.33"
 auto_ops = "0.1.0"
-bitflags = "1.2.1"
-once_cell = "1.7.2"
-downcast-rs = "1.2.0"
-
-# utilities
-inline_tweak = "1.0.8"
-thunderdome = { git = "https://github.com/toyboot4e/thunderdome", branch = "snowrl" }
 arraytools = "0.1.5"
-trait_enum = "0.5.0"
-enum_dispatch = "0.3.5"
-serde = "1.0.123"
-ron = "0.6.4"
+bitflags = "1.2.1"
 derivative = "2.2.0"
+downcast-rs = "1.2.0"
+enum_dispatch = "0.3.5"
+inline_tweak = "1.0.8"
+once_cell = "1.7.2"
+serde = "1.0.123"
+thiserror = "1.0.21"
+thunderdome = { git = "https://github.com/toyboot4e/thunderdome", branch = "snowrl" }
+trait_enum = "0.5.0"
+ron = "0.6.4"
 

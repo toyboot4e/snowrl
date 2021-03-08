@@ -29,6 +29,25 @@ fn sound_volume() -> f32 {
 pub struct SnowRl {
     pub grue: GlueRl,
     pub plugin: hot_crate::HotLibrary,
+    tmp: Vec<snow2d::utils::pool::Handle<snow2d::ui::node::Node>>,
+}
+
+impl SnowRl {
+    pub fn new(grue: GlueRl) -> Self {
+        let plugin = {
+            let root = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+            grue2d::hot_crate::HotLibrary::load(
+                root.join("Cargo.toml"),
+                root.join("crates/plugins/Cargo.toml"),
+            )
+            .unwrap()
+        };
+        Self {
+            grue,
+            plugin,
+            tmp: vec![],
+        }
+    }
 }
 
 /// Lifecycle forced by `rokol`
@@ -55,6 +74,8 @@ impl SnowRl {
         #[cfg(debug_assertions)]
         self.grue.gl.ice.audio.set_global_volume(sound_volume());
 
+        self.test_transform();
+
         // // TODO: handle plugins properly
         // if self.grue.gl.ice.frame_count % 120 == 0 {
         //     use {grue2d::Plugin, hot_crate::libloading::Symbol};
@@ -79,20 +100,26 @@ impl SnowRl {
     #[inline]
     fn render(&mut self) {
         let gl = &mut self.grue.gl;
-
         gl.pre_render();
-
-        // TODO: schedule rendering
-        gl.world_render
-            .render(&gl.world, &mut gl.ice, &mut gl.ui, WorldRenderFlag::ALL);
-
-        Self::test_text_style(gl);
-
         let cam_mat = gl.world.cam.to_mat4();
+
+        gl.world_render.render(
+            &gl.world,
+            &mut gl.ice,
+            &mut gl.ui,
+            WorldRenderFlag::SHADOW | WorldRenderFlag::ACTORS | WorldRenderFlag::MAP,
+        );
+
         gl.ui.get_mut(UiLayer::Actors).render(&mut gl.ice, cam_mat);
         gl.ui
             .get_mut(UiLayer::OnActors)
             .render(&mut gl.ice, cam_mat);
+
+        gl.world_render
+            .render(&gl.world, &mut gl.ice, &mut gl.ui, WorldRenderFlag::SNOW);
+
+        Self::test_text_style(gl);
+
         gl.ui.get_mut(UiLayer::Screen).render(&mut gl.ice, cam_mat);
     }
 
@@ -134,5 +161,32 @@ impl SnowRl {
             &mut gl.ice.snow,
             font_set_handle,
         );
+    }
+
+    fn test_transform(&mut self) {
+        if !self.tmp.is_empty() {
+            return;
+        }
+        use crate::prelude::*;
+
+        let gl = &mut self.grue.gl;
+        let layer = gl.ui.get_mut(grue2d::UiLayer::Screen);
+
+        let tex: Asset<Texture2dDrop> = gl.ice.assets.load_sync(paths::img::pochi::WHAT).unwrap();
+        let sprite = SpriteData::builder(tex)
+            .uv_rect([0.0, 0.0, 1.0 / 6.0, 1.0 / 4.0])
+            .origin([0.5, 0.5])
+            .build();
+
+        let mut center: Node = sprite.clone().into();
+        center.params.pos = [640.0, 320.0].into();
+        let parent = layer.nodes.add(center);
+
+        let mut child: Node = sprite.clone().into();
+        child.params.pos = [100.0, 100.0].into();
+        let child = layer.nodes.attach_child(&parent, child);
+
+        self.tmp.push(parent);
+        self.tmp.push(child);
     }
 }

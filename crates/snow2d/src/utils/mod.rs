@@ -2,7 +2,9 @@
 Core utilities
 */
 
-pub mod cheat;
+mod cheat;
+pub use cheat::Cheat;
+
 pub mod ez;
 pub mod pool;
 pub mod tyobj;
@@ -24,6 +26,11 @@ pub mod arena {
 
     pub use thunderdome::*;
 }
+
+/// [`derivative::Derivative`] re-exported
+///
+/// ---
+pub use derivative::Derivative;
 
 /// [`enum_dispatch::enum_dispatch`] re-exported
 ///

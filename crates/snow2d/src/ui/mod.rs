@@ -12,8 +12,8 @@ use crate::{
     gfx::PassConfig,
     utils::{
         arena::Arena,
-        cheat::Cheat,
-        pool::{Pool, Slot},
+        pool::{Handle, Pool, Slot},
+        Cheat,
     },
     Ice,
 };
@@ -51,7 +51,7 @@ pub struct Layer {
 impl Layer {
     pub fn new(coord: CoordSystem) -> Self {
         Self {
-            nodes: Pool::with_capacity(16),
+            nodes: NodePool::new(),
             anims: AnimArena(Arena::with_capacity(16)),
             coord,
             ord_buf: Vec::with_capacity(16),
@@ -59,26 +59,38 @@ impl Layer {
     }
 
     pub fn update(&mut self, dt: Duration) {
-        // apply animations
+        // tick and apply animations. remove finished animations
         self.anims.update(dt, &mut self.nodes);
 
+        // remove unreferenced nodes
         self.nodes.sync_refcounts();
 
         // calculate geometry
         unsafe {
-            let mut nodes = Cheat::new(&mut self.nodes);
-            for node in nodes.iter_mut() {
+            let nodes = Cheat::new(&mut self.nodes);
+            for node in nodes.as_mut().iter_mut().filter(|n| n.parent.is_none()) {
                 // update cache
-                self.update_node_rec(node, None);
+                Self::update_node_rec(nodes.clone(), node, None);
             }
         }
     }
 
-    unsafe fn update_node_rec(&mut self, child: &mut Node, parent: Option<Slot>) {
+    unsafe fn update_node_rec(
+        nodes: Cheat<NodePool>,
+        child: &mut Node,
+        parent: Option<Cheat<Node>>,
+    ) {
+        // apply transform to this node
         child.cache = child.params.clone();
         if let Some(parent) = parent {
-            let parent = self.nodes.get_mut_by_slot(parent).unwrap();
             parent.cache.transform_mut(&mut child.cache);
+        }
+
+        // apply transform to children
+        let parent = Cheat::new(child);
+        for child_slot in &parent.as_mut().children {
+            let child = nodes.as_mut().get_mut(child_slot).unwrap();
+            Self::update_node_rec(nodes.clone(), child, Some(parent.clone()));
         }
     }
 
@@ -117,7 +129,42 @@ impl Layer {
 }
 
 /// [`Pool`] of nodes
-pub type NodePool = Pool<Node>;
+
+/// [`Arena`] of animations
+#[derive(Debug)]
+pub struct NodePool {
+    nodes: Pool<Node>,
+}
+
+impl std::ops::Deref for NodePool {
+    type Target = Pool<Node>;
+    fn deref(&self) -> &Self::Target {
+        &self.nodes
+    }
+}
+
+impl std::ops::DerefMut for NodePool {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.nodes
+    }
+}
+
+impl NodePool {
+    pub fn new() -> Self {
+        Self {
+            nodes: Pool::with_capacity(16),
+        }
+    }
+
+    pub fn attach_child(&mut self, parent_handle: &Handle<Node>, mut child: Node) -> Handle<Node> {
+        child.parent = Some(parent_handle.clone());
+        let child_handle = self.nodes.add(child);
+        self.nodes[parent_handle]
+            .children
+            .push(child_handle.to_downgraded());
+        child_handle
+    }
+}
 
 /// [`Arena`] of animations
 #[derive(Debug)]
@@ -141,7 +188,7 @@ impl AnimArena {
         anim_builder::AnimBuilder::new(self)
     }
 
-    /// Ticks and applies tweens
+    /// Tick and apply animations. Remove finished animations
     pub fn update(&mut self, dt: Duration, nodes: &mut Pool<Node>) {
         let mut removals = vec![];
 

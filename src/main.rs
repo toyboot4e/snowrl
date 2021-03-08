@@ -1,4 +1,5 @@
-//! TODO: filter debug/error log on release build
+//! TODO: remove debug/error log on release build?
+//! TODO: inspect Pool/Anim and see if there's garbage
 
 use rokol::Rokol;
 
@@ -43,17 +44,7 @@ fn main() -> rokol::Result {
         ..Default::default()
     };
 
-    grue2d::run(rokol, |rokol| SnowRl {
-        grue: self::new_game(rokol),
-        plugin: {
-            let root = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
-            grue2d::hot_crate::HotLibrary::load(
-                root.join("Cargo.toml"),
-                root.join("crates/plugins/Cargo.toml"),
-            )
-            .unwrap()
-        },
-    })
+    grue2d::run(rokol, |rokol| SnowRl::new(self::new_game(rokol)))
 }
 
 fn new_game(rokol: Rokol) -> GlueRl {

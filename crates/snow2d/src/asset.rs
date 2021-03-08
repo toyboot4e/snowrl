@@ -9,6 +9,7 @@ Asset cache and reference-counted asset references
 
 # TODOs
 
+* DummyAssetItem and Deref
 * async loading
 * hot reloading (tiled map, actor image, etc.)
 */
@@ -36,7 +37,7 @@ use downcast_rs::{impl_downcast, Downcast};
 use once_cell::sync::OnceCell;
 use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
 
-use crate::utils::cheat::Cheat;
+use crate::utils::Cheat;
 
 /// Get asset path relative to `assets` directory
 pub fn path(path: impl AsRef<Path>) -> PathBuf {

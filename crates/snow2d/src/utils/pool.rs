@@ -1,7 +1,10 @@
 /*!
 Reference-counted pool
 
-# About
+`pool` has to be used with care: [`Handle`] is a strong reference to an item. Unreference items will
+be deleted in next sync call.
+
+# Why not `Vec<T>`?
 
 `usize` index for `Vec<T>` has some limitations:
 
@@ -28,6 +31,8 @@ use std::{
     ops, slice,
     sync::mpsc::{channel, Receiver, Sender},
 };
+
+use derivative::Derivative;
 
 type Gen = std::num::NonZeroU32;
 type GenCounter = u32;
@@ -56,12 +61,18 @@ pub struct Handle<T> {
 }
 
 impl<T> Handle<T> {
+    /// Be warned the that node will be dropped in next sync if the number of handles is zero
     pub fn downgrade(self) -> WeakHandle<T> {
         WeakHandle {
             index: self.index,
             gen: self.gen,
             _phantom: PhantomData,
         }
+    }
+
+    /// Be warned the that node will be dropped in next sync if the number of handles is zero
+    pub fn to_downgraded(&self) -> WeakHandle<T> {
+        self.clone().downgrade()
     }
 }
 
@@ -86,6 +97,8 @@ impl<T> Drop for Handle<T> {
 }
 
 /// Non-owing index to an item in a [`Pool`] with generational index that can the interested item
+#[derive(Derivative)]
+#[derivative(Debug, Clone, Copy)]
 pub struct WeakHandle<T> {
     index: Slot,
     gen: Gen,
@@ -340,6 +353,8 @@ impl<T> Pool<T> {
 }
 
 pub mod iters {
+    //! Iterator types of the `pool` module
+
     use super::*;
 
     pub struct Iter<'a, T: 'static> {
