@@ -57,15 +57,15 @@ impl SnowRl {
 /// Lifecycle forced by `rokol`
 impl RApp for SnowRl {
     fn event(&mut self, ev: &Event) {
-        grue2d::event(&mut self.grue.data, ev);
+        self.grue.event(ev);
     }
 
     /// Create our own lifecycle
     fn frame(&mut self) {
         self.pre_update();
-        self.update();
+        self.grue.update();
         self.render();
-        grue2d::on_end_frame(&mut self.grue.data);
+        self.grue.on_end_frame();
         rg::commit();
     }
 }
@@ -93,21 +93,10 @@ impl SnowRl {
         // }
     }
 
-    // TODO: consider using systems for explicit control flow
-    #[inline]
-    fn update(&mut self) {
-        let (data, fsm) = (&mut self.grue.data, &mut self.grue.fsm);
-        let agents = &mut self.grue.agents;
-
-        grue2d::pre_update(data);
-        fsm.update(data);
-        grue2d::post_update(data, agents);
-    }
-
     #[inline]
     fn render(&mut self) {
+        self.grue.pre_render();
         let (data, agents) = (&mut self.grue.data, &mut self.grue.agents);
-        grue2d::pre_render(data);
         let cam_mat = data.world.cam.to_mat4();
 
         {
