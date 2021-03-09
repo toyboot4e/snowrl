@@ -158,3 +158,22 @@ pub mod consts {
 * [thunderdome](https://docs.rs/thunderdome/latest/thunderdome/) for generational arena. I'm using a for that uses typed `Index<T>`.
 * [derivative](https://github.com/mcarton/rust-derivative) can handle `#[derive(..)]` with `PhantomData` field: [derive_ord.rs](https://github.com/mcarton/rust-derivative/blob/d3ff6f700c69e02e213f26549f38a97c7165c544/tests/derive-ord.rs#L110)
 
+== Refactoring
+
+I was suffering from nest of data. To access dependencies, I had to do like `collection.sub_collection.data_a.collection.get(index)`. Today it became much better..
+
+I though of my game data a list of rows:
+
+.Data (passive data. They just update themselves)
+|===
+| Group     | Types
+
+| Context   | Batcher, Input, Audio, Assets, FontBook, Time
+| World     | Entities, TiledRlMap, Camera, Shadows
+| Resources | Fonts, Ui, VirtualInput,
+|===
+
+\.. it basically reflects my `Data` struct.
+
+There's also `Agents` and `Fsm` structs. `Agents` have exclusive memory and work referring to `Data` (such as renderers). `Fsm` drives the game referring to `Data` and `Agents`.
+
