@@ -148,7 +148,7 @@ impl<T: Lerp + Clone> Tweened<T> {
 
     /// Overwrites the accumulated duration
     pub fn set_accum_norm(&mut self, t: f32) {
-        self.dt.accum = self.dt.target * t;
+        self.dt.set_accum_norm(t);
     }
 }
 
@@ -191,6 +191,14 @@ impl EasedDt {
         }
     }
 
+    pub fn with_accum(&self, accum: f32) -> Self {
+        Self {
+            accum: accum,
+            target: self.target,
+            ease: self.ease,
+        }
+    }
+
     pub fn to_desc(&self) -> EasedDtDesc {
         EasedDtDesc {
             target: self.target,
@@ -227,6 +235,11 @@ impl EasedDt {
 
     pub fn lerp<T: Lerp>(&self, v1: T, v2: T) -> T {
         Lerp::lerp(v1, v2, self.get())
+    }
+
+    /// Overwrites the accumulated duration
+    pub fn set_accum_norm(&mut self, t: f32) {
+        self.accum = self.target * t;
     }
 }
 

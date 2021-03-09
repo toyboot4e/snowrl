@@ -3,7 +3,7 @@ Renders the game world
 */
 
 mod screen;
-pub use screen::*;
+use screen::*;
 
 use {
     rlbox::{render::tiled as tiled_render, rl::grid2d::Vec2i, utils::DoubleTrack},
@@ -16,10 +16,7 @@ use {
     std::time::Duration,
 };
 
-use crate::{
-    rl::world::{actor::Actor, World},
-    Ui,
-};
+use crate::data::world::{actor::Actor, World};
 
 /// TODO: remove
 const WALK_TIME: f32 = 8.0 / 60.0;
@@ -87,7 +84,7 @@ impl WorldRenderer {
     }
 
     /// Renders the world (maybe partially)
-    pub fn render(&mut self, world: &World, ice: &mut Ice, ui: &mut Ui, flags: WorldRenderFlag) {
+    pub fn render(&mut self, world: &World, ice: &mut Ice, flags: WorldRenderFlag) {
         if flags.contains(WorldRenderFlag::MAP | WorldRenderFlag::ACTORS) {
             // use world coordinates
             let mut screen = ice.snow.screen(PassConfig {

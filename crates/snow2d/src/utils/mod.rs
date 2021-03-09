@@ -32,10 +32,27 @@ pub mod arena {
 /// ---
 pub use derivative::Derivative;
 
+pub use dyn_clone;
+
 /// [`enum_dispatch::enum_dispatch`] re-exported
 ///
 /// ---
 pub use enum_dispatch::enum_dispatch;
+
+/// [`hackfn::hackfn`] re-exported
+///
+/// ---
+pub use hackfn::hackfn;
+
+/// [`indoc::indoc`] re-exported
+///
+/// ---
+pub use indoc::indoc;
+
+/// [`inherent::inherent`] re-exported
+///
+/// ---
+pub use inherent::inherent;
 
 pub use once_cell;
 

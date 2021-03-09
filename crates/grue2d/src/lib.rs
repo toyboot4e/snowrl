@@ -7,26 +7,19 @@ Framework of SnowRL based on [`rlbox`]
 
 pub extern crate rlbox;
 
+pub mod agents;
+pub mod data;
 pub mod fsm;
-pub mod render;
-pub mod rl;
-
-mod resources;
-pub use resources::*;
 
 use {
     rokol::{
-        app::{self as ra, RApp},
-        gfx as rg, Rokol,
+        app::{self as ra, glue::Rokol, RApp},
+        gfx as rg,
     },
-    snow2d::{gfx::geom2d::Vec2f, Ice},
+    snow2d::gfx::geom2d::Vec2f,
 };
 
-use crate::{
-    fsm::*,
-    render::WorldRenderer,
-    rl::{script::ScriptRef, turn::anim::AnimPlayer, world::World},
-};
+use crate::{agents::Agents, data::Data, fsm::*};
 
 pub extern crate hot_crate;
 pub trait Plugin: std::fmt::Debug {}
@@ -35,7 +28,7 @@ pub trait Plugin: std::fmt::Debug {}
 pub fn run<App: RApp, AppConstructor: FnOnce(Rokol) -> App>(
     rokol: Rokol,
     constructor: AppConstructor,
-) -> rokol::Result {
+) -> ra::glue::Result {
     rokol.run(&mut Runner {
         init_rokol: Some(rokol.clone()),
         init: Some(constructor),
@@ -54,7 +47,7 @@ struct Runner<T: RApp, F: FnOnce(Rokol) -> T> {
 
 impl<T: RApp, F: FnOnce(Rokol) -> T> rokol::app::RApp for Runner<T, F> {
     fn init(&mut self) {
-        rg::setup(&mut rokol::glue::app_desc());
+        rg::setup(&mut rokol::app::glue::app_desc());
         let f = self.init.take().unwrap();
         self.x = Some(f(self.init_rokol.take().unwrap()));
     }
@@ -72,88 +65,66 @@ impl<T: RApp, F: FnOnce(Rokol) -> T> rokol::app::RApp for Runner<T, F> {
     }
 }
 
-/// Runs a [`Fsm`] with [`Global`]
-///
-/// [`Fsm`] fsm::Fsm
-/// [`Global`] fsm::Global
 #[derive(Debug)]
-pub struct GlueRl {
-    /// Game context
-    pub gl: Global,
-    /// Game control based on stack-based state machine
+pub struct GrueRl {
+    pub data: Data,
+    pub agents: Agents,
     pub fsm: Fsm,
 }
 
-impl GlueRl {
-    pub fn new(gl: Global, fsm: Fsm) -> Self {
-        Self { gl, fsm }
+impl GrueRl {
+    pub fn new(data: Data, fsm: Fsm) -> Self {
+        Self {
+            data,
+            agents: Agents::new(),
+            fsm,
+        }
     }
 }
 
-/// Thread-local global game states
-///
-/// TODO: consider using `Global<T>` for additional contexts
-#[derive(Debug)]
-pub struct Global {
-    // SnowRL resource types
-    pub world: World,
-    pub world_render: WorldRenderer,
-    pub vi: VInput,
-    pub fonts: Fonts,
-    pub ui: Ui,
-    // generic game context
-    pub ice: Ice,
-    // game data
-    pub anims: AnimPlayer,
-    // TODO: extract it to user data
-    pub script_to_play: Option<ScriptRef>,
+// --------------------------------------------------------------------------------
+// Lifecycle
+
+pub fn event(data: &mut Data, ev: &ra::Event) {
+    data.ice.event(ev);
 }
 
-/// Lifecycle of SnowRL resources
-impl Global {
-    pub fn event(&mut self, ev: &ra::Event) {
-        self.ice.event(ev);
-    }
+/// Ticks input/graphics times
+//
+/// Called before updating the FSM (game state).
+pub fn pre_update(data: &mut Data) {
+    data.ice.pre_update();
+    data.world.update(&mut data.ice);
+    data.res.vi.update(&data.ice.input, data.ice.dt);
+}
 
-    /// Ticks input/graphics times
-    //
-    /// Called before updating the FSM (game state).
-    pub fn pre_update(&mut self) {
-        // update resources
-        self.ice.pre_update();
-        self.vi.update(&self.ice.input, self.ice.dt);
-        // actor image
-        self.world.update(&mut self.ice);
-    }
+/// Updates buffers and ticks UI state
+//
+/// Called after updating the FSM (game state).
+pub fn post_update(data: &mut Data, agents: &mut Agents) {
+    // shadow
+    // TODO: don't hard code player detection
+    let player = &data.world.entities.get_by_slot(0).unwrap().1;
+    data.world
+        .shadow
+        .post_update(data.ice.dt, &data.world.map.rlmap, player.pos);
 
-    /// Updates buffers and ticks UI state
-    //
-    /// Called after updating the FSM (game state).
-    pub fn post_update(&mut self) {
-        // shadow
-        // TODO: don't hard code player detection
-        let player = &self.world.entities.get_by_slot(0).unwrap().1;
-        self.world
-            .shadow
-            .post_update(self.ice.dt, &self.world.map.rlmap, player.pos);
+    // camera
+    let player_pos = player.img.pos_world_centered(&data.world.map.tiled);
+    data.world.cam_follow.update_follow(
+        &mut data.world.cam,
+        player_pos,
+        Vec2f::new(ra::width_f(), ra::height_f()),
+    );
 
-        // camera
-        let player_pos = player.img.pos_world_centered(&self.world.map.tiled);
-        self.world.cam_follow.update_follow(
-            &mut self.world.cam,
-            player_pos,
-            Vec2f::new(ra::width_f(), ra::height_f()),
-        );
+    agents.world_render.post_update(&data.world, data.ice.dt);
+    data.res.ui.update(data.ice.dt);
+}
 
-        self.world_render.post_update(&self.world, self.ice.dt);
-        self.ui.update(self.ice.dt);
-    }
+pub fn pre_render(data: &mut Data) {
+    data.ice.pre_render();
+}
 
-    pub fn pre_render(&mut self) {
-        self.ice.pre_render();
-    }
-
-    pub fn on_end_frame(&mut self) {
-        self.ice.on_end_frame();
-    }
+pub fn on_end_frame(data: &mut Data) {
+    data.ice.on_end_frame();
 }

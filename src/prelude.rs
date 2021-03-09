@@ -18,6 +18,6 @@ pub use snow2d::{
     Ice,
 };
 
-pub use grue2d::{Fonts, Global, GlueRl, Ui, UiLayer, VInput};
+pub use grue2d::{ GrueRl,data::{Data,resources::{Fonts,  Ui, UiLayer, VInput}}};
 
 pub use crate::utils::{consts, paths};

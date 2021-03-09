@@ -19,12 +19,10 @@ use {
     },
 };
 
-use crate::{
-    rl::{
-        turn::{anim::Anim, ev},
-        world::{actor::Actor, World},
-    },
-    VInput,
+use crate::data::{
+    resources::VInput,
+    rogue::{anim::Anim, ev},
+    world::{actor::Actor, World},
 };
 
 /// TODO: remove me

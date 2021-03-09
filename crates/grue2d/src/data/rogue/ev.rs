@@ -16,8 +16,8 @@ use snow2d::{
 
 use rlbox::rl::grid2d::*;
 
-use crate::rl::{
-    turn::{
+use crate::data::{
+    rogue::{
         anim::{self, Anim},
         tick::{AnimContext, Event, EventContext, EventResult, GenAnim},
     },
@@ -177,7 +177,7 @@ impl Event for MeleeAttack {
         let target_dir = self.dir.clone().unwrap_or(actor.dir);
         let target_pos = actor.pos.offset(target_dir);
 
-        if let Some(target) = ecx
+        if let Some(_target) = ecx
             .world
             .entities
             .iter()

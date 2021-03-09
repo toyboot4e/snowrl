@@ -5,6 +5,7 @@ Animations hold reference-counted handles to their target nodes, so nodes will b
 related animations are finished.
 */
 
+use dyn_clone::{clone_trait_object, DynClone};
 use std::time::Duration;
 
 use crate::{
@@ -25,15 +26,44 @@ pub trait AnimImpl: std::fmt::Debug + Clone {
     fn set_accum_norm(&mut self, t: f32);
 }
 
-/// One of [`AnimImpl`] impls
-#[enum_dispatch(AnimImpl)]
+/// Animation function that implements basic traits
+pub trait AnimFn:
+    Fn(&Handle<Node>, &mut Pool<Node>, &ez::EasedDt) + std::fmt::Debug + DynClone
+{
+}
+
+clone_trait_object!(AnimFn);
+
+/// TODO: Is this needed?
+impl<T> AnimFn for T where
+    T: Fn(&Handle<Node>, &mut Pool<Node>, &ez::EasedDt) + std::fmt::Debug + std::clone::Clone
+{
+}
+
+/// TODO: oes it work?
 #[derive(Debug, Clone)]
-pub enum Anim {
-    PosTween,
-    ColorTween,
-    AlphaTween,
-    SizeTween,
-    // ParamsTween,
+pub struct DynAnim {
+    pub dt: ez::EasedDt,
+    pub node: Handle<Node>,
+    pub f: Box<dyn AnimFn>,
+}
+
+impl AnimImpl for DynAnim {
+    fn tick(&mut self, dt: Duration) {
+        self.dt.tick(dt);
+    }
+
+    fn is_end(&self) -> bool {
+        self.dt.is_end()
+    }
+
+    fn apply(&self, nodes: &mut Pool<Node>) {
+        (self.f)(&self.node, nodes, &self.dt);
+    }
+
+    fn set_accum_norm(&mut self, t: f32) {
+        self.dt.set_accum_norm(t);
+    }
 }
 
 macro_rules! def_tween_anim {
@@ -69,6 +99,16 @@ def_tween_anim!(PosTween, Vec2f, |me: &Self, nodes: &mut Pool<Node>| {
     n.params.pos = me.tween.get();
 });
 
+def_tween_anim!(XTween, f32, |me: &Self, nodes: &mut Pool<Node>| {
+    let n = &mut nodes[&me.node];
+    n.params.pos.x = me.tween.get();
+});
+
+def_tween_anim!(YTween, f32, |me: &Self, nodes: &mut Pool<Node>| {
+    let n = &mut nodes[&me.node];
+    n.params.pos.y = me.tween.get();
+});
+
 def_tween_anim!(SizeTween, Vec2f, |me: &Self, nodes: &mut Pool<Node>| {
     let n = &mut nodes[&me.node];
     n.params.size = me.tween.get();
@@ -83,3 +123,24 @@ def_tween_anim!(AlphaTween, u8, |me: &Self, nodes: &mut Pool<Node>| {
     let n = &mut nodes[&me.node];
     n.params.color.a = me.tween.get();
 });
+
+def_tween_anim!(RotTween, f32, |me: &Self, nodes: &mut Pool<Node>| {
+    let n = &mut nodes[&me.node];
+    n.params.rot = me.tween.get();
+});
+
+/// One of [`AnimImpl`] impls
+#[enum_dispatch(AnimImpl)]
+#[derive(Debug, Clone)]
+pub enum Anim {
+    DynAnim,
+    // tweens
+    PosTween,
+    XTween,
+    YTween,
+    SizeTween,
+    ColorTween,
+    AlphaTween,
+    RotTween,
+    // ParamsTween,
+}

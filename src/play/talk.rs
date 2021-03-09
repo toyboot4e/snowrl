@@ -15,9 +15,10 @@ use snow2d::{
     utils::{arena::Index, ez, pool::Handle, tweak::*},
 };
 
-use grue2d::{
-    rl::world::{actor::Actor, World},
-    Global, UiLayer,
+use grue2d::data::{
+    resources::UiLayer,
+    world::{actor::Actor, World},
+    Data,
 };
 
 use crate::utils::{consts, paths};
@@ -184,7 +185,7 @@ pub struct PlayTalk {
 }
 
 impl PlayTalk {
-    pub fn new(talk: TalkViewCommand<'_>, gl: &mut Global) -> Self {
+    pub fn new(talk: TalkViewCommand<'_>, data: &mut Data) -> Self {
         // FIXME: use custom config
         let fstyle = FontStyle {
             font_ix: unsafe { snow2d::gfx::text::font::FontIx::from_raw(1) },
@@ -192,10 +193,10 @@ impl PlayTalk {
             // FIXME: layout only works with this spacing. why?
             line_spacing: 4.0,
         };
-        let layout = talk.layout(&talk.cfg, &gl.ice.snow.fontbook.tex, &fstyle, &gl.world);
-        let view = TalkView::new(layout, &mut gl.ice.assets);
+        let layout = talk.layout(&talk.cfg, &data.ice.snow.fontbook.tex, &fstyle, &data.world);
+        let view = TalkView::new(layout, &mut data.ice.assets);
 
-        let layer = &mut gl.ui.get_mut(UiLayer::OnActors);
+        let layer = &mut data.res.ui.get_mut(UiLayer::OnActors);
         let nodes = TalkNodes {
             win: layer.nodes.add({
                 let mut win = Node::from(view.win());

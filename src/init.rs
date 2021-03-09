@@ -6,7 +6,7 @@ use snow2d::{asset::StaticAssetKey, utils::tyobj::TypeObjectStorageBuilder, Ice}
 
 use rlbox::view::actor::ActorImageDesc;
 
-use grue2d::rl::world::actor::*;
+use grue2d::data::world::actor::*;
 
 use crate::prelude::*;
 
@@ -39,13 +39,10 @@ fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
 }
 
 pub fn load_fonts(ice: &mut Ice) -> Fonts {
-    ice.snow
-        .fontbook
-        .tex
-        .set_size(consts::DEFAULT_FONT_SIZE);
+    ice.snow.fontbook.tex.set_size(consts::DEFAULT_FONT_SIZE);
     // line_spacing: crate::consts::DEFAULT_LINE_SPACE,
 
-     Fonts {
+    Fonts {
         default: {
             use snow2d::gfx::text::font::*;
             let family_desc = FontSetDesc {

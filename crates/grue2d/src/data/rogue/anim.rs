@@ -11,7 +11,7 @@ use {
     std::{collections::VecDeque, fmt, time::Duration},
 };
 
-use crate::rl::world::{actor::Actor, World};
+use crate::data::world::{actor::Actor, World};
 
 /// TODO: rm
 const WALK_TIME: f32 = 8.0 / 60.0;
@@ -229,8 +229,9 @@ impl SwingAnim {
     }
 }
 
+/// TOD* impl
 impl Anim for SwingAnim {
-    fn on_start(&mut self, ucx: &mut AnimUpdateContext) {
+    fn on_start(&mut self, _ucx: &mut AnimUpdateContext) {
         // log::trace!("{:?}", self.actors);
     }
 

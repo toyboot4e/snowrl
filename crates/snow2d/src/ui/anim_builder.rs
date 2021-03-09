@@ -77,68 +77,35 @@ impl<'a> AnimBuilder<'a> {
         self.dt.ease = ease;
         self
     }
-
-    pub fn color(&mut self, delta: impl Into<Delta<Color>>) -> &mut Self {
-        let delta = delta.into();
-
-        let index = self.anims.insert(ColorTween {
-            tween: ez::Tweened {
-                a: delta.a,
-                b: delta.b,
-                dt: self.dt,
-            },
-            node: self.node.clone().unwrap(),
-        });
-        self.built.push(index);
-
-        self
-    }
-
-    pub fn alpha(&mut self, delta: impl Into<Delta<u8>>) -> &mut Self {
-        let delta = delta.into();
-
-        let index = self.anims.insert(AlphaTween {
-            tween: ez::Tweened {
-                a: delta.a,
-                b: delta.b,
-                dt: self.dt,
-            },
-            node: self.node.clone().unwrap(),
-        });
-        self.built.push(index);
-
-        self
-    }
-
-    pub fn pos(&mut self, delta: impl Into<Delta<Vec2f>>) -> &mut Self {
-        let delta = delta.into();
-
-        let index = self.anims.insert(PosTween {
-            tween: ez::Tweened {
-                a: delta.a,
-                b: delta.b,
-                dt: self.dt,
-            },
-            node: self.node.clone().unwrap(),
-        });
-        self.built.push(index);
-
-        self
-    }
-
-    pub fn size(&mut self, delta: impl Into<Delta<Vec2f>>) -> &mut Self {
-        let delta = delta.into();
-
-        let index = self.anims.insert(SizeTween {
-            tween: ez::Tweened {
-                a: delta.a,
-                b: delta.b,
-                dt: self.dt,
-            },
-            node: self.node.clone().unwrap(),
-        });
-        self.built.push(index);
-
-        self
-    }
 }
+
+macro_rules! add_tween {
+    ($Tween:ident, $name:ident, $data:ident) => {
+        impl<'a> AnimBuilder<'a> {
+            pub fn $name(&mut self, delta: impl Into<Delta<$data>>) -> &mut Self {
+                let delta = delta.into();
+
+                let index = self.anims.insert($Tween {
+                    tween: ez::Tweened {
+                        a: delta.a,
+                        b: delta.b,
+                        dt: self.dt,
+                    },
+                    node: self.node.clone().unwrap(),
+                });
+                self.built.push(index);
+
+                self
+            }
+        }
+    };
+}
+
+add_tween!(PosTween, pos, Vec2f);
+add_tween!(XTween, x, f32);
+add_tween!(YTween, y, f32);
+add_tween!(SizeTween, size, Vec2f);
+add_tween!(ColorTween, color, Color);
+add_tween!(AlphaTween, alpha, u8);
+add_tween!(RotTween, rot, f32);
+

@@ -8,7 +8,7 @@ use snow2d::Ice;
 
 use rlbox::rl::grid2d::*;
 
-use grue2d::{Global, Ui, UiLayer};
+use grue2d::data::resources::{Resources, Ui, UiLayer};
 
 #[derive(Debug)]
 pub struct Title {
@@ -42,16 +42,14 @@ impl Title {
         }
     }
 
-    pub fn handle_input(&mut self, gl: &mut Global) -> Option<title::Choice> {
-        let layer = gl.ui.get_mut(UiLayer::Screen);
+    pub fn handle_input(&mut self, ice: &mut Ice, res: &mut Resources) -> Option<title::Choice> {
+        let layer = res.ui.get_mut(UiLayer::Screen);
 
-        if let Some(dir) = gl.vi.dir.dir4_pressed() {
+        if let Some(dir) = res.vi.dir.dir4_pressed() {
             let y_sign = dir.y_sign();
 
             if y_sign != Sign::Neutral {
-                gl.ice
-                    .audio
-                    .play(&*self.assets.se_cursor.get_mut().unwrap());
+                ice.audio.play(&*self.assets.se_cursor.get_mut().unwrap());
             }
 
             let mut pos = self.state.cursor;
@@ -76,10 +74,8 @@ impl Title {
             return None;
         }
 
-        if gl.vi.select.is_pressed() {
-            gl.ice
-                .audio
-                .play(&*self.assets.se_select.get_mut().unwrap());
+        if res.vi.select.is_pressed() {
+            ice.audio.play(&*self.assets.se_select.get_mut().unwrap());
 
             self.anims.on_exit(&mut layer.anims, &self.nodes);
             return Some(title::Choice::from_usize(self.state.cursor).unwrap());

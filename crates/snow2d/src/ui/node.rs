@@ -21,8 +21,8 @@ pub struct DrawParams {
     pub pos: Vec2f,
     pub size: Vec2f,
     pub color: Color,
-    // /// Rotation in radian
-    // pub rot: f32,
+    /// Rotation in radian
+    pub rot: f32,
     // pub scales: Vec2f,
 }
 
@@ -33,6 +33,8 @@ impl DrawParams {
             .dst_pos_px(self.pos)
             .dst_size_px(self.size)
             .color(self.color)
+            // TODO: It doesn't consider sprite's rotation. Do it in `Render`
+            .rot(self.rot)
     }
 
     pub fn transform_mut(&self, other: &mut DrawParams) {

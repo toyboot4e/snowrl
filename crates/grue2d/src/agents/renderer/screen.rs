@@ -13,7 +13,7 @@ use {
     std::time::Instant,
 };
 
-use crate::rl::world::World;
+use crate::data::world::World;
 use rlbox::{render::tiled as tiled_render, rl::grid2d::Vec2i, view::camera::Camera2d};
 
 const SCREEN_TRIANGLE: [PosUvVert; 3] = [

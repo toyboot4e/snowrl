@@ -7,17 +7,18 @@ use std::{any::TypeId, borrow::Cow};
 use snow2d::utils::arena::Index;
 
 use grue2d::{
-    fsm::{GameState, StateCommand, StateReturn},
-    rl::{
-        script::ScriptRef,
-        turn::{
+    data::{
+        resources::Ui,
+        rogue::{
             anim::{AnimResult, AnimUpdateContext},
             ev,
+            script::ScriptRef,
             tick::{AnimContext, GameLoop, TickResult},
         },
         world::actor::Actor,
+        Data,
     },
-    Global, Ui,
+    fsm::{GameState, StateCommand, StateReturn},
 };
 
 use crate::{play, prelude::*, utils::paths};
@@ -31,9 +32,11 @@ pub struct Roguelike {
 }
 
 impl GameState for Roguelike {
-    fn update(&mut self, gl: &mut Global) -> StateReturn {
+    fn update(&mut self, data: &mut Data) -> StateReturn {
         loop {
-            let res = self.game_loop.tick(&mut gl.world, &mut gl.ice, &mut gl.vi);
+            let res = self
+                .game_loop
+                .tick(&mut data.world, &mut data.ice, &mut data.res.vi);
 
             match res {
                 TickResult::TakeTurn(actor) => {
@@ -42,7 +45,7 @@ impl GameState for Roguelike {
                         // NOTE: if we handle "change direction" animation, it can results in an
                         // infinite loop:
                         // run batched walk animation if it's player's turn
-                        if gl.anims.any_batch() {
+                        if data.rogue.anims.any_batch() {
                             return StateReturn::ThisFrame(vec![StateCommand::Push(TypeId::of::<
                                 Animation,
                             >(
@@ -65,16 +68,16 @@ impl GameState for Roguelike {
                 TickResult::Event(ev) => {
                     // play animations if any
                     if let Some(anim) = ev.gen_anim(&mut AnimContext {
-                        world: &mut gl.world,
-                        ice: &mut gl.ice,
+                        world: &mut data.world,
+                        ice: &mut data.ice,
                     }) {
                         // log::trace!("event animation: {:?}", anim);
 
-                        gl.anims.enqueue_boxed(anim);
+                        data.rogue.anims.enqueue_boxed(anim);
 
                         // run not-batched animation
                         // (batch walk animations as much as possible)
-                        if gl.anims.any_anim_to_run_now() {
+                        if data.rogue.anims.any_anim_to_run_now() {
                             return StateReturn::ThisFrame(vec![StateCommand::Push(TypeId::of::<
                                 Animation,
                             >(
@@ -87,7 +90,7 @@ impl GameState for Roguelike {
                     let any = (*ev).as_any();
 
                     if let Some(talk) = any.downcast_ref::<ev::Talk>() {
-                        gl.script_to_play = Some(ScriptRef::Interact {
+                        data.rogue.script_to_play = Some(ScriptRef::Interact {
                             from: talk.from,
                             to: talk.to,
                         });
@@ -116,25 +119,25 @@ impl GameState for Roguelike {
 pub struct Animation {}
 
 impl GameState for Animation {
-    fn update(&mut self, gl: &mut Global) -> StateReturn {
+    fn update(&mut self, data: &mut Data) -> StateReturn {
         let mut ucx = AnimUpdateContext {
-            world: &mut gl.world,
-            ice: &mut gl.ice,
+            world: &mut data.world,
+            ice: &mut data.ice,
         };
 
-        match gl.anims.update(&mut ucx) {
+        match data.rogue.anims.update(&mut ucx) {
             AnimResult::GotoNextFrame => StateReturn::NextFrame(vec![]),
             AnimResult::Finish => StateReturn::ThisFrame(vec![StateCommand::Pop]),
         }
     }
 
-    fn on_enter(&mut self, gl: &mut Global) {
+    fn on_enter(&mut self, data: &mut Data) {
         let mut ucx = AnimUpdateContext {
-            world: &mut gl.world,
-            ice: &mut gl.ice,
+            world: &mut data.world,
+            ice: &mut data.ice,
         };
 
-        gl.anims.on_start(&mut ucx);
+        data.rogue.anims.on_start(&mut ucx);
     }
 }
 
@@ -153,7 +156,7 @@ impl Title {
 }
 
 impl GameState for Title {
-    fn on_enter(&mut self, gl: &mut Global) {
+    fn on_enter(&mut self, gl: &mut Data) {
         // self.title.init();
 
         let song = gl
@@ -164,14 +167,14 @@ impl GameState for Title {
         gl.ice.music_player.play_song(song);
     }
 
-    fn update(&mut self, gl: &mut Global) -> StateReturn {
+    fn update(&mut self, data: &mut Data) -> StateReturn {
         // // if debug
         // #[cfg(debug_assertions)]
         // if gl.ice.input.kbd.is_key_pressed(snow2d::input::Key::R) {
         //     self.init();
         // }
 
-        let res = match self.title.handle_input(gl) {
+        let res = match self.title.handle_input(&mut data.ice, &mut data.res) {
             Some(res) => res,
             None => return StateReturn::NextFrame(vec![]),
         };
@@ -215,24 +218,24 @@ impl PlayScript {
 }
 
 impl GameState for PlayScript {
-    fn on_enter(&mut self, gl: &mut Global) {
-        assert!(gl.script_to_play.is_some());
+    fn on_enter(&mut self, data: &mut Data) {
+        assert!(data.rogue.script_to_play.is_some());
     }
 
-    fn on_exit(&mut self, gl: &mut Global) {
-        gl.script_to_play = None;
+    fn on_exit(&mut self, data: &mut Data) {
+        data.rogue.script_to_play = None;
     }
 
-    fn update(&mut self, gl: &mut Global) -> StateReturn {
+    fn update(&mut self, data: &mut Data) -> StateReturn {
         // we assume interact script (for now)
-        let script = gl.script_to_play.as_ref().unwrap();
+        let script = data.rogue.script_to_play.as_ref().unwrap();
         let (from, to) = match script {
             ScriptRef::Interact { from, to } => (from.clone(), to.clone()),
         };
 
         // TODO: allow any script
         let txt = "OMG!\nYou're too big, Ika-chan.\n\nHallo hallo haa~~♪";
-        let play_text = PlayTalkState::new(gl, txt.to_string(), from, to);
+        let play_text = PlayTalkState::new(data, txt.to_string(), from, to);
 
         StateReturn::ThisFrame(vec![
             StateCommand::insert(play_text),
@@ -247,8 +250,8 @@ pub struct PlayTalkState {
 }
 
 impl PlayTalkState {
-    pub fn new(gl: &mut Global, txt: String, from: Index<Actor>, to: Index<Actor>) -> Self {
-        let (a, b) = (&gl.world.entities[from], &gl.world.entities[to]);
+    pub fn new(data: &mut Data, txt: String, from: Index<Actor>, to: Index<Actor>) -> Self {
+        let (a, b) = (&data.world.entities[from], &data.world.entities[to]);
 
         let talk = play::talk::TalkViewCommand {
             txt: Cow::Owned(txt),
@@ -266,14 +269,14 @@ impl PlayTalkState {
         };
 
         Self {
-            data: play::talk::PlayTalk::new(talk, gl),
+            data: play::talk::PlayTalk::new(talk, data),
         }
     }
 }
 
 impl GameState for PlayTalkState {
-    fn update(&mut self, gl: &mut Global) -> StateReturn {
-        if gl.vi.select.is_pressed() {
+    fn update(&mut self, data: &mut Data) -> StateReturn {
+        if data.res.vi.select.is_pressed() {
             // Exit on enter
             StateReturn::NextFrame(vec![StateCommand::PopAndRemove, StateCommand::Pop])
         } else {

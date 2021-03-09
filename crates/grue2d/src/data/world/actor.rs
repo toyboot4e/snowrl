@@ -20,7 +20,10 @@ use rlbox::{
     view::actor::{ActorImage, ActorImageDesc, ActorNodes},
 };
 
-use crate::{rl::world::World, Ui, UiLayer};
+use crate::data::{
+    resources::{Ui, UiLayer},
+    world::World,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActorStats {

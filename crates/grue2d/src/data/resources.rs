@@ -146,3 +146,10 @@ impl VInput {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct Resources {
+    pub fonts: Fonts,
+    pub vi: VInput,
+    pub ui: Ui,
+}

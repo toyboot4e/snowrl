@@ -1,9 +1,7 @@
 //! TODO: remove debug/error log on release build?
 //! TODO: inspect Pool/Anim and see if there's garbage
 
-use rokol::Rokol;
-
-use snow2d::utils::tyobj::TypeObject;
+use rokol::app as ra;
 
 use rlbox::{
     rl::grid2d::*,
@@ -14,13 +12,10 @@ use rlbox::{
     },
 };
 
-use grue2d::{
-    render::WorldRenderer,
-    rl::{
-        turn::anim::AnimPlayer,
-        world::{actor::*, World},
-    },
-    Ui, VInput,
+use grue2d::data::{
+    resources::{Resources, Ui, VInput},
+    rogue::Rogue,
+    world::{actor::*, World},
 };
 
 use snowrl::{
@@ -31,10 +26,10 @@ use snowrl::{
     SnowRl,
 };
 
-fn main() -> rokol::Result {
+fn main() -> ra::glue::Result {
     env_logger::init();
 
-    let rokol = rokol::Rokol {
+    let rokol = ra::glue::Rokol {
         w: 1280,
         h: 720,
         use_high_dpi: false,
@@ -47,11 +42,11 @@ fn main() -> rokol::Result {
     grue2d::run(rokol, |rokol| SnowRl::new(self::new_game(rokol)))
 }
 
-fn new_game(rokol: Rokol) -> GlueRl {
+fn new_game(rokol: ra::glue::Rokol) -> GrueRl {
     let title = rokol.title;
 
     // create our game context
-    let mut gl = {
+    let mut data = {
         let mut ice = Ice::new(title, unsafe { Snow2d::new() });
         init::init_assets(&mut ice).unwrap();
 
@@ -59,15 +54,15 @@ fn new_game(rokol: Rokol) -> GlueRl {
         let world = self::init_world(&mut ice, &mut ui).unwrap();
         let fonts = init::load_fonts(&mut ice);
 
-        Global {
-            world,
-            world_render: WorldRenderer::default(),
+        Data {
             ice,
-            fonts,
-            vi: VInput::new(),
-            ui,
-            anims: AnimPlayer::default(),
-            script_to_play: None,
+            world,
+            res: Resources {
+                fonts,
+                vi: VInput::new(),
+                ui: Ui::new(),
+            },
+            rogue: Rogue::new(),
         }
     };
 
@@ -79,17 +74,17 @@ fn new_game(rokol: Rokol) -> GlueRl {
         fsm.insert_default::<states::Animation>();
 
         // fsm.insert(states::Title::new(&mut gl.ice));
-        fsm.insert(states::Title::new(&mut gl.ice, &mut gl.ui));
+        fsm.insert(states::Title::new(&mut data.ice, &mut data.res.ui));
 
-        fsm.insert(states::PlayScript::new(&mut gl.ice.assets));
+        fsm.insert(states::PlayScript::new(&mut data.ice.assets));
 
-        fsm.push::<states::Roguelike>(&mut gl);
-        fsm.push::<states::Title>(&mut gl);
+        fsm.push::<states::Roguelike>(&mut data);
+        fsm.push::<states::Title>(&mut data);
 
         fsm
     };
 
-    GlueRl::new(gl, fsm)
+    GrueRl::new(data, fsm)
 }
 
 fn init_world(ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<World> {
@@ -108,7 +103,7 @@ fn init_world(ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<World> {
                 scale: [1.0, 1.0].into(),
                 rot: 0.0,
             },
-            size: rokol::app::size_f().into(),
+            size: ra::size_f().into(),
         },
         cam_follow: FollowCamera2d {
             // TODO: don't hardcode. maybe use expressions considering window resizing

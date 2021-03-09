@@ -80,13 +80,15 @@ impl Layer {
         child: &mut Node,
         parent: Option<Cheat<Node>>,
     ) {
-        // apply transform to this node
+        // load animated paramaters to cache
         child.cache = child.params.clone();
+
+        // apply transformation to this node
         if let Some(parent) = parent {
             parent.cache.transform_mut(&mut child.cache);
         }
 
-        // apply transform to children
+        // apply transformation to children
         let parent = Cheat::new(child);
         for child_slot in &parent.as_mut().children {
             let child = nodes.as_mut().get_mut(child_slot).unwrap();
