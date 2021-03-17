@@ -1,5 +1,5 @@
 /*!
-The game world, internals and the GUI
+Game world, internals and states for GUI
 */
 
 pub mod actor;
@@ -19,16 +19,21 @@ use self::actor::*;
 
 pub type Entities = Arena<Actor>;
 
-/// The rougelike game world
+/// Roguelike game world
 ///
 /// Turn-based game state should be outside of this struct.
 #[derive(Debug)]
 pub struct World {
-    pub cam: Camera2d,
-    pub cam_follow: FollowCamera2d,
+    /// Internals and view of game map
     pub map: TiledRlMap,
-    pub shadow: Shadow,
+    /// Entities on the map
     pub entities: Entities,
+    /// Double buffer of FoV/FoW with interpolation value
+    pub shadow: Shadow,
+    /// Where we see
+    pub cam: Camera2d,
+    /// State for the camera to follow the player
+    pub cam_follow: FollowCamera2d,
 }
 
 /// Lifecycle
@@ -36,7 +41,7 @@ impl World {
     pub fn update(&mut self, ice: &mut Ice) {
         // FIXME: impl Into itermut
         for (_ix, e) in &mut self.entities {
-            e.img.update(ice.dt, e.pos, e.dir);
+            e.img.update(ice.dt(), e.pos, e.dir);
         }
     }
 }

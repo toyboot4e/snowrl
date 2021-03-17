@@ -9,7 +9,7 @@ use {
     rlbox::{render::tiled as tiled_render, rl::grid2d::Vec2i, utils::DoubleTrack},
     rokol::gfx as rg,
     snow2d::{
-        gfx::{draw::*, Color, PassConfig, Snow2d},
+        gfx::{draw::*, Color, PassConfig, Snow2d, WindowState},
         utils::arena::Index,
         Ice,
     },
@@ -61,10 +61,10 @@ pub struct WorldRenderer {
     sort_buf: Vec<ActorSortEntry>,
 }
 
-impl Default for WorldRenderer {
-    fn default() -> Self {
+impl WorldRenderer {
+    pub fn new(screen_size: [u32; 2]) -> Self {
         Self {
-            shadow_render: ShadowRenderer::default(),
+            shadow_render: ShadowRenderer::new(screen_size),
             snow_render: SnowRenderer::default(),
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             actor_visibilities: Default::default(),
@@ -85,6 +85,7 @@ impl WorldRenderer {
 
     /// Renders the world (maybe partially)
     pub fn render(&mut self, world: &World, ice: &mut Ice, flags: WorldRenderFlag) {
+        let dt = ice.dt();
         if flags.contains(WorldRenderFlag::MAP | WorldRenderFlag::ACTORS) {
             // use world coordinates
             let mut screen = ice.snow.screen(PassConfig {
@@ -97,7 +98,7 @@ impl WorldRenderer {
                 Self::render_map(&mut screen, &world, 0..100);
             }
 
-            self.update_actor_images(&world, ice.dt);
+            self.update_actor_images(&world, dt);
             if flags.contains(WorldRenderFlag::ACTORS) {
                 self.render_actors(&mut screen, &world);
             }
@@ -112,7 +113,7 @@ impl WorldRenderer {
         }
 
         if flags.contains(WorldRenderFlag::SNOW) {
-            self.render_snow();
+            self.render_snow(&ice.snow.window);
         }
     }
 
@@ -208,7 +209,7 @@ impl WorldRenderer {
         self.shadow_render.blend_to_screen(rdr, &world.cam);
     }
 
-    fn render_snow(&mut self) {
-        self.snow_render.render();
+    fn render_snow(&mut self, window: &WindowState) {
+        self.snow_render.render(window);
     }
 }

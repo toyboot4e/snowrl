@@ -20,7 +20,6 @@ pub mod text;
 use serde::{Deserialize, Serialize};
 
 use rokol::{
-    app as ra,
     fons::{self as fons, FontTexture},
     gfx::{self as rg, BakedResource},
 };
@@ -193,9 +192,51 @@ impl<'a> Default for PassConfig<'a> {
     }
 }
 
+/// Platfrom-independent window state representation
+#[derive(Debug, Clone)]
+pub struct WindowState {
+    pub w: u32,
+    pub h: u32,
+    /// (w, h) * dpi_scale = frame_buffer_size
+    pub dpi_scale: [f32; 2],
+}
+
+impl WindowState {
+    pub fn size_u32(&self) -> [u32; 2] {
+        [self.w as u32, self.h as u32]
+    }
+
+    pub fn size_f32(&self) -> [f32; 2] {
+        [self.w as f32, self.h as f32]
+    }
+
+    pub fn framebuf_size_usize(&self) -> [usize; 2] {
+        [
+            (self.w as f32 * self.dpi_scale[0]) as usize,
+            (self.h as f32 * self.dpi_scale[1]) as usize,
+        ]
+    }
+
+    pub fn framebuf_size_u32(&self) -> [u32; 2] {
+        [
+            (self.w as f32 * self.dpi_scale[0]) as u32,
+            (self.h as f32 * self.dpi_scale[1]) as u32,
+        ]
+    }
+
+    pub fn framebuf_size_f32(&self) -> [f32; 2] {
+        [
+            self.w as f32 * self.dpi_scale[0],
+            self.h as f32 * self.dpi_scale[1],
+        ]
+    }
+}
+
 /// The 2D renderer
 #[derive(Debug)]
 pub struct Snow2d {
+    /// Window state used by the renderer
+    pub window: WindowState,
     /// Vertex/index buffer and images slots
     pub batch: Batch,
     pub fontbook: FontBook,
@@ -205,13 +246,15 @@ pub struct Snow2d {
     ofs_shd: Shader,
 }
 
+/// Lifeycle
 impl Snow2d {
     /// Call when rokol is ready
-    pub unsafe fn new() -> Self {
+    pub unsafe fn new(window: WindowState) -> Self {
         // create white dot image
         crate::gfx::draw::init();
 
         Self {
+            window,
             batch: Batch::default(),
             fontbook: {
                 let fontbook = FontBook {
@@ -226,7 +269,11 @@ impl Snow2d {
         }
     }
 
-    pub fn pre_render(&mut self) {
+    pub fn pre_render(&mut self, window: WindowState) {
+        // FIXME: frame buffer size?
+        // FIXME: on window size change
+        self.window = window;
+
         // probablly we measure text before rendendering, so
         // this is the proper place to update GPU texture with CPU texture
         unsafe {
@@ -234,17 +281,24 @@ impl Snow2d {
             self.fontbook.tex.maybe_update_image();
         }
     }
+}
 
+/// API
+impl Snow2d {
     /// Begins on-screen rendering pass
     pub fn screen(&mut self, cfg: PassConfig<'_>) -> RenderPass<'_> {
-        rg::begin_default_pass(cfg.pa, ra::width(), ra::height());
+        {
+            // let fbuf = self.window.framebuf_size_u32();
+            let fbuf = self.window.size_u32();
+            rg::begin_default_pass(cfg.pa, fbuf[0], fbuf[1]);
+        }
 
         let shd = cfg.shd.unwrap_or(&self.ons_shd);
         shd.apply_pip();
 
         // FIXME: projection matrix should be set shaders by themselves
         // left, right, bottom, top, near, far
-        let win_size = ra::size_f();
+        let win_size = self.window.size_f32();
         let mut proj = glam::Mat4::orthographic_rh_gl(0.0, win_size[0], win_size[1], 0.0, 0.0, 1.0);
 
         if let Some(tfm) = cfg.tfm {
@@ -272,7 +326,7 @@ impl Snow2d {
 
         // FIXME: projection matrix should be set shaders by themselves
         // left, right, bottom, top, near, far
-        let win_size = ra::size_f();
+        let win_size = [self.window.w as f32, self.window.h as f32];
         let mut proj = glam::Mat4::orthographic_rh_gl(0.0, win_size[0], win_size[1], 0.0, 0.0, 1.0);
 
         if let Some(tfm) = cfg.tfm {

@@ -1,5 +1,5 @@
 /*!
-Snow the roguelike game built on [`grue2d`]
+Snow the roguelike game that extends [`grue2d`] framework
 */
 
 pub extern crate grue2d;
@@ -12,17 +12,18 @@ pub mod prelude;
 pub mod scenes;
 pub mod states;
 
+mod platform_impl;
+
 use {
     grue2d::{
-        agents::renderer::WorldRenderFlag,
+        agents::WorldRenderFlag,
         data::{resources::UiLayer, Data},
-        hot_crate, GrueRl,
-    },
-    rokol::{
-        app::{Event, RApp},
-        gfx as rg,
+        hot_crate,
+        platform::PlatformLifetime,
+        GrueRl,
     },
     snow2d::utils::tweak::*,
+    std::time::Duration,
 };
 
 fn sound_volume() -> f32 {
@@ -46,6 +47,7 @@ impl SnowRl {
             )
             .unwrap()
         };
+
         Self {
             grue,
             plugin,
@@ -54,26 +56,10 @@ impl SnowRl {
     }
 }
 
-/// Lifecycle forced by `rokol`
-impl RApp for SnowRl {
-    fn event(&mut self, ev: &Event) {
-        self.grue.event(ev);
-    }
-
-    /// Create our own lifecycle
-    fn frame(&mut self) {
-        self.pre_update();
-        self.grue.update();
-        self.render();
-        self.grue.on_end_frame();
-        rg::commit();
-    }
-}
-
 /// Our game lifecycle
 impl SnowRl {
     #[inline]
-    fn pre_update(&mut self) {
+    fn pre_update(&mut self, _dt: Duration, _platform: &mut PlatformLifetime) {
         // do not play sound in debug build
         #[cfg(debug_assertions)]
         self.grue.data.ice.audio.set_global_volume(sound_volume());
@@ -94,8 +80,7 @@ impl SnowRl {
     }
 
     #[inline]
-    fn render(&mut self) {
-        self.grue.pre_render();
+    fn render(&mut self, _dt: Duration, _platform: &mut PlatformLifetime) {
         let (data, agents) = (&mut self.grue.data, &mut self.grue.agents);
         let cam_mat = data.world.cam.to_mat4();
 

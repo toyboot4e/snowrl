@@ -30,4 +30,5 @@ downcast-rs = "1.2.0"
 serde = { version = "1.0.120", features = ["derive"] }
 ron = "0.6.4"
 glsp = "0.2.0"
+sdl2 = "0.34.3"
 

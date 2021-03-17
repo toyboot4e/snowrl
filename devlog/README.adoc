@@ -96,17 +96,15 @@ somewhere else (for example, `Vec::remove` can change other item positions). We 
 
 - **Non-reference-counted pool**, a.k.a. `Arena`. Examples: {gen-arena}, {thunderdome}
 +
-My UI node animations are placed in this kind of pool.
+My UI node animations are stored in this kind of pool.
 
 - **Reference-counted pool**. Example: {froggy}, https://docs.rs/bevy/latest/bevy/asset/index.html[bevy_asset]
 +
-My UI nodes are placed in this kind of pool. Nodes won't be freed while their animations are alive!
+My UI nodes are stored in this kind of pool. Nodes won't be freed while their animations are alive.. though it also indicates there's some chance of memory leak.
 
 - **Reference-counted pointers**, wrappers of `Arc<Mutex<T>>`. Examples: {rg3d-res} in {rg3d}
 +
-I also put assets in this kind of pointer. I don't have a particular reason for this.
-+
-I would have to write some custom serializer for assets since `serde` doesn't serialize `Rc` or `Arc` objects correctly.
+I also put assets in this kind of pointer, though I don't have a particular reason for this. I would have to write some custom (de)serializer for assets since `serde` doesn't serialize `Rc` or `Arc` objects correctly. This problem is also known as interning.
 
 == Non-ECS (Feb 25, 2021)
 
@@ -143,22 +141,7 @@ is so nice compared to my `main.rs`.
 
 I'm temped to try ECS, but it would be after finishing SnowRL.
 
-== Utilities
-
-* [inline_tweak](https://docs.rs/inline_tweak/latest/inline_tweak/) for tweaking literals on debug build.
-+
-[source,rust]
-++++
-pub mod consts {
-    pub fn walk_time() -> f32 {
-        inline_tweak!(1.0) / 60.0;
-    }
-}
-++++
-* [thunderdome](https://docs.rs/thunderdome/latest/thunderdome/) for generational arena. I'm using a for that uses typed `Index<T>`.
-* [derivative](https://github.com/mcarton/rust-derivative) can handle `#[derive(..)]` with `PhantomData` field: [derive_ord.rs](https://github.com/mcarton/rust-derivative/blob/d3ff6f700c69e02e213f26549f38a97c7165c544/tests/derive-ord.rs#L110)
-
-== Refactoring
+== Refactoring (Mar 9, 2021)
 
 I was suffering from nest of data. To access dependencies, I had to do like `collection.sub_collection.data_a.collection.get(index)`. Today it became much better..
 
@@ -176,4 +159,28 @@ I though of my game data a list of rows:
 \.. it basically reflects my `Data` struct.
 
 There's also `Agents` and `Fsm` structs. `Agents` have exclusive memory and work referring to `Data` (such as renderers). `Fsm` drives the game referring to `Data` and `Agents`.
+
+== Utilities
+
+* https://docs.rs/inline_tweak/latest/inline_tweak/[inline_tweak) for tweaking literals on debug build.
++
+[source,rust]
+++++
+pub mod consts {
+    pub fn walk_time() -> f32 {
+        inline_tweak!(1.0) / 60.0;
+    }
+}
+++++
+
+* https://docs.rs/thunderdome/latest/thunderdome/[thunderdome] for generational arena. I'm using a for that uses typed `Index<T>`.
+* https://github.com/mcarton/rust-derivative[derivative] can handle `#[derive(..)]` with `PhantomData` field: https://github.com/mcarton/rust-derivative/blob/d3ff6f700c69e02e213f26549f38a97c7165c544/tests/derive-ord.rs#L110[derive_ord.rs]
+
+== `serde`
+
+* My `Asset<T>` is wrapper of `Arc<Mutex<T>>`
+
+== Migrating from `rokol::app` to Rust-SDL2
+
+`sokol_app.h` lacks some important functionalities; one of them is resizing windows via code. I'm switching to Rust-SDL2 decoupling platform-dependent code (initialization and screen information).
 

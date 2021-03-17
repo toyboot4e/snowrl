@@ -20,15 +20,13 @@ use crate::{
     asset::AssetCacheAny,
     audio::asset::MusicPlayer,
     audio::Audio,
-    gfx::{Color, Snow2d},
+    gfx::{Color, Snow2d, WindowState},
     input::Input,
 };
 
 /// Set of generic game contexts
 #[derive(Debug)]
 pub struct Ice {
-    /// TODO: For debug purpose
-    window_title: String,
     /// Clears target (frame buffer) with cornflower blue color
     pa_blue: rg::PassAction,
     /// 2D renderer
@@ -40,19 +38,18 @@ pub struct Ice {
     pub assets: AssetCacheAny,
     pub input: Input,
     /// Delta time from last frame
-    pub dt: Duration,
-    pub frame_count: u64,
+    dt: Duration,
+    frame_count: u64,
     /// When the game started
     pub start_time: Instant,
 }
 
 impl Ice {
-    pub fn new(title: String, snow: Snow2d) -> Self {
+    pub fn new(snow: Snow2d) -> Self {
         // TODO: don't unwrap
         let audio = unsafe { Audio::create().unwrap() };
 
         Self {
-            window_title: title,
             pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             snow,
             audio: audio.clone(),
@@ -64,25 +61,33 @@ impl Ice {
             start_time: Instant::now(),
         }
     }
+
+    pub fn dt(&self) -> Duration {
+        self.dt
+    }
+
+    pub fn frame_count(&self) -> u64 {
+        self.frame_count
+    }
 }
 
 /// Lifecycle
 impl Ice {
     /// Updates input state
-    pub fn event(&mut self, ev: &rokol::app::Event) {
+    pub fn event(&mut self, ev: &sdl2::event::Event) {
         self.input.event(ev);
     }
 
     /// Updates frame counter
-    pub fn pre_update(&mut self) {
+    pub fn pre_update(&mut self, dt: std::time::Duration) {
         self.frame_count += 1;
+        self.dt = dt;
+        log::trace!("{}", self.frame_count);
     }
 
     /// Updates font texture
-    pub fn pre_render(&mut self) {
-        self.snow.pre_render();
-        // FIXME: use real dt
-        self.dt = std::time::Duration::from_nanos(1_000_000_000 / 60);
+    pub fn pre_render(&mut self, window: WindowState) {
+        self.snow.pre_render(window);
     }
 
     /// Debug render?

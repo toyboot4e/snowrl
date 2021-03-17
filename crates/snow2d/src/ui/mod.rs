@@ -105,6 +105,7 @@ impl Layer {
             ..Default::default()
         });
 
+
         // sort nodes
         self.ord_buf.clear();
         for (slot, node) in self.nodes.enumerate_items() {

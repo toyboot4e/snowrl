@@ -11,16 +11,18 @@ edition = "2018"
 # description = ""
 
 [dependencies]
-rokol = { path = "rokol", features = ["glcore33", "use-fontstash"] }
+sdl2 = "0.34.3"
+rokol = { path = "rokol", features = ["glcore33", "impl-gfx", "use-sdl2", "use-fontstash"] }
+xdl = { path = "xdl", features = ["use-sdl2"] }
+
 soloud = "0.3.1"
-xdl = { path = "xdl", features = ["use-rokol"] }
+image = "0.23.12"
+glam = "0.11.2"
+
 snow2d_macros = { path = "snow2d_macros" }
 
 log = "0.4.11"
 env_logger = "0.8.2"
-
-image = "0.23.12"
-glam = "0.11.2"
 
 anyhow = "1.0.33"
 auto_ops = "0.1.0"

@@ -1,5 +1,5 @@
 /*!
-Global resource type specific for SnowRL
+Resource types specific for SnowRL
 */
 
 use std::time::Duration;

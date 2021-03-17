@@ -1,22 +1,22 @@
 /*!
-Controls of the game with stack-based finite state machine
+Controls of the game based on a stack-based finite state machine
 */
 
 use std::{any::TypeId, collections::HashMap};
 
-use rokol::app as ra;
+use crate::{ctrl::Control, data::Data};
 
-use crate::Data;
+// type Event = rokol::app::Event;
+type Event = sdl2::event::Event;
 
 /// Game state lifecycle
 pub trait GameState: std::fmt::Debug {
-    fn on_enter(&mut self, _data: &mut Data) {}
-    fn on_exit(&mut self, _data: &mut Data) {}
+    fn on_enter(&mut self, _data: &mut Data, _ctrl: &mut Control) {}
+    fn on_exit(&mut self, _data: &mut Data, _ctrl: &mut Control) {}
     // TODO: use proper name
-    fn on_stop(&mut self, _data: &mut Data) {}
-
-    fn event(&mut self, _ev: &ra::Event, _data: &mut Data) {}
-    fn update(&mut self, _data: &mut Data) -> StateReturn;
+    fn on_stop(&mut self, _data: &mut Data, _ctrl: &mut Control) {}
+    fn event(&mut self, _ev: &Event, _data: &mut Data, _ctrl: &mut Control) {}
+    fn update(&mut self, _data: &mut Data, _ctrl: &mut Control) -> StateReturn;
 }
 
 /// Return value of [`GameState::update`]
@@ -69,16 +69,16 @@ impl Default for Fsm {
 }
 
 impl Fsm {
-    pub fn update(&mut self, update: &mut Data) {
+    pub fn update(&mut self, data: &mut Data, ctrl: &mut Control) {
         loop {
             let id = self.stack.last().unwrap();
             let state = self.states.get_mut(id).unwrap();
-            let res = state.update(update);
+            let res = state.update(data, ctrl);
 
             let finish = matches!(res, StateReturn::NextFrame(_));
 
             for cmd in res.into_cmds() {
-                self.run_cmd(cmd, update);
+                self.run_cmd(cmd, data, ctrl);
             }
 
             if finish {
@@ -87,7 +87,7 @@ impl Fsm {
         }
     }
 
-    fn run_cmd(&mut self, cmd: StateCommand, data: &mut Data) {
+    fn run_cmd(&mut self, cmd: StateCommand, data: &mut Data, ctrl: &mut Control) {
         match cmd {
             StateCommand::Insert(typeid, state) => {
                 self.states.insert(typeid, state);
@@ -96,7 +96,7 @@ impl Fsm {
                 let _ = self.stack.pop().unwrap();
             }
             StateCommand::Push(typeid) => {
-                self.push_id(typeid, data);
+                self.push_id(typeid, data, ctrl);
             }
             StateCommand::PopAndRemove => {
                 let typeid = self.stack.pop().unwrap();
@@ -119,27 +119,27 @@ impl Fsm {
             .insert(TypeId::of::<T>(), Box::new(T::default()))
     }
 
-    pub fn push<T: GameState + 'static>(&mut self, gl: &mut Data) {
+    pub fn push<T: GameState + 'static>(&mut self, data: &mut Data, ctrl: &mut Control) {
         let id = TypeId::of::<T>();
-        self.push_id(id, gl);
+        self.push_id(id, data, ctrl);
     }
 
-    pub fn push_id(&mut self, id: TypeId, gl: &mut Data) {
+    pub fn push_id(&mut self, id: TypeId, data: &mut Data, ctrl: &mut Control) {
         if let Some(last_id) = self.stack.last() {
             let last = self.states.get_mut(last_id).unwrap();
-            last.on_stop(gl);
+            last.on_stop(data, ctrl);
         }
 
         let new = self.states.get_mut(&id).unwrap();
-        new.on_enter(gl);
+        new.on_enter(data, ctrl);
 
         self.stack.push(id);
     }
 
-    pub fn pop(&mut self, gl: &mut Data) {
+    pub fn pop(&mut self, data: &mut Data, ctrl: &mut Control) {
         let last_id = self.stack.last().unwrap();
         let last = self.states.get_mut(last_id).unwrap();
-        last.on_exit(gl);
+        last.on_exit(data, ctrl);
 
         self.stack.pop();
     }

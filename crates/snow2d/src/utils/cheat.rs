@@ -51,3 +51,15 @@ impl<T> std::ops::DerefMut for Cheat<T> {
         unsafe { &mut *self.ptr }
     }
 }
+
+impl<T> AsRef<T> for Cheat<T> {
+    fn as_ref(&self) -> &T {
+        unsafe { &*self.ptr }
+    }
+}
+
+impl<T> AsMut<T> for Cheat<T> {
+    fn as_mut(&mut self) -> &mut T {
+        unsafe { &mut *self.ptr }
+    }
+}

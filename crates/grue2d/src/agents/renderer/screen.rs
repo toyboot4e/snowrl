@@ -1,20 +1,45 @@
 /*!
 Full-screen renderers
 
-Each type may have more explanation.
+# Pixel-perfect shadow
+
+If our shadow is not pixel-perfect, they would be flickering or shaking. They happen because each
+pixel of our shadow texture is mapped to 4x4 pixels from different cells.
+
+So we use (screen_size / 4) shadow texture and map them to (screen_size + 1).
 */
 
 use {
-    rokol::{app as ra, gfx as rg},
+    rokol::gfx as rg,
     snow2d::gfx::{
         draw::*, geom2d::Vec2f, mesh::StaticMesh, shaders, shaders::PosUvVert, tex::RenderTexture,
-        PassConfig, Shader, Snow2d,
+        PassConfig, Shader, Snow2d, WindowState,
     },
     std::time::Instant,
 };
 
 use crate::data::world::World;
 use rlbox::{render::tiled as tiled_render, rl::grid2d::Vec2i, view::camera::Camera2d};
+
+/// The smaller, the more blur
+const SHADOW_SCALE: f32 = 1.0 / 4.0;
+
+/// We'll convert screen size + SCREEN_EDGE for making pixel-perfect shadow
+const SCREEN_EDGE: f32 = 4.0;
+
+fn s2s(screen_size: [u32; 2]) -> [u32; 2] {
+    [
+        (screen_size[0] as f32 * SHADOW_SCALE + SCREEN_EDGE) as u32,
+        (screen_size[1] as f32 * SHADOW_SCALE + SCREEN_EDGE) as u32,
+    ]
+}
+
+fn s2s_f(screen_size: [u32; 2]) -> [f32; 2] {
+    [
+        screen_size[0] as f32 * SHADOW_SCALE + SCREEN_EDGE,
+        screen_size[1] as f32 * SHADOW_SCALE + SCREEN_EDGE,
+    ]
+}
 
 const SCREEN_TRIANGLE: [PosUvVert; 3] = [
     PosUvVert {
@@ -63,15 +88,21 @@ const SCREEN_TRIANGLE: [PosUvVert; 3] = [
 pub struct ShadowRenderer {
     /// Shadow textures for gaussian blur
     shadows: [RenderTexture; 2],
+    // TODO: enable resizing.
+    screen_size: [u32; 2],
     /// Shader program for off-screen rendering with gausssian blur
     gauss_shd: Shader,
     // mesh: StaticMesh<PosUvVert>,
 }
 
-impl Default for ShadowRenderer {
-    fn default() -> Self {
+impl ShadowRenderer {
+    pub fn new(screen_size: [u32; 2]) -> Self {
         Self {
-            shadows: [Self::create_shadow(), Self::create_shadow()],
+            shadows: [
+                Self::create_shadow(screen_size),
+                Self::create_shadow(screen_size),
+            ],
+            screen_size,
             gauss_shd: shaders::gauss(),
         }
     }
@@ -79,15 +110,8 @@ impl Default for ShadowRenderer {
 
 impl ShadowRenderer {
     /// Creates off-screern rendering target
-    fn create_shadow() -> RenderTexture {
-        let mut shadow_size = ra::size_f_scaled();
-
-        let scale = 1.0 / 4.0;
-        shadow_size[0] *= scale;
-        shadow_size[1] *= scale;
-        shadow_size[0] += 1.0;
-        shadow_size[1] += 1.0;
-
+    fn create_shadow(screen_size: [u32; 2]) -> RenderTexture {
+        let shadow_size = self::s2s(screen_size);
         RenderTexture::builder([shadow_size[0] as u32, shadow_size[1] as u32])
             // linear: smooth, nearest: feels like pixelized
             // TODO: let user choose it dynamically
@@ -95,8 +119,13 @@ impl ShadowRenderer {
             .build()
     }
 
-    /// Renders shadow texture (don't forget to use it later)
+    /// Render shadow texture (don't forget to use it later)
     pub fn render_ofs(&mut self, rdr: &mut Snow2d, world: &World, blur: bool) {
+        let screen_size = rdr.window.size_u32();
+        if screen_size != self.screen_size {
+            log::error!("The shadow size isn't synced with the screen size");
+        }
+
         let mut offscreen = rdr.offscreen(
             &mut self.shadows[0],
             PassConfig {
@@ -106,7 +135,7 @@ impl ShadowRenderer {
             },
         );
 
-        // NOTE: this is an important trick
+        // NOTE: This is an important trick for pixel-perfect shadow
         let tfm = glam::Mat4::from_translation({
             let offset_f = world.cam.params.pos.floor();
             // let offset_f = world.cam.params.pos.round();
@@ -122,23 +151,19 @@ impl ShadowRenderer {
                 [0.0, 0.0, 1.0, 0.0],
                 [0.0, 0.0, 0.0, 1.0]
             );
-            let win_size = ra::size_f();
+
+            let shadow_size = s2s_f(screen_size);
             let proj = M_INV_Y
                 * glam::Mat4::orthographic_rh_gl(
                     0.0,
-                    win_size[0] + 4.0,
-                    win_size[1] + 4.0,
+                    shadow_size[0],
+                    shadow_size[1],
                     0.0,
                     0.0,
                     1.0,
                 )
                 * tfm;
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
-            // let bytes: &[u8] = std::slice::from_raw_parts(
-            //     &proj as *const _ as *const _,
-            //     std::mem::size_of::<glam::Mat4>(),
-            // );
-            // rg::apply_uniforms(rg::ShaderStage::Vs, 0, &bytes);
         }
 
         // get shadow texture
@@ -195,9 +220,8 @@ impl ShadowRenderer {
 
         // write from one to the other
         draw.sprite(self.shadows[from].tex())
-            // NOTE: we're using a orthogarphic projection matrix for the screen, so
-            // use the screen size as the destination size
-            .dst_size_px(ra::size_f_scaled());
+            // NOTE: In normalized coordinates, this is [1.0, 1.0]
+            .dst_size_px([self.screen_size[0] as f32, self.screen_size[1] as f32]);
     }
 
     /// Writes shadow to the screen frame buffer
@@ -212,13 +236,16 @@ impl ShadowRenderer {
     }
 
     /// Writes shadow to the screen frame buffer
-    pub fn blend_to_target(&self, target: &mut impl DrawApi, cam: &Camera2d) {
-        // NOTE: this is an important trick
-        let offsetr_f = cam.params.pos.floor();
-        // let offsetr_f = cam.params.pos.round();
-        let offset = Vec2i::new(offsetr_f.x as i32, offsetr_f.y as i32);
+    fn blend_to_target(&self, target: &mut impl DrawApi, cam: &Camera2d) {
+        // NOTE: This is an important trick to create pixel-perfect shadow
+
+        let offset_f = cam.params.pos.floor();
+        let offset = Vec2i::new(offset_f.x as i32, offset_f.y as i32);
         let rem = offset % 4;
-        let size = Vec2f::from(ra::size_f_scaled()).offset([4.0, 4.0]);
+        let size = Vec2f::from([
+            self.screen_size[0] as f32 + SCREEN_EDGE,
+            self.screen_size[1] as f32 + SCREEN_EDGE,
+        ]);
 
         target
             .sprite(self.shadows[0].tex())
@@ -251,8 +278,8 @@ impl Default for SnowRenderer {
 }
 
 impl SnowRenderer {
-    pub fn render(&mut self) {
-        rg::begin_default_pass(&rg::PassAction::LOAD, ra::width(), ra::height());
+    pub fn render(&mut self, window: &WindowState) {
+        rg::begin_default_pass(&rg::PassAction::LOAD, window.w as u32, window.h as u32);
         self.shd.apply_pip();
 
         fn as_bytes<T>(x: &T) -> &[u8] {
@@ -261,13 +288,14 @@ impl SnowRenderer {
             }
         }
 
-        let size = glam::Vec2::from(ra::size_f_scaled());
+        let size = glam::Vec2::from(window.size_f32());
         self.shd.set_fs_uniform(0, as_bytes(&size));
 
         let time = (Instant::now() - self.start_time).as_secs_f32();
         self.shd.set_fs_uniform(1, as_bytes(&time));
 
-        let mouse = glam::Vec2::new(ra::width() as f32, ra::height() as f32);
+        // TODO: mouse position changes what?
+        let mouse = glam::Vec2::from(window.size_f32()) / 2.0;
         self.shd.set_fs_uniform(2, as_bytes(&mouse));
 
         // just draw a fullscreen triangle

@@ -1,7 +1,9 @@
 //! TODO: remove debug/error log on release build?
 //! TODO: inspect Pool/Anim and see if there's garbage
 
-use rokol::app as ra;
+use anyhow::{Error, Result};
+
+use snow2d::gfx::WindowState;
 
 use rlbox::{
     rl::grid2d::*,
@@ -12,10 +14,13 @@ use rlbox::{
     },
 };
 
-use grue2d::data::{
-    resources::{Resources, Ui, VInput},
-    rogue::Rogue,
-    world::{actor::*, World},
+use grue2d::{
+    ctrl::Control,
+    data::{
+        resources::{Resources, Ui, VInput},
+        world::{actor::*, World},
+    },
+    platform::PlatformLifetime,
 };
 
 use snowrl::{
@@ -26,32 +31,45 @@ use snowrl::{
     SnowRl,
 };
 
-fn main() -> ra::glue::Result {
+fn main() -> Result<()> {
     env_logger::init();
 
-    let rokol = ra::glue::Rokol {
+    let init = grue2d::platform::Init {
+        title: "SnowRL".to_string(),
         w: 1280,
         h: 720,
         use_high_dpi: false,
-        // TODO: text-only high DPI game application (other items should be scaled)
-        // use_high_dpi: true,
-        title: "SnowRL".to_string(),
         ..Default::default()
     };
 
-    grue2d::run(rokol, |rokol| SnowRl::new(self::new_game(rokol)))
+    let platform = init
+        .init(|w| {
+            w.position_centered();
+            // w.allow_hidhdpi();
+        })
+        .map_err(Error::msg)?;
+
+    let app = SnowRl::new(new_game(&init, &platform));
+
+    grue2d::platform::run(platform, app)
 }
 
-fn new_game(rokol: ra::glue::Rokol) -> GrueRl {
-    let title = rokol.title;
-
+fn new_game(init: &grue2d::platform::Init, platform: &PlatformLifetime) -> GrueRl {
     // create our game context
     let mut data = {
-        let mut ice = Ice::new(title, unsafe { Snow2d::new() });
+        let mut ice = Ice::new(unsafe {
+            Snow2d::new(WindowState {
+                w: init.w,
+                h: init.h,
+                // TODO: remove magic scaling number
+                dpi_scale: [2.0, 2.0],
+            })
+        });
         init::init_assets(&mut ice).unwrap();
 
         let mut ui = Ui::new();
-        let world = self::init_world(&mut ice, &mut ui).unwrap();
+        let screen_size = [init.w, init.h];
+        let world = self::init_world(screen_size, &mut ice, &mut ui).unwrap();
         let fonts = init::load_fonts(&mut ice);
 
         Data {
@@ -62,9 +80,10 @@ fn new_game(rokol: ra::glue::Rokol) -> GrueRl {
                 vi: VInput::new(),
                 ui: Ui::new(),
             },
-            rogue: Rogue::new(),
         }
     };
+
+    let mut ctrl = Control::new();
 
     // create our control
     let fsm = {
@@ -73,21 +92,21 @@ fn new_game(rokol: ra::glue::Rokol) -> GrueRl {
         fsm.insert_default::<states::Roguelike>();
         fsm.insert_default::<states::Animation>();
 
-        // fsm.insert(states::Title::new(&mut gl.ice));
         fsm.insert(states::Title::new(&mut data.ice, &mut data.res.ui));
 
         fsm.insert(states::PlayScript::new(&mut data.ice.assets));
 
-        fsm.push::<states::Roguelike>(&mut data);
-        fsm.push::<states::Title>(&mut data);
+        fsm.push::<states::Roguelike>(&mut data, &mut ctrl);
+        fsm.push::<states::Title>(&mut data, &mut ctrl);
 
         fsm
     };
 
-    GrueRl::new(data, fsm)
+    let size = [platform.win.size().0, platform.win.size().1];
+    GrueRl::new(size, data, fsm)
 }
 
-fn init_world(ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<World> {
+fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<World> {
     let map = TiledRlMap::new(
         paths::map::tmx::TILES,
         ice.assets.cache_mut::<Texture2dDrop>().unwrap(),
@@ -103,7 +122,7 @@ fn init_world(ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<World> {
                 scale: [1.0, 1.0].into(),
                 rot: 0.0,
             },
-            size: ra::size_f().into(),
+            size: Vec2f::new(screen_size[0] as f32, screen_size[1] as f32),
         },
         cam_follow: FollowCamera2d {
             // TODO: don't hardcode. maybe use expressions considering window resizing

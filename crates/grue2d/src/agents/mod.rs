@@ -1,19 +1,20 @@
 /*!
-Agents: objects with exclusive state
+Object for the finite state machine
 */
 
-pub mod renderer;
-use renderer::WorldRenderer;
+mod renderer;
+pub use renderer::*;
 
+/// Objects with exclusive states that work on other data
 #[derive(Debug)]
 pub struct Agents {
     pub world_render: WorldRenderer,
 }
 
 impl Agents {
-    pub fn new() -> Self {
+    pub fn new(screen_size: [u32; 2]) -> Self {
         Self {
-            world_render: WorldRenderer::default(),
+            world_render: WorldRenderer::new(screen_size),
         }
     }
 }

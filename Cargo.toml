@@ -22,7 +22,7 @@ exclude = [
 ]
 
 [dependencies]
-rokol = { path = "crates/snow2d/rokol", features = ["glcore33"] }
+rokol = { path = "crates/snow2d/rokol", features = ["glcore33", "impl-gfx", "use-sdl2", "use-fontstash"] }
 snow2d = { path = "crates/snow2d" }
 rlbox = { path = "crates/rlbox" }
 grue2d = { path = "crates/grue2d" }
@@ -39,6 +39,7 @@ thiserror = "1.0.21"
 serde = { version = "1.0.120", features = ["derive"] }
 ron = "0.6.4"
 image = "0.23.13"
+sdl2 = "0.34.3"
 
 [build-dependencies]
 convert_case = "0.4.0"

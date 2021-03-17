@@ -1,8 +1,5 @@
 /*!
 Game entity with GUI
-
-Ideally, internals should be separated from graphics, but coupling them would be good for
-prototpyes.
 */
 
 use serde::{Deserialize, Serialize};

@@ -266,4 +266,12 @@ pub trait SerdeViaTypeObject {
     }
 }
 
+// TODO: programming pattern
+// pub trait DefaultFromTyObj {
+//     type TypeObject: TypeObject;
+//     fn default_from_type(ty: &TypeObjectId) -> Self;
+// }
+
+// TODO: watch (static asset?)
+
 pub use snow2d_macros::connect_repr_target;
