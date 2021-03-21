@@ -288,8 +288,7 @@ impl Snow2d {
     /// Begins on-screen rendering pass
     pub fn screen(&mut self, cfg: PassConfig<'_>) -> RenderPass<'_> {
         {
-            // let fbuf = self.window.framebuf_size_u32();
-            let fbuf = self.window.size_u32();
+            let fbuf = self.window.framebuf_size_u32();
             rg::begin_default_pass(cfg.pa, fbuf[0], fbuf[1]);
         }
 

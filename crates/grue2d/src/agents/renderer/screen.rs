@@ -24,20 +24,20 @@ use rlbox::{render::tiled as tiled_render, rl::grid2d::Vec2i, view::camera::Came
 /// The smaller, the more blur
 const SHADOW_SCALE: f32 = 1.0 / 4.0;
 
-/// We'll convert screen size + SCREEN_EDGE for making pixel-perfect shadow
+/// We'll use (screen_size + SCREEN_EDGE) for making pixel-perfect shadow
 const SCREEN_EDGE: f32 = 4.0;
 
-fn s2s(screen_size: [u32; 2]) -> [u32; 2] {
+fn screen_to_shadow_u32(screen_size: [u32; 2]) -> [u32; 2] {
     [
-        (screen_size[0] as f32 * SHADOW_SCALE + SCREEN_EDGE) as u32,
-        (screen_size[1] as f32 * SHADOW_SCALE + SCREEN_EDGE) as u32,
+        ((screen_size[0] as f32 + SCREEN_EDGE) * SHADOW_SCALE) as u32,
+        ((screen_size[1] as f32 + SCREEN_EDGE) * SHADOW_SCALE) as u32,
     ]
 }
 
-fn s2s_f(screen_size: [u32; 2]) -> [f32; 2] {
+fn screen_to_shadow_f32(screen_size: [u32; 2]) -> [f32; 2] {
     [
-        screen_size[0] as f32 * SHADOW_SCALE + SCREEN_EDGE,
-        screen_size[1] as f32 * SHADOW_SCALE + SCREEN_EDGE,
+        (screen_size[0] as f32 + SCREEN_EDGE) * SHADOW_SCALE,
+        (screen_size[1] as f32 + SCREEN_EDGE) * SHADOW_SCALE,
     ]
 }
 
@@ -111,7 +111,7 @@ impl ShadowRenderer {
 impl ShadowRenderer {
     /// Creates off-screern rendering target
     fn create_shadow(screen_size: [u32; 2]) -> RenderTexture {
-        let shadow_size = self::s2s(screen_size);
+        let shadow_size = self::screen_to_shadow_u32(screen_size);
         RenderTexture::builder([shadow_size[0] as u32, shadow_size[1] as u32])
             // linear: smooth, nearest: feels like pixelized
             // TODO: let user choose it dynamically
@@ -135,10 +135,10 @@ impl ShadowRenderer {
             },
         );
 
-        // NOTE: This is an important trick for pixel-perfect shadow
+        // Use (screen_size + SCREEN_EDGE) as target size
+        // (important trick for pixel-perfect shadow)
         let tfm = glam::Mat4::from_translation({
             let offset_f = world.cam.params.pos.floor();
-            // let offset_f = world.cam.params.pos.round();
             let offset = Vec2i::new(offset_f.x as i32, offset_f.y as i32);
             let rem = offset % 4;
             glam::Vec3::new((-offset.x + rem.x) as f32, (-offset.y + rem.y) as f32, 0.0)
@@ -152,17 +152,20 @@ impl ShadowRenderer {
                 [0.0, 0.0, 0.0, 1.0]
             );
 
-            let shadow_size = s2s_f(screen_size);
             let proj = M_INV_Y
                 * glam::Mat4::orthographic_rh_gl(
+                    // left, right
                     0.0,
-                    shadow_size[0],
-                    shadow_size[1],
+                    screen_size[0] as f32,
+                    // bottom, top
+                    screen_size[1] as f32,
                     0.0,
+                    // near, far
                     0.0,
                     1.0,
                 )
                 * tfm;
+
             rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
         }
 
@@ -232,13 +235,7 @@ impl ShadowRenderer {
             shd: None,
         });
 
-        self.blend_to_target(&mut screen, cam);
-    }
-
-    /// Writes shadow to the screen frame buffer
-    fn blend_to_target(&self, target: &mut impl DrawApi, cam: &Camera2d) {
         // NOTE: This is an important trick to create pixel-perfect shadow
-
         let offset_f = cam.params.pos.floor();
         let offset = Vec2i::new(offset_f.x as i32, offset_f.y as i32);
         let rem = offset % 4;
@@ -247,7 +244,7 @@ impl ShadowRenderer {
             self.screen_size[1] as f32 + SCREEN_EDGE,
         ]);
 
-        target
+        screen
             .sprite(self.shadows[0].tex())
             .dst_pos_px([-rem.x as f32, -rem.y as f32])
             .dst_size_px(size);
@@ -279,7 +276,10 @@ impl Default for SnowRenderer {
 
 impl SnowRenderer {
     pub fn render(&mut self, window: &WindowState) {
-        rg::begin_default_pass(&rg::PassAction::LOAD, window.w as u32, window.h as u32);
+        {
+            let fbuf = window.framebuf_size_u32();
+            rg::begin_default_pass(&rg::PassAction::LOAD, fbuf[0], fbuf[1]);
+        }
         self.shd.apply_pip();
 
         fn as_bytes<T>(x: &T) -> &[u8] {

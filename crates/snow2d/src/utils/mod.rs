@@ -27,6 +27,11 @@ pub mod arena {
     pub use thunderdome::*;
 }
 
+/// [`delegate::delegate`] re-exported
+///
+/// ---
+pub use delegate::delegate;
+
 /// [`derivative::Derivative`] re-exported
 ///
 /// ---

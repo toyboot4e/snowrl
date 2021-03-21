@@ -82,7 +82,6 @@ impl Ice {
     pub fn pre_update(&mut self, dt: std::time::Duration) {
         self.frame_count += 1;
         self.dt = dt;
-        log::trace!("{}", self.frame_count);
     }
 
     /// Updates font texture

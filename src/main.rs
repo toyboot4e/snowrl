@@ -1,5 +1,7 @@
-//! TODO: remove debug/error log on release build?
-//! TODO: inspect Pool/Anim and see if there's garbage
+//! * TODO: remove debug/error log on release build?
+//! * TODO: inspect Pool/Anim and see if there's garbage
+//! * TODO: fix dpi scaling (WindowState, GrueRl::pre_render, begin_default_pass)
+//! * TODO: allow resizing window
 
 use anyhow::{Error, Result};
 
