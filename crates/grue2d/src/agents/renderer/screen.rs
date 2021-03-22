@@ -34,13 +34,6 @@ fn screen_to_shadow_u32(screen_size: [u32; 2]) -> [u32; 2] {
     ]
 }
 
-fn screen_to_shadow_f32(screen_size: [u32; 2]) -> [f32; 2] {
-    [
-        (screen_size[0] as f32 + SCREEN_EDGE) * SHADOW_SCALE,
-        (screen_size[1] as f32 + SCREEN_EDGE) * SHADOW_SCALE,
-    ]
-}
-
 const SCREEN_TRIANGLE: [PosUvVert; 3] = [
     PosUvVert {
         pos: [-1.0, -1.0],

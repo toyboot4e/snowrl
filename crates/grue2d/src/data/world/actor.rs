@@ -38,14 +38,6 @@ pub struct ActorType {
 
 impl TypeObject for ActorType {}
 
-/// Serde representation of actor
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ActorSerde {
-    pub type_: SerdeRepr<ActorType>,
-    pub pos: Vec2i,
-    pub dir: Dir8,
-}
-
 /// Runtime represntation of actor
 #[derive(Debug, Clone)]
 pub struct Actor {
@@ -56,6 +48,7 @@ pub struct Actor {
     pub nodes: ActorNodes,
 }
 
+/// Create [`Actor`] from RON files
 #[derive(Debug, Clone)]
 pub struct ActorSpawn {
     pub type_: TypeObjectId<ActorType>,
