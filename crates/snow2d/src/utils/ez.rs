@@ -61,7 +61,7 @@ impl crate::utils::ez::Lerp for Dir8 {
     fn lerp(a: Self, b: Self, t: f32) -> Dir8 {
         let n_steps = (b as u8 + 8 - a as u8) % 8;
 
-        let (n_steps, step_size) = if n_steps <= 4 {
+        let (n_steps, step_size) = if n_steps <  4 {
             (n_steps, 1)
         } else {
             (8 - n_steps, 8 - 1)
