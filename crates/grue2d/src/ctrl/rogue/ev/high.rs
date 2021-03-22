@@ -16,7 +16,6 @@ use crate::{
 
 use super::*;
 
-/// TODO: Attack in direction
 #[derive(Debug)]
 pub struct MeleeAttack {
     pub actor: Index<Actor>,

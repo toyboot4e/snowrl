@@ -72,7 +72,7 @@ impl GameState for Roguelike {
                     }) {
                         // log::trace!("event animation: {:?}", anim);
 
-                        ctrl.rogue.anims.enqueue_boxed(anim);
+                        ctrl.rogue.anims.enqueue_box(anim);
 
                         // run not-batched animation
                         // (batch walk animations as much as possible)

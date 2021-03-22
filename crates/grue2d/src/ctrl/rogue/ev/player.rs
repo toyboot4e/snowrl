@@ -22,7 +22,7 @@ pub struct InteractiveTalk {
 impl GenAnim for InteractiveTalk {}
 
 impl Event for InteractiveTalk {
-    /// `Talk` event should be handled exterally by GUI
+    /// [`InteractiveTalk`] event should be handled exterally by GUI
     fn run(&self, _ecx: &mut EventContext) -> EventResult {
         EventResult::Finish
     }
