@@ -41,7 +41,7 @@ impl World {
     pub fn update(&mut self, ice: &mut Ice) {
         // FIXME: impl Into itermut
         for (_ix, e) in &mut self.entities {
-            e.img.update(ice.dt(), e.pos, e.dir);
+            e.view.update(ice.dt(), e.pos, e.dir);
         }
     }
 }

@@ -194,10 +194,10 @@ impl WorldRenderer {
             } as u8;
 
             let actor = &world.entities[entry.actor_index];
-            let pos = actor.img.pos_world_render(&world.map.tiled);
+            let pos = actor.view.pos_world_render(&world.map.tiled);
 
             screen
-                .sprite(actor.img.sprite())
+                .sprite(actor.view.sprite())
                 .dst_pos_px(pos)
                 .color(Color::WHITE.with_alpha(alpha));
         }

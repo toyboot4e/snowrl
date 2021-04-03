@@ -173,10 +173,12 @@ impl DirAnimKind {
     }
 }
 
+/// Type object of [`ActorImage`]
+///
 /// After deserialization, we have to
 ///
 /// 1. Call [`ActorImage::warp`]
-/// 2. Change speed properties of [`ActorImage`]
+/// 2. Set speed properties of [`ActorImage`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActorImageDesc {
     pub tex: Asset<Texture2dDrop>,

@@ -38,13 +38,13 @@ pub struct ActorType {
 
 impl TypeObject for ActorType {}
 
-/// Runtime represntation of actor
+/// Internal and view states of an actor
 #[derive(Debug, Clone)]
 pub struct Actor {
     pub pos: Vec2i,
     pub dir: Dir8,
-    pub img: ActorImage,
     pub stats: ActorStats,
+    pub view: ActorImage,
     pub nodes: ActorNodes,
 }
 
@@ -93,11 +93,11 @@ impl ActorSpawn {
         let mut actor = Actor {
             pos: self.pos,
             dir: self.dir,
-            img,
+            view: img,
             stats: type_.stats.clone(),
             nodes,
         };
-        actor.img.warp(self.pos, self.dir);
+        actor.view.warp(self.pos, self.dir);
 
         Ok(world.entities.insert(actor))
     }

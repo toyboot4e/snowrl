@@ -78,7 +78,7 @@ impl GrueRl {
             .post_update(dt, &data.world.map.rlmap, player.pos);
 
         // camera
-        let player_pos = player.img.pos_world_centered(&data.world.map.tiled);
+        let player_pos = player.view.pos_world_centered(&data.world.map.tiled);
         data.world.cam_follow.update_follow(
             &mut data.world.cam,
             player_pos,
