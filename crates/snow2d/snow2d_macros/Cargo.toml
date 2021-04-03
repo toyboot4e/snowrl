@@ -11,4 +11,4 @@ edition = "2018"
 # description = ""
 
 [dependencies]
-xdl = { path = "../xdl", features = ["use-sdl2"] }
+xdl = { path = "../xdl", features = ["sdl2"] }

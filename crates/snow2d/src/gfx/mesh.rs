@@ -7,29 +7,37 @@ use {
     std::marker::PhantomData,
 };
 
+use crate::utils::bytemuck::{self, Pod};
+
 /// Wrapper of immutable buffers
 #[derive(Debug, Clone, Default)]
-pub struct StaticMesh<V> {
+pub struct StaticMesh<V: Pod> {
     bind: rg::Bindings,
     n_indices: usize,
     _phantom: PhantomData<fn() -> V>,
 }
 
-impl<V> Drop for StaticMesh<V> {
+impl<V: Pod> Drop for StaticMesh<V> {
     fn drop(&mut self) {
         rg::Buffer::destroy(self.bind.vertex_buffers[0]);
         rg::Buffer::destroy(self.bind.index_buffer);
     }
 }
 
-impl<V> StaticMesh<V> {
-    fn new<T>(verts: &[V], indices: &[T]) -> Self {
+impl<V: Pod> StaticMesh<V> {
+    fn new<T: Pod>(verts: &[V], indices: &[T]) -> Self {
         Self {
             bind: rg::Bindings {
-                index_buffer: rg::Buffer::create(&rg::ibuf_desc_immutable(indices, "")),
+                index_buffer: rg::Buffer::create(&rg::ibuf_desc_immutable(
+                    bytemuck::cast_slice(indices),
+                    "",
+                )),
                 vertex_buffers: {
                     let mut xs = [Default::default(); 8];
-                    xs[0] = rg::Buffer::create(&rg::vbuf_desc_immutable(verts, ""));
+                    xs[0] = rg::Buffer::create(&rg::vbuf_desc_immutable(
+                        bytemuck::cast_slice(verts),
+                        "",
+                    ));
                     xs
                 },
                 ..Default::default()
@@ -62,22 +70,22 @@ impl<V> StaticMesh<V> {
 
 /// Wrapper of dynamic buffers
 #[derive(Debug, Clone, Default)]
-pub struct DynamicMesh<V> {
+pub struct DynamicMesh<V: Pod> {
     pub bind: rg::Bindings,
     pub n_indices: usize,
     pub verts: Vec<V>,
     _phantom: PhantomData<fn() -> V>,
 }
 
-impl<V> Drop for DynamicMesh<V> {
+impl<V: Pod> Drop for DynamicMesh<V> {
     fn drop(&mut self) {
         rg::Buffer::destroy(self.bind.vertex_buffers[0]);
         rg::Buffer::destroy(self.bind.index_buffer);
     }
 }
 
-impl<V> DynamicMesh<V> {
-    fn new<T>(verts: Vec<V>, indices: &[T]) -> Self {
+impl<V: Pod> DynamicMesh<V> {
+    fn new<T: Pod>(verts: Vec<V>, indices: &[T]) -> Self {
         let mut b = rg::Bindings::default();
 
         let size_in_bytes = std::mem::size_of::<V>() * verts.len();
@@ -88,7 +96,8 @@ impl<V> DynamicMesh<V> {
             "",
         ));
 
-        b.index_buffer = rg::Buffer::create(&rg::ibuf_desc_immutable(indices, ""));
+        b.index_buffer =
+            rg::Buffer::create(&rg::ibuf_desc_immutable(bytemuck::cast_slice(indices), ""));
 
         Self {
             bind: b,
@@ -115,7 +124,10 @@ impl<V> DynamicMesh<V> {
 
     /// WARNING: can be called only once a frame
     pub unsafe fn upload_all_verts(&mut self) {
-        rg::update_buffer(self.bind.vertex_buffers[0], &self.verts);
+        rg::update_buffer(
+            self.bind.vertex_buffers[0],
+            bytemuck::cast_slice(&self.verts),
+        );
         // update_buffer gives us a fresh buffer so make sure we reset our append offset
         self.bind.vertex_buffer_offsets[0] = 0;
     }
@@ -127,7 +139,7 @@ impl<V> DynamicMesh<V> {
         assert!(n_verts <= self.verts.len());
         let start_index = start_index as usize;
         let slice = &self.verts[start_index..start_index + n_verts];
-        rg::update_buffer(self.bind.vertex_buffers[0], slice);
+        rg::update_buffer(self.bind.vertex_buffers[0], bytemuck::cast_slice(slice));
     }
 
     /// Appends vertices to GPU vertex buffer
@@ -138,7 +150,7 @@ impl<V> DynamicMesh<V> {
         debug_assert!(start_index + n_verts <= self.verts.len());
 
         let slice = &self.verts[start_index..start_index + n_verts];
-        let offset = rg::append_buffer(self.bind.vertex_buffers[0], slice);
+        let offset = rg::append_buffer(self.bind.vertex_buffers[0], bytemuck::cast_slice(slice));
 
         // after this: `draw` can be called with `base_elem` being zero
         self.bind.vertex_buffer_offsets[0] = offset;

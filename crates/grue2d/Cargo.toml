@@ -13,7 +13,7 @@ rlbox = { path = "../rlbox" }
 hot_crate = { path = "hot_crate" }
 
 image = "0.23.12"
-glam = "0.11.2"
+glam = { version = "0.11.2", features = ["bytemuck"] }
 tiled = "0.9.3"
 
 log = "0.4.11"

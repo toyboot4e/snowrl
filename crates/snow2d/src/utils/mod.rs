@@ -3,7 +3,7 @@ Core utilities
 */
 
 mod cheat;
-pub use cheat::Cheat;
+pub use cheat::{cheat, Cheat};
 
 pub mod ez;
 pub mod pool;
@@ -26,6 +26,11 @@ pub mod arena {
 
     pub use thunderdome::*;
 }
+
+/// [`bytemuck`] re-exported
+///
+/// ---
+pub use bytemuck;
 
 /// [`delegate::delegate`] re-exported
 ///

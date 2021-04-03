@@ -22,7 +22,7 @@ exclude = [
 ]
 
 [dependencies]
-rokol = { path = "crates/snow2d/rokol", features = ["glcore33", "impl-gfx", "use-sdl2", "use-fontstash"] }
+rokol = { path = "crates/snow2d/rokol", features = ["glcore33", "impl-gfx", "sdl2", "fontstash"] }
 snow2d = { path = "crates/snow2d" }
 rlbox = { path = "crates/rlbox" }
 grue2d = { path = "crates/grue2d" }

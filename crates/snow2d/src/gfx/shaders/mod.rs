@@ -4,7 +4,10 @@
 
 use rokol::gfx::{self as rg, BakedResource};
 
-use crate::gfx::Shader;
+use crate::{
+    gfx::Shader,
+    utils::bytemuck::{Pod, Zeroable},
+};
 
 /// Creates a null-terminated string from static string
 macro_rules! c_str {
@@ -95,13 +98,16 @@ fn gen(
 }
 
 /// Position, color and uv
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
 pub struct DefaultVertex {
     pub pos: [f32; 2],
     pub color: [u8; 4],
     pub uv: [f32; 2],
 }
+
+unsafe impl Zeroable for DefaultVertex {}
+unsafe impl Pod for DefaultVertex {}
 
 impl<Pos, Color, Uv> From<(Pos, Color, Uv)> for DefaultVertex
 where
@@ -202,12 +208,15 @@ pub fn gauss() -> Shader {
     )
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
 pub struct PosUvVert {
     pub pos: [f32; 2],
     pub uv: [f32; 2],
 }
+
+unsafe impl Zeroable for PosUvVert {}
+unsafe impl Pod for PosUvVert {}
 
 impl PosUvVert {
     pub fn layout_desc() -> rg::LayoutDesc {

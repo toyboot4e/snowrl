@@ -11,9 +11,12 @@ So we use (screen_size / 4) shadow texture and map them to (screen_size + 1).
 
 use {
     rokol::gfx as rg,
-    snow2d::gfx::{
-        draw::*, geom2d::Vec2f, mesh::StaticMesh, shaders, shaders::PosUvVert, tex::RenderTexture,
-        PassConfig, Shader, Snow2d, WindowState,
+    snow2d::{
+        gfx::{
+            draw::*, geom2d::Vec2f, mesh::StaticMesh, shaders, shaders::PosUvVert,
+            tex::RenderTexture, PassConfig, Shader, Snow2d, WindowState,
+        },
+        utils::bytemuck,
     },
     std::time::Instant,
 };
@@ -137,7 +140,8 @@ impl ShadowRenderer {
             glam::Vec3::new((-offset.x + rem.x) as f32, (-offset.y + rem.y) as f32, 0.0)
         });
 
-        unsafe {
+        // set transform matrix
+        {
             const M_INV_Y: glam::Mat4 = glam::const_mat4!(
                 [1.0, 0.0, 0.0, 0.0],
                 [0.0, -1.0, 0.0, 0.0],
@@ -159,7 +163,7 @@ impl ShadowRenderer {
                 )
                 * tfm;
 
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
+            rg::apply_uniforms(rg::ShaderStage::Vs, 0, bytemuck::bytes_of(&proj));
         }
 
         // get shadow texture
@@ -207,11 +211,11 @@ impl ShadowRenderer {
             },
         );
 
-        // horizontally or vertically
-        unsafe {
+        // apply blur horizontally or vertically
+        {
             let ub_index = 1;
             let uniform: f32 = if is_h { 1.0 } else { 0.0 };
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, ub_index, &uniform);
+            rg::apply_uniforms(rg::ShaderStage::Vs, ub_index, bytemuck::bytes_of(&uniform));
         }
 
         // write from one to the other
