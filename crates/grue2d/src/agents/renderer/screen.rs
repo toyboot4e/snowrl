@@ -14,7 +14,7 @@ use {
     snow2d::{
         gfx::{
             draw::*, geom2d::Vec2f, mesh::StaticMesh, shaders, shaders::PosUvVert,
-            tex::RenderTexture, PassConfig, Shader, Snow2d, WindowState,
+            tex::RenderTexture, Shader, Snow2d, WindowState,
         },
         utils::bytemuck,
     },
@@ -122,14 +122,11 @@ impl ShadowRenderer {
             log::error!("The shadow size isn't synced with the screen size");
         }
 
-        let mut offscreen = rdr.offscreen(
-            &mut self.shadows[0],
-            PassConfig {
-                pa: &rg::PassAction::LOAD,
-                tfm: Some(world.cam.to_mat4()),
-                shd: None,
-            },
-        );
+        let mut offscreen = rdr
+            .offscreen(&mut self.shadows[0])
+            .pa(Some(&rg::PassAction::LOAD))
+            .transform(Some(world.cam.to_mat4()))
+            .build();
 
         // Use (screen_size + SCREEN_EDGE) as target size
         // (important trick for pixel-perfect shadow)
@@ -202,14 +199,11 @@ impl ShadowRenderer {
 
     #[inline]
     fn blur(&mut self, rdr: &mut Snow2d, is_h: bool, from: usize, to: usize) {
-        let mut draw = rdr.offscreen(
-            &mut self.shadows[to],
-            PassConfig {
-                pa: &rg::PassAction::LOAD,
-                tfm: None,
-                shd: Some(&self.gauss_shd),
-            },
-        );
+        let mut draw = rdr
+            .offscreen(&mut self.shadows[to])
+            .pa(Some(&rg::PassAction::LOAD))
+            .shader(Some(&self.gauss_shd))
+            .build();
 
         // apply blur horizontally or vertically
         {
@@ -226,11 +220,7 @@ impl ShadowRenderer {
 
     /// Writes shadow to the screen frame buffer
     pub fn blend_to_screen(&self, rdr: &mut Snow2d, cam: &Camera2d) {
-        let mut screen = rdr.screen(PassConfig {
-            pa: &rg::PassAction::LOAD,
-            tfm: None,
-            shd: None,
-        });
+        let mut screen = rdr.screen().pa(Some(&rg::PassAction::LOAD)).build();
 
         // NOTE: This is an important trick to create pixel-perfect shadow
         let offset_f = cam.params.pos.floor();

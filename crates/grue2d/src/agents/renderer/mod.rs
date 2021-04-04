@@ -9,7 +9,7 @@ use {
     rlbox::{render::tiled as tiled_render, rl::grid2d::Vec2i, utils::DoubleTrack},
     rokol::gfx as rg,
     snow2d::{
-        gfx::{draw::*, Color, PassConfig, Snow2d, WindowState},
+        gfx::{draw::*, Color, Snow2d, WindowState},
         utils::arena::Index,
         Ice,
     },
@@ -88,11 +88,12 @@ impl WorldRenderer {
         let dt = ice.dt();
         if flags.contains(WorldRenderFlag::MAP | WorldRenderFlag::ACTORS) {
             // use world coordinates
-            let mut screen = ice.snow.screen(PassConfig {
-                pa: &self.pa_blue,
-                tfm: Some(world.cam.to_mat4()),
-                shd: None,
-            });
+            let mut screen = ice
+                .snow
+                .screen()
+                .pa(Some(&self.pa_blue))
+                .transform(Some(world.cam.to_mat4()))
+                .build();
 
             if flags.contains(WorldRenderFlag::MAP) {
                 Self::render_map(&mut screen, &world, 0..100);

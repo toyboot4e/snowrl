@@ -9,7 +9,6 @@ pub mod node;
 use {glam::Mat4, std::time::Duration};
 
 use crate::{
-    gfx::PassConfig,
     utils::{
         arena::Arena,
         pool::{Handle, Pool, Slot},
@@ -144,13 +143,14 @@ impl Layer {
     }
 
     pub fn render(&mut self, ice: &mut Ice, cam_mat: Mat4) {
-        let mut screen = ice.snow.screen(PassConfig {
-            tfm: match self.coord {
+        let mut screen = ice
+            .snow
+            .screen()
+            .transform(match self.coord {
                 CoordSystem::Screen => None,
                 CoordSystem::World => Some(cam_mat),
-            },
-            ..Default::default()
-        });
+            })
+            .build();
 
         // render
         for node in self.nodes_mut_sorted() {
