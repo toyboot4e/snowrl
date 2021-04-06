@@ -22,11 +22,30 @@ use crate::data::{
     world::World,
 };
 
+/// Internal and view states of an actor
+#[derive(Debug, Clone)]
+pub struct Actor {
+    pub pos: Vec2i,
+    pub dir: Dir8,
+    pub stats: ActorStats,
+    pub view: ActorImage,
+    pub nodes: ActorNodes,
+    pub relation: Relation,
+    pub interact: Option<Interactable>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActorStats {
     pub hp: u32,
     pub atk: u32,
     pub def: u32,
+}
+
+/// Relation with player: `Hostile` | `Friendly`
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Relation {
+    Hostile,
+    Friendly,
 }
 
 /// Type object for [`Actor`]
@@ -38,15 +57,26 @@ pub struct ActorType {
 
 impl TypeObject for ActorType {}
 
-/// Internal and view states of an actor
+/// [`Actor`] component
 #[derive(Debug, Clone)]
-pub struct Actor {
-    pub pos: Vec2i,
-    pub dir: Dir8,
-    pub stats: ActorStats,
-    pub view: ActorImage,
-    pub nodes: ActorNodes,
+pub struct Interactable {
+    //
 }
+
+/// TODO: node-based script implementation and DSL
+#[derive(Debug)]
+pub struct Script {
+    //
+}
+
+impl TypeObject for Script {}
+
+pub fn interact(actor: Index<Actor>, target: Index<Actor>, world: &mut World) -> Option<Script> {
+    todo!()
+}
+
+// --------------------------------------------------------------------------------
+// Data-driven content
 
 /// Create [`Actor`] from RON files
 #[derive(Debug, Clone)]
@@ -54,6 +84,7 @@ pub struct ActorSpawn {
     pub type_: TypeObjectId<ActorType>,
     pub pos: Vec2i,
     pub dir: Dir8,
+    pub relation: Relation,
 }
 
 impl ActorSpawn {
@@ -62,6 +93,7 @@ impl ActorSpawn {
             type_: type_.into(),
             pos: Vec2i::default(),
             dir: Dir8::S,
+            relation: Relation::Friendly,
         }
     }
 
@@ -72,6 +104,21 @@ impl ActorSpawn {
 
     pub fn dir(&mut self, dir: Dir8) -> &mut Self {
         self.dir = dir;
+        self
+    }
+
+    pub fn relation(&mut self, rel: Relation) -> &mut Self {
+        self.relation = rel;
+        self
+    }
+
+    pub fn hostile(&mut self) -> &mut Self {
+        self.relation = Relation::Hostile;
+        self
+    }
+
+    pub fn friendly(&mut self) -> &mut Self {
+        self.relation = Relation::Friendly;
         self
     }
 
@@ -96,7 +143,10 @@ impl ActorSpawn {
             view: img,
             stats: type_.stats.clone(),
             nodes,
+            relation: self.relation,
+            interact: None,
         };
+
         actor.view.warp(self.pos, self.dir);
 
         Ok(world.entities.insert(actor))

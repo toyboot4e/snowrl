@@ -8,7 +8,7 @@ use rlbox::rl::grid2d::*;
 
 use crate::{
     ctrl::rogue::tick::{Event, EventContext, EventResult, GenAnim},
-    data::world::actor::Actor,
+    data::world::actor::{Actor, Relation},
 };
 
 use super::*;
@@ -41,24 +41,16 @@ impl Event for Interact {
         let actor = &ecx.world.entities[self.actor];
         let pos = actor.pos + Vec2i::from(self.dir);
 
-        if let Some(target) = ecx
-            .world
-            .entities
-            .iter()
-            .find(|(_i, e)| e.pos == pos)
-            .map(|(i, _e)| i)
-        {
-            // FIXME: interact, melee attack or something
-            if true {
-                EventResult::chain(MeleeAttack {
+        if let Some((target_ix, target)) = ecx.world.entities.iter().find(|(_i, e)| e.pos == pos) {
+            match target.relation {
+                Relation::Friendly => EventResult::chain(InteractWithActor {
+                    from: self.actor,
+                    to: target_ix,
+                }),
+                Relation::Hostile => EventResult::chain(MeleeAttack {
                     actor: self.actor,
                     dir: Some(self.dir),
-                })
-            } else {
-                EventResult::chain(InteractWithActor {
-                    from: self.actor,
-                    to: target,
-                })
+                }),
             }
         } else {
             EventResult::chain(NotConsumeTurn { actor: self.actor })

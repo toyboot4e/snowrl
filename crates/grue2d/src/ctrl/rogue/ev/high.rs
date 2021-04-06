@@ -17,6 +17,30 @@ use crate::{
 use super::*;
 
 #[derive(Debug)]
+pub enum Attack {
+    MeleeAttackFromActor { actor: Index<Actor> },
+}
+
+/// [`Attack`] applied to an actor
+#[derive(Debug)]
+pub struct Hit {
+    pub target: Index<Actor>,
+    pub attacker: Index<Actor>,
+}
+
+impl Event for Hit {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        todo!()
+    }
+}
+
+impl GenAnim for Hit {
+    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        todo!()
+    }
+}
+
+#[derive(Debug)]
 pub struct MeleeAttack {
     pub actor: Index<Actor>,
     pub dir: Option<Dir8>,
@@ -25,26 +49,29 @@ pub struct MeleeAttack {
 impl Event for MeleeAttack {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
         let actor = &ecx.world.entities[self.actor];
-        let target_dir = self.dir.clone().unwrap_or(actor.dir);
-        let target_pos = actor.pos.offset(target_dir);
+        let actor_dir = self.dir.clone().unwrap_or(actor.dir);
+        let target_pos = actor.pos.offset(actor_dir);
 
-        if let Some(_target) = ecx
+        if let Some((target, _target_actor)) = ecx
             .world
             .entities
             .iter()
             .find(|(_i, e)| e.pos == target_pos)
         {
             // hit entity
-            // EventResult::chain(Hit {
-            // })
-            EventResult::Finish
+            EventResult::chain(Hit {
+                target,
+                attacker: self.actor,
+            })
         } else {
-            // just swing
-            EventResult::Finish
-            // EventResult::chain(ChangeDir {
-            //     actor: self.actor,
-            //     dir: self.to_dir,
-            // })
+            // just swing and change direction
+            match self.dir {
+                Some(dir) if dir != dir => EventResult::chain(ChangeDir {
+                    actor: self.actor,
+                    dir,
+                }),
+                _ => EventResult::Finish,
+            }
         }
     }
 }

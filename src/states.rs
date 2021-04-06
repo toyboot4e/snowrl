@@ -88,7 +88,7 @@ impl GameState for Roguelike {
                     // FIXME: don't use downcast to handle events
                     let any = (*ev).as_any();
 
-                    if let Some(talk) = any.downcast_ref::<ev::InteractiveTalk>() {
+                    if let Some(talk) = any.downcast_ref::<ev::InteractWithActor>() {
                         ctrl.rogue.script_to_play = Some(ScriptRef::Interact {
                             from: talk.from,
                             to: talk.to,
