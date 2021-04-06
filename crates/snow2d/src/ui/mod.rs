@@ -159,9 +159,7 @@ impl Layer {
     }
 }
 
-/// [`Pool`] of nodes
-
-/// [`Arena`] of animations
+/// Extended [`Pool`] for handling tree of nodes
 #[derive(Debug)]
 pub struct NodePool {
     pool: Pool<Node>,

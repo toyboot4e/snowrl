@@ -13,22 +13,21 @@ use crate::{
 
 use super::*;
 
+/// TODO: delegating the process to FSM?
 #[derive(Debug)]
-pub struct InteractiveTalk {
+pub struct InteractWithActor {
     pub from: Index<Actor>,
     pub to: Index<Actor>,
 }
 
-impl GenAnim for InteractiveTalk {}
+impl GenAnim for InteractWithActor {}
 
-impl Event for InteractiveTalk {
-    /// [`InteractiveTalk`] event should be handled exterally by GUI
+impl Event for InteractWithActor {
     fn run(&self, _ecx: &mut EventContext) -> EventResult {
         EventResult::Finish
     }
 }
 
-/// TODO: impl Interact delegating the process to FSM?
 #[derive(Debug)]
 pub struct Interact {
     pub actor: Index<Actor>,
@@ -49,10 +48,18 @@ impl Event for Interact {
             .find(|(_i, e)| e.pos == pos)
             .map(|(i, _e)| i)
         {
-            EventResult::chain(InteractiveTalk {
-                from: self.actor,
-                to: target,
-            })
+            // FIXME: interact, melee attack or something
+            if true {
+                EventResult::chain(MeleeAttack {
+                    actor: self.actor,
+                    dir: Some(self.dir),
+                })
+            } else {
+                EventResult::chain(InteractWithActor {
+                    from: self.actor,
+                    to: target,
+                })
+            }
         } else {
             EventResult::chain(NotConsumeTurn { actor: self.actor })
         }
