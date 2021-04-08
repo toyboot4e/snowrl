@@ -123,7 +123,7 @@ impl ActorSpawn {
     }
 
     pub fn spawn(&self, world: &mut World, ui: &mut Ui) -> anyhow::Result<Index<Actor>> {
-        let type_ = ActorType::from_type_key(&"ika-chan".into())?;
+        let type_ = ActorType::from_type_key(&self.type_)?;
         let img: ActorImage = type_
             .img
             .map(|desc| ActorImage::from_desc_default(desc))
