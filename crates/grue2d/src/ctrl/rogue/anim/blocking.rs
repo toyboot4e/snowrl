@@ -62,6 +62,9 @@ impl WalkAnim {
 
 impl Anim for WalkAnim {
     fn on_start(&mut self, ucx: &mut AnimUpdateContext) {
+        // be sure to start animation in this frame
+        self.timer.set_started(true);
+
         if self.actors.iter().any(|a| a.slot() == PLAYER) {
             // update Player FoV in this frame
             ucx.world.shadow.mark_dirty();
