@@ -49,6 +49,10 @@ impl Timer {
         Self::from_duration(Duration::from_nanos(ns))
     }
 
+    pub fn set_started(&mut self, b: bool) {
+        self.is_started = b;
+    }
+
     /// Ticks the timer and returns if it's finished
     pub fn tick(&mut self, dt: Duration) -> bool {
         if !self.is_started {

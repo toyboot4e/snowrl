@@ -150,6 +150,8 @@ impl SnowRl {
     }
 
     fn test_transform(&mut self) {
+        return;
+
         if !self.tmp.is_empty() {
             return;
         }

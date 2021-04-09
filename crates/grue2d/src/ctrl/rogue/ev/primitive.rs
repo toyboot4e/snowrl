@@ -35,7 +35,7 @@ impl GenAnim for NotConsumeTurn {
         // TODO: don't hard code
         if self.actor.slot() as usize == PLAYER {
             // wait for one frame so that we won't enter inifinite loop
-            Some(Box::new(anim::Wait { frames: 1 }))
+            Some(Box::new(anim::WaitFrames { frames: 1 }))
         } else {
             None
         }

@@ -71,10 +71,6 @@ pub struct Script {
 
 impl TypeObject for Script {}
 
-pub fn interact(actor: Index<Actor>, target: Index<Actor>, world: &mut World) -> Option<Script> {
-    todo!()
-}
-
 // --------------------------------------------------------------------------------
 // Data-driven content
 

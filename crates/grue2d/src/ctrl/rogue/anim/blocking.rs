@@ -4,7 +4,7 @@ Animations for the builtin events
 They're created referencing rogulike events and then we forget about original events.
 */
 
-use {rlbox::rl::grid2d::*, snow2d::utils::arena::Index, std::time::Duration};
+use snow2d::utils::arena::Index;
 
 use crate::data::world::actor::Actor;
 
@@ -16,13 +16,12 @@ const WALK_FRAMES: u64 = 8;
 /// TODO: don't hard code player detection
 const PLAYER: u32 = 0;
 
-/// TODO: real-time-based wait
 #[derive(Debug, Clone)]
-pub struct Wait {
+pub struct WaitFrames {
     pub frames: usize,
 }
 
-impl Anim for Wait {
+impl Anim for WaitFrames {
     fn update(&mut self, _ucx: &mut AnimUpdateContext) -> AnimResult {
         if self.frames == 0 {
             AnimResult::Finish
@@ -30,6 +29,25 @@ impl Anim for Wait {
             self.frames -= 1;
             AnimResult::GotoNextFrame
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct WaitSecs {
+    timer: Timer,
+}
+
+impl WaitSecs {
+    pub fn new(secs: f32) -> Self {
+        Self {
+            timer: Timer::from_secs_f32(secs),
+        }
+    }
+}
+
+impl Anim for WaitSecs {
+    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
+        self.timer.tick_as_result(ucx.ice.dt())
     }
 }
 
@@ -69,33 +87,6 @@ impl Anim for WalkAnim {
             // update Player FoV in this frame
             ucx.world.shadow.mark_dirty();
         }
-    }
-
-    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
-        self.timer.tick_as_result(ucx.ice.dt())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SwingAnim {
-    pub actor: Index<Actor>,
-    pub dir: Dir8,
-    timer: Timer,
-}
-
-impl SwingAnim {
-    pub fn new(actor: Index<Actor>, dir: Dir8, secs: f32) -> Self {
-        Self {
-            actor,
-            dir,
-            timer: Timer::from_secs_f32(secs),
-        }
-    }
-}
-
-impl Anim for SwingAnim {
-    fn on_start(&mut self, _ucx: &mut AnimUpdateContext) {
-        // log::trace!("{:?}", self.actors);
     }
 
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {

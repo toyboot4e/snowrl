@@ -29,13 +29,13 @@ pub struct Hit {
 }
 
 impl Event for Hit {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
+    fn run(&self, _ecx: &mut EventContext) -> EventResult {
         todo!()
     }
 }
 
 impl GenAnim for Hit {
-    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
         todo!()
     }
 }
