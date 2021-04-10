@@ -8,6 +8,7 @@ Same as OpenGL or school math (right-handed and column-major).
 
 pub mod geom2d;
 pub mod mesh;
+pub mod pass;
 pub mod shaders;
 pub mod tex;
 
@@ -16,6 +17,8 @@ pub mod batch;
 pub mod draw;
 
 pub mod text;
+
+pub use pass::RenderPassBuilder;
 
 use serde::{Deserialize, Serialize};
 
@@ -75,6 +78,10 @@ impl Color {
         x.a = a;
         x
     }
+
+    pub fn set_alpha(&mut self, a: u8) {
+        self.a = a;
+    }
 }
 
 macro_rules! def_colors {
@@ -132,6 +139,7 @@ impl From<&[u8; 3]> for Color {
     }
 }
 
+/// Shader
 #[derive(Debug)]
 pub struct Shader {
     pub shd: rg::Shader,
@@ -160,35 +168,6 @@ impl Shader {
 
     pub fn apply_pip(&self) {
         rg::apply_pipeline(self.pip);
-    }
-}
-
-// TODO: define operators
-const M_INV_Y: glam::Mat4 = glam::const_mat4!(
-    [1.0, 0.0, 0.0, 0.0],
-    [0.0, -1.0, 0.0, 0.0],
-    [0.0, 0.0, 1.0, 0.0],
-    [0.0, 0.0, 0.0, 1.0]
-);
-
-/// Parameter to [`Snow2d::screen`] or [`Snow2d::offscreen`]
-///
-/// Shared between on-screen and off-screen rendering pass.
-#[derive(Debug)]
-pub struct PassConfig<'a> {
-    pub pa: &'a rg::PassAction,
-    /// uniform matrix = orthographic * transform (transform = view)
-    pub tfm: Option<glam::Mat4>,
-    pub shd: Option<&'a Shader>,
-}
-
-impl<'a> Default for PassConfig<'a> {
-    fn default() -> Self {
-        Self {
-            pa: &rg::PassAction::LOAD,
-            tfm: None,
-            shd: None,
-        }
     }
 }
 
@@ -285,81 +264,48 @@ impl Snow2d {
 
 /// API
 impl Snow2d {
-    /// Begins on-screen rendering pass
-    pub fn screen(&mut self, cfg: PassConfig<'_>) -> RenderPass<'_> {
-        {
-            let fbuf = self.window.framebuf_size_u32();
-            rg::begin_default_pass(cfg.pa, fbuf[0], fbuf[1]);
+    /// Returns builder for on-screen rendering pass
+    pub fn screen(&mut self) -> RenderPassBuilder<'_, '_, pass::ScreenPass> {
+        RenderPassBuilder {
+            snow: self,
+            pa: None,
+            state: pass::ScreenPass {
+                tfm: None,
+                shd: None,
+            },
         }
-
-        let shd = cfg.shd.unwrap_or(&self.ons_shd);
-        shd.apply_pip();
-
-        // FIXME: projection matrix should be set shaders by themselves
-        // left, right, bottom, top, near, far
-        let win_size = self.window.size_f32();
-        let mut proj = glam::Mat4::orthographic_rh_gl(0.0, win_size[0], win_size[1], 0.0, 0.0, 1.0);
-
-        if let Some(tfm) = cfg.tfm {
-            proj = proj * tfm;
-        }
-
-        let bytes: &[u8] = unsafe {
-            std::slice::from_raw_parts(
-                &proj as *const _ as *const _,
-                std::mem::size_of::<glam::Mat4>(),
-            )
-        };
-        shd.set_vs_uniform(0, bytes);
-
-        RenderPass { snow: self }
     }
 
-    /// Begins off-screen rendering pass
-    pub fn offscreen(&mut self, ofs: &mut RenderTexture, cfg: PassConfig<'_>) -> RenderPass<'_> {
-        rg::begin_pass(ofs.pass(), cfg.pa);
-
-        // we don't need mutability for `ofs` actually
-        let shd = cfg.shd.unwrap_or(&self.ofs_shd);
-        shd.apply_pip();
-
-        // FIXME: projection matrix should be set shaders by themselves
-        // left, right, bottom, top, near, far
-        let win_size = [self.window.w as f32, self.window.h as f32];
-        let mut proj = glam::Mat4::orthographic_rh_gl(0.0, win_size[0], win_size[1], 0.0, 0.0, 1.0);
-
-        if let Some(tfm) = cfg.tfm {
-            proj = proj * tfm;
+    /// Returns builder for off-screen rendering pass
+    pub fn offscreen<'a>(
+        &mut self,
+        target: &'a mut RenderTexture,
+    ) -> RenderPassBuilder<'_, '_, pass::OffscreenPass<'static, 'a>> {
+        RenderPassBuilder {
+            snow: self,
+            pa: None,
+            state: pass::OffscreenPass {
+                tfm: None,
+                shd: None,
+                target,
+            },
         }
-
-        // [OpenGL] invert/flip y (TODO: why?)
-        proj = M_INV_Y * proj;
-
-        let bytes: &[u8] = unsafe {
-            std::slice::from_raw_parts(
-                &proj as *const _ as *const _,
-                std::mem::size_of::<glam::Mat4>(),
-            )
-        };
-        shd.set_vs_uniform(0, bytes);
-
-        RenderPass { snow: self }
     }
 
-    fn end_pass(&mut self) {
+    fn on_end_pass(&mut self) {
         self.batch.data.flush();
         rg::end_pass();
     }
 }
 
-/// [`DrawApi`] for a rendering pass (on-screen or off-screen)
+/// Extended [`DrawApi`] for a rendering pass (on-screen or off-screen)
 pub struct RenderPass<'a> {
     snow: &'a mut Snow2d,
 }
 
 impl<'a> Drop for RenderPass<'a> {
     fn drop(&mut self) {
-        self.snow.end_pass();
+        self.snow.on_end_pass();
     }
 }
 

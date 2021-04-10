@@ -2,6 +2,11 @@
 Cheat the borrow checker using raw pointer
 */
 
+/// Cheat the borrow checker pretending it's ordinary Rust
+pub fn cheat<T>(t: &T) -> Cheat<T> {
+    unsafe { Cheat::new(t) }
+}
+
 /// Lifetime-free mutable reference to type `T`
 ///
 /// # Safety
@@ -32,9 +37,8 @@ impl<T> Cheat<T> {
         }
     }
 
-    #[inline]
-    pub unsafe fn as_mut(&self) -> &mut T {
-        &mut *self.ptr
+    pub fn as_mut(&self) -> &mut T {
+        unsafe { &mut *self.ptr }
     }
 }
 
@@ -55,11 +59,5 @@ impl<T> std::ops::DerefMut for Cheat<T> {
 impl<T> AsRef<T> for Cheat<T> {
     fn as_ref(&self) -> &T {
         unsafe { &*self.ptr }
-    }
-}
-
-impl<T> AsMut<T> for Cheat<T> {
-    fn as_mut(&mut self) -> &mut T {
-        unsafe { &mut *self.ptr }
     }
 }

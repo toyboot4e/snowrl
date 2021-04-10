@@ -1,7 +1,12 @@
-//! * TODO: remove debug/error log on release build?
-//! * TODO: inspect Pool/Anim and see if there's garbage
-//! * TODO: fix dpi scaling (WindowState, GrueRl::pre_render, begin_default_pass)
-//! * TODO: allow resizing window
+/*!
+SnowRL
+
+# TODOs
+* remove debug/error log on release build?
+* inspect Pool/Anim and see if there's garbage
+* fix dpi scaling (WindowState, GrueRl::pre_render, begin_default_pass)
+* allow resizing window
+*/
 
 use anyhow::{Error, Result};
 
@@ -51,7 +56,8 @@ fn main() -> Result<()> {
         })
         .map_err(Error::msg)?;
 
-    let app = SnowRl::new(new_game(&init, &platform));
+    let game = self::new_game(&init, &platform);
+    let app = SnowRl::new(game);
 
     grue2d::platform::run(platform, app)
 }
@@ -80,7 +86,7 @@ fn new_game(init: &grue2d::platform::Init, platform: &PlatformLifetime) -> GrueR
             res: Resources {
                 fonts,
                 vi: VInput::new(),
-                ui: Ui::new(),
+                ui,
             },
         }
     };
@@ -164,7 +170,7 @@ fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::Resu
 }
 
 fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
-    // TODO: ActorBuilder::from_type
+    // TODO: use RON
 
     // player
     ActorSpawn::new("ika-chan")
@@ -175,8 +181,17 @@ fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
     // non-player characters
     let mut spawn = ActorSpawn::new("mokusei-san");
 
-    spawn.pos([14, 12]).dir(Dir8::W).spawn(world, ui)?;
-    spawn.pos([25, 18]).dir(Dir8::E).spawn(world, ui)?;
+    spawn
+        .pos([14, 12])
+        .dir(Dir8::W)
+        .friendly()
+        .spawn(world, ui)?;
+
+    spawn
+        .pos([25, 18])
+        .dir(Dir8::E)
+        .hostile()
+        .spawn(world, ui)?;
 
     Ok(())
 }

@@ -2,7 +2,10 @@
 
 use rokol::gfx as rg;
 
-use crate::gfx::{draw::*, mesh::DynamicMesh, shaders::DefaultVertex};
+use crate::{
+    gfx::{draw::*, mesh::DynamicMesh, shaders::DefaultVertex},
+    utils::bytemuck::{Pod, Zeroable},
+};
 
 /// Number of quads in batcher, which is long enough to not be saturated
 ///
@@ -11,9 +14,12 @@ use crate::gfx::{draw::*, mesh::DynamicMesh, shaders::DefaultVertex};
 pub const N_QUADS: usize = 2048 * 4;
 
 /// `snow2d` quad data type
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
 pub struct QuadData(pub [DefaultVertex; 4]);
+
+unsafe impl Zeroable for QuadData {}
+unsafe impl Pod for QuadData {}
 
 impl std::ops::Index<usize> for QuadData {
     type Output = DefaultVertex;

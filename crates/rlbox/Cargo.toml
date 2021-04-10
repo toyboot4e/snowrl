@@ -11,7 +11,7 @@ edition = "2018"
 # description = ""
 
 [dependencies]
-rokol = { path = "../snow2d/rokol", features = ["glcore33"] }
+rokol = { path = "../snow2d/rokol", features = ["impl-gfx", "glcore33"] }
 snow2d = { path = "../snow2d" }
 
 log = "0.4.11"

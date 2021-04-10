@@ -16,24 +16,24 @@ mod platform_impl;
 
 use {
     grue2d::{
-        agents::WorldRenderFlag,
+        agents::WorldRenderer,
         data::{resources::UiLayer, Data},
         hot_crate,
         platform::PlatformLifetime,
         GrueRl,
     },
-    snow2d::utils::tweak::*,
+    rokol::gfx as rg,
+    snow2d::gfx::Color,
     std::time::Duration,
 };
 
-fn sound_volume() -> f32 {
-    tweak!(0.0)
-}
-
 /// The game
+///
+/// See `platform_impl.rs` for the internal game loop.
 pub struct SnowRl {
     pub grue: GrueRl,
     pub plugin: hot_crate::HotLibrary,
+    pa_blue: rg::PassAction,
     tmp: Vec<snow2d::utils::pool::Handle<snow2d::ui::node::Node>>,
 }
 
@@ -51,6 +51,7 @@ impl SnowRl {
         Self {
             grue,
             plugin,
+            pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             tmp: vec![],
         }
     }
@@ -60,11 +61,7 @@ impl SnowRl {
 impl SnowRl {
     #[inline]
     fn pre_update(&mut self, _dt: Duration, _platform: &mut PlatformLifetime) {
-        // do not play sound in debug build
-        #[cfg(debug_assertions)]
-        self.grue.data.ice.audio.set_global_volume(sound_volume());
-
-        self.test_transform();
+        // self.test_transform();
 
         // // TODO: handle plugins properly
         // if self.grue.gl.ice.frame_count % 120 == 0 {
@@ -86,26 +83,43 @@ impl SnowRl {
 
         {
             let (ice, res, world) = (&mut data.ice, &mut data.res, &mut data.world);
+            let dt = ice.dt();
 
-            agents.world_render.render(
-                world,
-                ice,
-                WorldRenderFlag::SHADOW | WorldRenderFlag::ACTORS | WorldRenderFlag::MAP,
-            );
-
-            res.ui.get_mut(UiLayer::Actors).render(ice, cam_mat);
-            res.ui.get_mut(UiLayer::OnActors).render(ice, cam_mat);
+            {
+                let mut screen = ice
+                    .snow
+                    .screen()
+                    .pa(Some(&self.pa_blue))
+                    .transform(Some(world.cam.to_mat4()))
+                    .build();
+                WorldRenderer::render_map(&mut screen, world, 0..100);
+            }
 
             agents
                 .world_render
-                .render(world, ice, WorldRenderFlag::SNOW);
+                .setup_actor_nodes(world, &mut res.ui, dt);
+            res.ui.layer_mut(UiLayer::Actors).render(ice, cam_mat);
+
+            {
+                let mut screen = ice
+                    .snow
+                    .screen()
+                    .pa(None)
+                    .transform(Some(world.cam.to_mat4()))
+                    .build();
+                WorldRenderer::render_map(&mut screen, world, 100..);
+            }
+
+            agents.world_render.render_shadow(&mut ice.snow, world);
+            res.ui.layer_mut(UiLayer::OnShadow).render(ice, cam_mat);
+            agents.world_render.render_snow(&ice.snow.window);
         }
 
-        Self::test_text_style(data);
+        // Self::test_text_style(data);
 
         data.res
             .ui
-            .get_mut(UiLayer::Screen)
+            .layer_mut(UiLayer::Screen)
             .render(&mut data.ice, cam_mat);
     }
 
@@ -159,7 +173,7 @@ impl SnowRl {
         let res = &mut data.res;
         let ice = &mut data.ice;
 
-        let layer = res.ui.get_mut(UiLayer::Screen);
+        let layer = res.ui.layer_mut(UiLayer::Screen);
 
         let tex: Asset<Texture2dDrop> = ice.assets.load_sync(paths::img::pochi::WHAT).unwrap();
         let sprite = SpriteData::builder(tex)

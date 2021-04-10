@@ -1,5 +1,5 @@
 /*!
-User interface (sprites and animations)
+UI or scene graph: container of sprites and animations
 */
 
 pub mod anim;
@@ -9,7 +9,6 @@ pub mod node;
 use {glam::Mat4, std::time::Duration};
 
 use crate::{
-    gfx::PassConfig,
     utils::{
         arena::Arena,
         pool::{Handle, Pool, Slot},
@@ -35,8 +34,30 @@ pub enum CoordSystem {
 /// Used for sorting nodes
 #[derive(Debug)]
 struct OrderEntry {
+    /// Used to retrieve target item
     slot: Slot,
+    /// Used to sort entries
     order: Order,
+}
+
+pub struct SortedNodesMut<'a> {
+    nodes: &'a mut Pool<Node>,
+    orders: &'a [OrderEntry],
+    order_pos: usize,
+}
+
+impl<'a> Iterator for SortedNodesMut<'a> {
+    type Item = &'a mut Node;
+    fn next(&mut self) -> Option<Self::Item> {
+        let slot = self.orders.get(self.order_pos)?.slot;
+        self.order_pos += 1;
+
+        let ptr = self
+            .nodes
+            .get_mut_by_slot(slot)
+            .expect("unable to find node!") as *mut _;
+        Some(unsafe { &mut *ptr })
+    }
 }
 
 /// Nodes and animations
@@ -67,7 +88,7 @@ impl Layer {
 
         // calculate geometry
         unsafe {
-            let nodes = Cheat::new(&mut self.nodes);
+            let nodes = Cheat::new(&self.nodes);
             for node in nodes.as_mut().iter_mut().filter(|n| n.parent.is_none()) {
                 // update cache
                 Self::update_node_rec(nodes.clone(), node, None);
@@ -96,17 +117,7 @@ impl Layer {
         }
     }
 
-    pub fn render(&mut self, ice: &mut Ice, cam_mat: Mat4) {
-        let mut screen = ice.snow.screen(PassConfig {
-            tfm: match self.coord {
-                CoordSystem::Screen => None,
-                CoordSystem::World => Some(cam_mat),
-            },
-            ..Default::default()
-        });
-
-
-        // sort nodes
+    fn sort_nodes(&mut self) {
         self.ord_buf.clear();
         for (slot, node) in self.nodes.enumerate_items() {
             self.ord_buf.push(OrderEntry {
@@ -120,49 +131,64 @@ impl Layer {
                 .partial_cmp(&e2.order)
                 .expect("NAN found in ordering value of node")
         });
+    }
+
+    pub fn nodes_mut_sorted<'a>(&'a mut self) -> SortedNodesMut<'a> {
+        self.sort_nodes();
+        SortedNodesMut {
+            nodes: &mut self.nodes.pool,
+            orders: &self.ord_buf,
+            order_pos: 0,
+        }
+    }
+
+    pub fn render(&mut self, ice: &mut Ice, cam_mat: Mat4) {
+        let mut screen = ice
+            .snow
+            .screen()
+            .transform(match self.coord {
+                CoordSystem::Screen => None,
+                CoordSystem::World => Some(cam_mat),
+            })
+            .build();
 
         // render
-        for entry in &self.ord_buf {
-            self.nodes
-                .get_mut_by_slot(entry.slot)
-                .unwrap()
-                .render(&mut screen);
+        for node in self.nodes_mut_sorted() {
+            node.render(&mut screen);
         }
     }
 }
 
-/// [`Pool`] of nodes
-
-/// [`Arena`] of animations
+/// Extended [`Pool`] for handling tree of nodes
 #[derive(Debug)]
 pub struct NodePool {
-    nodes: Pool<Node>,
+    pool: Pool<Node>,
 }
 
 impl std::ops::Deref for NodePool {
     type Target = Pool<Node>;
     fn deref(&self) -> &Self::Target {
-        &self.nodes
+        &self.pool
     }
 }
 
 impl std::ops::DerefMut for NodePool {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.nodes
+        &mut self.pool
     }
 }
 
 impl NodePool {
     pub fn new() -> Self {
         Self {
-            nodes: Pool::with_capacity(16),
+            pool: Pool::with_capacity(16),
         }
     }
 
     pub fn attach_child(&mut self, parent_handle: &Handle<Node>, mut child: Node) -> Handle<Node> {
         child.parent = Some(parent_handle.clone());
-        let child_handle = self.nodes.add(child);
-        self.nodes[parent_handle]
+        let child_handle = self.pool.add(child);
+        self.pool[parent_handle]
             .children
             .push(child_handle.to_downgraded());
         child_handle

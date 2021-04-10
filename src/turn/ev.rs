@@ -1,3 +1,3 @@
 /*!
-Roguelike game events
+Additional roguelike game events
 */

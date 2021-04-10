@@ -77,7 +77,7 @@ impl<'a> TalkViewCommand<'a> {
 
     fn base_pos(world: &World, actor: Index<Actor>) -> Vec2f {
         let actor = &world.entities[actor];
-        let mut pos = actor.img.pos_world_centered(&world.map.tiled);
+        let mut pos = actor.view.pos_world_centered(&world.map.tiled);
         pos.y -= world.map.tiled.tile_height as f32;
         pos
     }
@@ -196,7 +196,7 @@ impl PlayTalk {
         let layout = talk.layout(&talk.cfg, &data.ice.snow.fontbook.tex, &fstyle, &data.world);
         let view = TalkView::new(layout, &mut data.ice.assets);
 
-        let layer = &mut data.res.ui.get_mut(UiLayer::OnActors);
+        let layer = &mut data.res.ui.layer_mut(UiLayer::OnShadow);
         let nodes = TalkNodes {
             win: layer.nodes.add({
                 let mut win = Node::from(view.win());

@@ -11,9 +11,12 @@ So we use (screen_size / 4) shadow texture and map them to (screen_size + 1).
 
 use {
     rokol::gfx as rg,
-    snow2d::gfx::{
-        draw::*, geom2d::Vec2f, mesh::StaticMesh, shaders, shaders::PosUvVert, tex::RenderTexture,
-        PassConfig, Shader, Snow2d, WindowState,
+    snow2d::{
+        gfx::{
+            draw::*, geom2d::Vec2f, mesh::StaticMesh, shaders, shaders::PosUvVert,
+            tex::RenderTexture, Shader, Snow2d, WindowState,
+        },
+        utils::bytemuck,
     },
     std::time::Instant,
 };
@@ -31,13 +34,6 @@ fn screen_to_shadow_u32(screen_size: [u32; 2]) -> [u32; 2] {
     [
         ((screen_size[0] as f32 + SCREEN_EDGE) * SHADOW_SCALE) as u32,
         ((screen_size[1] as f32 + SCREEN_EDGE) * SHADOW_SCALE) as u32,
-    ]
-}
-
-fn screen_to_shadow_f32(screen_size: [u32; 2]) -> [f32; 2] {
-    [
-        (screen_size[0] as f32 + SCREEN_EDGE) * SHADOW_SCALE,
-        (screen_size[1] as f32 + SCREEN_EDGE) * SHADOW_SCALE,
     ]
 }
 
@@ -126,14 +122,11 @@ impl ShadowRenderer {
             log::error!("The shadow size isn't synced with the screen size");
         }
 
-        let mut offscreen = rdr.offscreen(
-            &mut self.shadows[0],
-            PassConfig {
-                pa: &rg::PassAction::LOAD,
-                tfm: Some(world.cam.to_mat4()),
-                shd: None,
-            },
-        );
+        let mut offscreen = rdr
+            .offscreen(&mut self.shadows[0])
+            .pa(Some(&rg::PassAction::LOAD))
+            .transform(Some(world.cam.to_mat4()))
+            .build();
 
         // Use (screen_size + SCREEN_EDGE) as target size
         // (important trick for pixel-perfect shadow)
@@ -144,7 +137,8 @@ impl ShadowRenderer {
             glam::Vec3::new((-offset.x + rem.x) as f32, (-offset.y + rem.y) as f32, 0.0)
         });
 
-        unsafe {
+        // set transform matrix
+        {
             const M_INV_Y: glam::Mat4 = glam::const_mat4!(
                 [1.0, 0.0, 0.0, 0.0],
                 [0.0, -1.0, 0.0, 0.0],
@@ -166,7 +160,7 @@ impl ShadowRenderer {
                 )
                 * tfm;
 
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, 0, &proj);
+            rg::apply_uniforms(rg::ShaderStage::Vs, 0, bytemuck::bytes_of(&proj));
         }
 
         // get shadow texture
@@ -205,20 +199,17 @@ impl ShadowRenderer {
 
     #[inline]
     fn blur(&mut self, rdr: &mut Snow2d, is_h: bool, from: usize, to: usize) {
-        let mut draw = rdr.offscreen(
-            &mut self.shadows[to],
-            PassConfig {
-                pa: &rg::PassAction::LOAD,
-                tfm: None,
-                shd: Some(&self.gauss_shd),
-            },
-        );
+        let mut draw = rdr
+            .offscreen(&mut self.shadows[to])
+            .pa(Some(&rg::PassAction::LOAD))
+            .shader(Some(&self.gauss_shd))
+            .build();
 
-        // horizontally or vertically
-        unsafe {
+        // apply blur horizontally or vertically
+        {
             let ub_index = 1;
             let uniform: f32 = if is_h { 1.0 } else { 0.0 };
-            rg::apply_uniforms_as_bytes(rg::ShaderStage::Vs, ub_index, &uniform);
+            rg::apply_uniforms(rg::ShaderStage::Vs, ub_index, bytemuck::bytes_of(&uniform));
         }
 
         // write from one to the other
@@ -229,11 +220,7 @@ impl ShadowRenderer {
 
     /// Writes shadow to the screen frame buffer
     pub fn blend_to_screen(&self, rdr: &mut Snow2d, cam: &Camera2d) {
-        let mut screen = rdr.screen(PassConfig {
-            pa: &rg::PassAction::LOAD,
-            tfm: None,
-            shd: None,
-        });
+        let mut screen = rdr.screen().pa(Some(&rg::PassAction::LOAD)).build();
 
         // NOTE: This is an important trick to create pixel-perfect shadow
         let offset_f = cam.params.pos.floor();

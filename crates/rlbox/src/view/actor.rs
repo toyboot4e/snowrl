@@ -173,21 +173,23 @@ impl DirAnimKind {
     }
 }
 
+/// Type object of [`ActorImage`]
+///
 /// After deserialization, we have to
 ///
 /// 1. Call [`ActorImage::warp`]
-/// 2. Change speed properties of [`ActorImage`]
+/// 2. Set speed properties of [`ActorImage`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ActorImageDesc {
+pub struct ActorImageType {
     pub tex: Asset<Texture2dDrop>,
     pub kind: DirAnimKind,
     // TODO: scales
     // TODO: offset
 }
 
-impl TypeObject for ActorImageDesc {}
+impl TypeObject for ActorImageType {}
 
-impl ActorImageDesc {
+impl ActorImageType {
     pub fn gen_anim_patterns(&self) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
         self.kind.gen_anim_patterns(&self.tex, self::ACTOR_FPS)
     }
@@ -206,8 +208,8 @@ struct ActorState {
 
 /// An animatable actor image
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(from = "SerdeRepr<ActorImageDesc>")]
-#[serde(into = "SerdeRepr<ActorImageDesc>")]
+#[serde(from = "SerdeRepr<ActorImageType>")]
+#[serde(into = "SerdeRepr<ActorImageType>")]
 pub struct ActorImage {
     dir_anim_state: FrameAnimState<Dir8, SpriteData>,
     state_diff: DoubleSwap<ActorState>,
@@ -215,12 +217,12 @@ pub struct ActorImage {
     /// Interpolation value for walk animation
     walk_dt: ez::EasedDt,
     /// For deserialization
-    serde_repr: SerdeRepr<ActorImageDesc>,
+    serde_repr: SerdeRepr<ActorImageType>,
 }
 
 impl ActorImage {
     pub fn from_desc(
-        desc: &ActorImageDesc,
+        desc: &ActorImageType,
         walk_dt: ez::EasedDtDesc,
         pos: Vec2i,
         dir: Dir8,
@@ -240,7 +242,7 @@ impl ActorImage {
         }
     }
 
-    pub fn from_desc_default(desc: &ActorImageDesc) -> Self {
+    pub fn from_desc_default(desc: &ActorImageType) -> Self {
         Self::from_desc(
             desc,
             ez::EasedDtDesc {
@@ -254,7 +256,7 @@ impl ActorImage {
 }
 
 impl SerdeViaTypeObject for ActorImage {
-    type TypeObject = ActorImageDesc;
+    type TypeObject = ActorImageType;
 
     fn from_type_object(obj: &Self::TypeObject) -> Self {
         Self::from_desc_default(obj)
@@ -274,7 +276,7 @@ impl SerdeViaTypeObject for ActorImage {
     }
 }
 
-tyobj::connect_repr_target!(ActorImageDesc, ActorImage);
+tyobj::connect_repr_target!(ActorImageType, ActorImage);
 
 /// Lifecycle
 impl ActorImage {
@@ -375,8 +377,11 @@ impl ActorImage {
     }
 }
 
+/// Handle of nodes for an actor in a pool
 #[derive(Debug, Clone)]
 pub struct ActorNodes {
     pub img: Handle<Node>,
     pub hp: Handle<Node>,
+    // /// Non-ordinary view components
+    // pub extras: Vec<Handle<Node>>,
 }

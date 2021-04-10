@@ -1,4 +1,8 @@
-//! Fluent drawing API based on the quad batcher
+/*!
+Fluent drawing API based on the quad batcher
+
+User only need to know [`DrawApi`]. Others are used under the hood.
+*/
 
 mod builder;
 mod params;

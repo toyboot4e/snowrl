@@ -27,7 +27,7 @@ impl Title {
         let state = title::TitleState { cursor: 0 };
         let mut assets = title::TitleAssets::new(assets);
 
-        let layer = ui.get_mut(UiLayer::Screen);
+        let layer = ui.layer_mut(UiLayer::Screen);
 
         let nodes = title::TitleNodes::new(&cfg, &mut layer.nodes, &mut assets);
         let cursor = 0;
@@ -43,7 +43,7 @@ impl Title {
     }
 
     pub fn handle_input(&mut self, ice: &mut Ice, res: &mut Resources) -> Option<title::Choice> {
-        let layer = res.ui.get_mut(UiLayer::Screen);
+        let layer = res.ui.layer_mut(UiLayer::Screen);
 
         if let Some(dir) = res.vi.dir.dir4_pressed() {
             let y_sign = dir.y_sign();
