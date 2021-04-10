@@ -1,5 +1,5 @@
 /*!
-Roguelike game utilities
+Internal utilities for roguelike games
 */
 
 pub mod dun;

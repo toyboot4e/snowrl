@@ -23,15 +23,13 @@ use {
         GrueRl,
     },
     rokol::gfx as rg,
-    snow2d::{gfx::Color, utils::tweak::*},
+    snow2d::gfx::Color,
     std::time::Duration,
 };
 
-fn sound_volume() -> f32 {
-    tweak!(0.0)
-}
-
 /// The game
+///
+/// See `platform_impl.rs` for the internal game loop.
 pub struct SnowRl {
     pub grue: GrueRl,
     pub plugin: hot_crate::HotLibrary,
@@ -63,11 +61,7 @@ impl SnowRl {
 impl SnowRl {
     #[inline]
     fn pre_update(&mut self, _dt: Duration, _platform: &mut PlatformLifetime) {
-        // do not play sound in debug build
-        #[cfg(debug_assertions)]
-        self.grue.data.ice.audio.set_global_volume(sound_volume());
-
-        self.test_transform();
+        // self.test_transform();
 
         // // TODO: handle plugins properly
         // if self.grue.gl.ice.frame_count % 120 == 0 {
@@ -101,8 +95,10 @@ impl SnowRl {
                 WorldRenderer::render_map(&mut screen, world, 0..100);
             }
 
-            agents.world_render.calc_actor_view(world, &mut res.ui, dt);
-            res.ui.get_mut(UiLayer::Actors).render(ice, cam_mat);
+            agents
+                .world_render
+                .setup_actor_nodes(world, &mut res.ui, dt);
+            res.ui.layer_mut(UiLayer::Actors).render(ice, cam_mat);
 
             {
                 let mut screen = ice
@@ -114,8 +110,8 @@ impl SnowRl {
                 WorldRenderer::render_map(&mut screen, world, 100..);
             }
 
-            res.ui.get_mut(UiLayer::OnActors).render(ice, cam_mat);
             agents.world_render.render_shadow(&mut ice.snow, world);
+            res.ui.layer_mut(UiLayer::OnShadow).render(ice, cam_mat);
             agents.world_render.render_snow(&ice.snow.window);
         }
 
@@ -123,7 +119,7 @@ impl SnowRl {
 
         data.res
             .ui
-            .get_mut(UiLayer::Screen)
+            .layer_mut(UiLayer::Screen)
             .render(&mut data.ice, cam_mat);
     }
 
@@ -177,7 +173,7 @@ impl SnowRl {
         let res = &mut data.res;
         let ice = &mut data.ice;
 
-        let layer = res.ui.get_mut(UiLayer::Screen);
+        let layer = res.ui.layer_mut(UiLayer::Screen);
 
         let tex: Asset<Texture2dDrop> = ice.assets.load_sync(paths::img::pochi::WHAT).unwrap();
         let sprite = SpriteData::builder(tex)

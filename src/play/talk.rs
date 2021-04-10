@@ -196,7 +196,7 @@ impl PlayTalk {
         let layout = talk.layout(&talk.cfg, &data.ice.snow.fontbook.tex, &fstyle, &data.world);
         let view = TalkView::new(layout, &mut data.ice.assets);
 
-        let layer = &mut data.res.ui.get_mut(UiLayer::OnActors);
+        let layer = &mut data.res.ui.layer_mut(UiLayer::OnShadow);
         let nodes = TalkNodes {
             win: layer.nodes.add({
                 let mut win = Node::from(view.win());

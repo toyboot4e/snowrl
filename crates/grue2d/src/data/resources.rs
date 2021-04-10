@@ -28,7 +28,7 @@ pub struct Ui {
 
 pub enum UiLayer {
     Actors,
-    OnActors,
+    OnShadow,
     Screen,
 }
 
@@ -41,18 +41,18 @@ impl Ui {
         }
     }
 
-    pub fn get(&self, layer: UiLayer) -> &Layer {
+    pub fn layer(&self, layer: UiLayer) -> &Layer {
         match layer {
             UiLayer::Actors => &self.actors,
-            UiLayer::OnActors => &self.on_actors,
+            UiLayer::OnShadow => &self.on_actors,
             UiLayer::Screen => &self.screen,
         }
     }
 
-    pub fn get_mut(&mut self, layer: UiLayer) -> &mut Layer {
+    pub fn layer_mut(&mut self, layer: UiLayer) -> &mut Layer {
         match layer {
             UiLayer::Actors => &mut self.actors,
-            UiLayer::OnActors => &mut self.on_actors,
+            UiLayer::OnShadow => &mut self.on_actors,
             UiLayer::Screen => &mut self.screen,
         }
     }

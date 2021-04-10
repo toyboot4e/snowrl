@@ -4,7 +4,7 @@ SnowRL initialization module
 
 use snow2d::{asset::StaticAssetKey, utils::tyobj::TypeObjectStorageBuilder, Ice};
 
-use rlbox::view::actor::ActorImageDesc;
+use rlbox::view::actor::ActorImageType;
 
 use grue2d::data::world::actor::*;
 
@@ -27,7 +27,7 @@ fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
     unsafe {
         TypeObjectStorageBuilder::begin()
             .unwrap()
-            .register::<ActorImageDesc, StaticAssetKey>(paths::actors::ACTOR_IMAGES)?
+            .register::<ActorImageType, StaticAssetKey>(paths::actors::ACTOR_IMAGES)?
             .register::<ActorType, StaticAssetKey>(paths::actors::ACTOR_TYPES)?;
     }
 

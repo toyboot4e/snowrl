@@ -5,7 +5,7 @@ Game entity with GUI
 use serde::{Deserialize, Serialize};
 
 use snow2d::{
-    ui,
+    ui::{self, node},
     utils::{
         arena::Index,
         tyobj::{SerdeRepr, TypeObject, TypeObjectId},
@@ -14,7 +14,7 @@ use snow2d::{
 
 use rlbox::{
     rl::grid2d::*,
-    view::actor::{ActorImage, ActorImageDesc, ActorNodes},
+    view::actor::{ActorImage, ActorImageType, ActorNodes},
 };
 
 use crate::data::{
@@ -51,7 +51,7 @@ pub enum Relation {
 /// Type object for [`Actor`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActorType {
-    pub img: SerdeRepr<ActorImageDesc>,
+    pub img: SerdeRepr<ActorImageType>,
     pub stats: ActorStats,
 }
 
@@ -125,11 +125,9 @@ impl ActorSpawn {
             .map(|desc| ActorImage::from_desc_default(desc))
             .unwrap();
 
-        let layer = ui.get_mut(UiLayer::Actors);
+        let layer = ui.layer_mut(UiLayer::Actors);
         let nodes = ActorNodes {
-            img: layer.nodes.add(ui::node::Text {
-                txt: "a".to_string(),
-            }),
+            img: layer.nodes.add(img.sprite()),
             hp: layer.nodes.add(img.sprite()),
         };
 

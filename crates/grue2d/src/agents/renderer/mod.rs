@@ -40,7 +40,7 @@ impl ActorSortEntry {
     }
 }
 
-/// Renders map, actors, shadows and snow
+/// Renders map, shadows and snow. Also sets up actor nodes
 #[derive(Debug)]
 pub struct WorldRenderer {
     pub shadow_render: ShadowRenderer,
@@ -134,27 +134,27 @@ impl WorldRenderer {
         b2f(v.a) * v.t + b2f(v.b) * (1.0 - v.t)
     }
 
-    /// Render actors in world coordinates. Call `update_actor_images` first
-    pub fn calc_actor_view(&mut self, world: &World, ui: &mut Ui, dt: Duration) {
+    pub fn setup_actor_nodes(&mut self, world: &World, ui: &mut Ui, dt: Duration) {
         self.update_actor_images(&world, dt);
         self.sort_buf.sort_by(ActorSortEntry::cmp);
 
-        for entry in &self.sort_buf {
+        let n_entries = self.sort_buf.len() as f32;
+        for (entry_ix, entry) in self.sort_buf.iter().enumerate() {
             let actor = &world.entities[entry.actor_index];
             let pos = actor.view.pos_world_render(&world.map.tiled);
             let alpha = self.actor_alpha_f32(entry.actor_index.slot() as usize) as u8;
 
-            // TODO: set UI
-            let layer = ui.get_mut(UiLayer::Actors);
-            let params = &mut layer.nodes[&actor.nodes.img].params;
+            let layer = ui.layer_mut(UiLayer::Actors);
+
+            // sprite animation and z ordering
+            let node = &mut layer.nodes[&actor.nodes.img];
+            node.draw = actor.view.sprite().into();
+            node.order = entry_ix as f32 / n_entries;
+
+            // position and color
+            let params = &mut node.params;
             params.pos = pos;
             params.color = Color::WHITE.with_alpha(alpha);
-
-            // TODO: set UI z ordering?
-            // screen
-            //     .sprite(actor.view.sprite())
-            //     .dst_pos_px(pos)
-            //     .color(Color::WHITE.with_alpha(alpha));
         }
     }
 

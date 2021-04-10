@@ -56,7 +56,8 @@ fn main() -> Result<()> {
         })
         .map_err(Error::msg)?;
 
-    let app = SnowRl::new(new_game(&init, &platform));
+    let game = self::new_game(&init, &platform);
+    let app = SnowRl::new(game);
 
     grue2d::platform::run(platform, app)
 }
@@ -85,7 +86,7 @@ fn new_game(init: &grue2d::platform::Init, platform: &PlatformLifetime) -> GrueR
             res: Resources {
                 fonts,
                 vi: VInput::new(),
-                ui: Ui::new(),
+                ui,
             },
         }
     };
