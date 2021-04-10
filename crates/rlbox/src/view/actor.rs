@@ -1,5 +1,7 @@
 /*!
 Frame-based actor sprite animation
+
+NOTE: actor renderer is NOT in this crate.
 */
 
 use std::{collections::HashMap, time::Duration};

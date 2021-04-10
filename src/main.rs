@@ -56,7 +56,8 @@ fn main() -> Result<()> {
         })
         .map_err(Error::msg)?;
 
-    let game = self::new_game(&init, &platform);
+    let mut game = self::new_game(&init, &platform);
+    game.data.ice.audio.set_global_volume(0.0);
     let app = SnowRl::new(game);
 
     grue2d::platform::run(platform, app)
@@ -171,12 +172,13 @@ fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::Resu
 
 fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
     // TODO: use RON
+    let layer = ui.layer_mut(UiLayer::Actors);
 
     // player
     ActorSpawn::new("ika-chan")
         .pos([14, 10])
         .dir(Dir8::S)
-        .spawn(world, ui)?;
+        .spawn(world, layer)?;
 
     // non-player characters
     let mut spawn = ActorSpawn::new("mokusei-san");
@@ -185,13 +187,13 @@ fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
         .pos([14, 12])
         .dir(Dir8::W)
         .friendly()
-        .spawn(world, ui)?;
+        .spawn(world, layer)?;
 
     spawn
         .pos([25, 18])
         .dir(Dir8::E)
         .hostile()
-        .spawn(world, ui)?;
+        .spawn(world, layer)?;
 
     Ok(())
 }
