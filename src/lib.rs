@@ -16,13 +16,14 @@ mod platform_impl;
 
 use {
     grue2d::{
-        agents::WorldRenderFlag,
+        agents::WorldRenderer,
         data::{resources::UiLayer, Data},
         hot_crate,
         platform::PlatformLifetime,
         GrueRl,
     },
-    snow2d::utils::tweak::*,
+    rokol::gfx as rg,
+    snow2d::{gfx::Color, utils::tweak::*},
     std::time::Duration,
 };
 
@@ -34,6 +35,7 @@ fn sound_volume() -> f32 {
 pub struct SnowRl {
     pub grue: GrueRl,
     pub plugin: hot_crate::HotLibrary,
+    pa_blue: rg::PassAction,
     tmp: Vec<snow2d::utils::pool::Handle<snow2d::ui::node::Node>>,
 }
 
@@ -51,6 +53,7 @@ impl SnowRl {
         Self {
             grue,
             plugin,
+            pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             tmp: vec![],
         }
     }
@@ -86,22 +89,37 @@ impl SnowRl {
 
         {
             let (ice, res, world) = (&mut data.ice, &mut data.res, &mut data.world);
+            let dt = ice.dt();
 
-            agents.world_render.render(
-                world,
-                ice,
-                WorldRenderFlag::SHADOW | WorldRenderFlag::ACTORS | WorldRenderFlag::MAP,
-            );
+            {
+                let mut screen = ice
+                    .snow
+                    .screen()
+                    .pa(Some(&self.pa_blue))
+                    .transform(Some(world.cam.to_mat4()))
+                    .build();
+                WorldRenderer::render_map(&mut screen, world, 0..100);
+            }
 
+            agents.world_render.calc_actor_view(world, &mut res.ui, dt);
             res.ui.get_mut(UiLayer::Actors).render(ice, cam_mat);
-            res.ui.get_mut(UiLayer::OnActors).render(ice, cam_mat);
 
-            agents
-                .world_render
-                .render(world, ice, WorldRenderFlag::SNOW);
+            {
+                let mut screen = ice
+                    .snow
+                    .screen()
+                    .pa(None)
+                    .transform(Some(world.cam.to_mat4()))
+                    .build();
+                WorldRenderer::render_map(&mut screen, world, 100..);
+            }
+
+            res.ui.get_mut(UiLayer::OnActors).render(ice, cam_mat);
+            agents.world_render.render_shadow(&mut ice.snow, world);
+            agents.world_render.render_snow(&ice.snow.window);
         }
 
-        Self::test_text_style(data);
+        // Self::test_text_style(data);
 
         data.res
             .ui
@@ -150,8 +168,6 @@ impl SnowRl {
     }
 
     fn test_transform(&mut self) {
-        return;
-
         if !self.tmp.is_empty() {
             return;
         }

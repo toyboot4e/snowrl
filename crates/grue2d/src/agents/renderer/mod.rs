@@ -11,27 +11,17 @@ use {
     snow2d::{
         gfx::{draw::*, Color, Snow2d, WindowState},
         utils::arena::Index,
-        Ice,
     },
     std::time::Duration,
 };
 
-use crate::data::world::{actor::Actor, World};
+use crate::data::{
+    resources::{Ui, UiLayer},
+    world::{actor::Actor, World},
+};
 
 /// TODO: remove
 const WALK_TIME: f32 = 8.0 / 60.0;
-
-bitflags::bitflags! {
-    /// Fixed set of renderers
-    pub struct WorldRenderFlag: u32 {
-        const SHADOW = 1 << 0;
-        const SNOW = 1 << 1;
-        const ACTORS = 1 << 3;
-        const MAP = 1 << 4;
-        //
-        const ALL = Self::SHADOW.bits | Self::SNOW.bits |  Self::ACTORS.bits | Self::MAP.bits;
-    }
-}
 
 /// Sort actors based on position
 #[derive(Debug, PartialEq, Eq)]
@@ -55,7 +45,6 @@ impl ActorSortEntry {
 pub struct WorldRenderer {
     pub shadow_render: ShadowRenderer,
     pub snow_render: SnowRenderer,
-    pa_blue: rg::PassAction,
     /// FIXME: this is inaccurate on actor insertion/deletion
     actor_visibilities: Vec<DoubleTrack<bool>>,
     sort_buf: Vec<ActorSortEntry>,
@@ -66,7 +55,6 @@ impl WorldRenderer {
         Self {
             shadow_render: ShadowRenderer::new(screen_size),
             snow_render: SnowRenderer::default(),
-            pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
             actor_visibilities: Default::default(),
             sort_buf: Vec::with_capacity(32),
         }
@@ -83,42 +71,7 @@ impl WorldRenderer {
         }
     }
 
-    /// Renders the world (maybe partially)
-    pub fn render(&mut self, world: &World, ice: &mut Ice, flags: WorldRenderFlag) {
-        let dt = ice.dt();
-        if flags.contains(WorldRenderFlag::MAP | WorldRenderFlag::ACTORS) {
-            // use world coordinates
-            let mut screen = ice
-                .snow
-                .screen()
-                .pa(Some(&self.pa_blue))
-                .transform(Some(world.cam.to_mat4()))
-                .build();
-
-            if flags.contains(WorldRenderFlag::MAP) {
-                Self::render_map(&mut screen, &world, 0..100);
-            }
-
-            self.update_actor_images(&world, dt);
-            if flags.contains(WorldRenderFlag::ACTORS) {
-                self.render_actors(&mut screen, &world);
-            }
-
-            if flags.contains(WorldRenderFlag::MAP) {
-                Self::render_map(&mut screen, &world, 100..);
-            }
-        }
-
-        if flags.contains(WorldRenderFlag::SHADOW) {
-            self.render_shadow(&mut ice.snow, world);
-        }
-
-        if flags.contains(WorldRenderFlag::SNOW) {
-            self.render_snow(&ice.snow.window);
-        }
-    }
-
-    fn render_map(
+    pub fn render_map(
         screen: &mut impl DrawApi,
         world: &World,
         layer_range: impl std::ops::RangeBounds<i32>,
@@ -131,14 +84,6 @@ impl WorldRenderer {
             layer_range,
         );
     }
-
-    // TODO: fn render_map_cell_rects(
-    // rlbox::render::tiled::render_rects_on_non_blocking_cells(
-    //     screen,
-    //     &world.map.tiled,
-    //     &world.map.rlmap.blocks,
-    //     &bounds,
-    // );
 
     fn update_actor_images(&mut self, world: &World, dt: Duration) {
         self.sort_buf.clear();
@@ -176,41 +121,50 @@ impl WorldRenderer {
         }
     }
 
+    fn actor_alpha_f32(&self, slot: usize) -> f32 {
+        fn b2f(b: bool) -> f32 {
+            if b {
+                255.0
+            } else {
+                0.0
+            }
+        }
+
+        let v = &self.actor_visibilities[slot];
+        b2f(v.a) * v.t + b2f(v.b) * (1.0 - v.t)
+    }
+
     /// Render actors in world coordinates. Call `update_actor_images` first
-    fn render_actors(&mut self, screen: &mut impl DrawApi, world: &World) {
+    pub fn calc_actor_view(&mut self, world: &World, ui: &mut Ui, dt: Duration) {
+        self.update_actor_images(&world, dt);
         self.sort_buf.sort_by(ActorSortEntry::cmp);
 
         for entry in &self.sort_buf {
-            let alpha = {
-                fn b2f(b: bool) -> f32 {
-                    if b {
-                        255.0
-                    } else {
-                        0.0
-                    }
-                }
-
-                let v = &mut self.actor_visibilities[entry.actor_index.slot() as usize];
-                b2f(v.a) * v.t + b2f(v.b) * (1.0 - v.t)
-            } as u8;
-
             let actor = &world.entities[entry.actor_index];
             let pos = actor.view.pos_world_render(&world.map.tiled);
+            let alpha = self.actor_alpha_f32(entry.actor_index.slot() as usize) as u8;
 
-            screen
-                .sprite(actor.view.sprite())
-                .dst_pos_px(pos)
-                .color(Color::WHITE.with_alpha(alpha));
+            // TODO: set UI
+            let layer = ui.get_mut(UiLayer::Actors);
+            let params = &mut layer.nodes[&actor.nodes.img].params;
+            params.pos = pos;
+            params.color = Color::WHITE.with_alpha(alpha);
+
+            // TODO: set UI z ordering?
+            // screen
+            //     .sprite(actor.view.sprite())
+            //     .dst_pos_px(pos)
+            //     .color(Color::WHITE.with_alpha(alpha));
         }
     }
 
-    fn render_shadow(&mut self, rdr: &mut Snow2d, world: &World) {
+    pub fn render_shadow(&mut self, rdr: &mut Snow2d, world: &World) {
         let blur = true;
         self.shadow_render.render_ofs(rdr, world, blur);
         self.shadow_render.blend_to_screen(rdr, &world.cam);
     }
 
-    fn render_snow(&mut self, window: &WindowState) {
+    pub fn render_snow(&mut self, window: &WindowState) {
         self.snow_render.render(window);
     }
 }
