@@ -126,10 +126,7 @@ impl ActorSpawn {
             .unwrap();
 
         let layer = ui.layer_mut(UiLayer::Actors);
-        let nodes = ActorNodes {
-            img: layer.nodes.add(img.sprite()),
-            hp: layer.nodes.add(img.sprite()),
-        };
+        let nodes = ActorNodes::new(layer, img.sprite());
 
         let mut actor = Actor {
             pos: self.pos,

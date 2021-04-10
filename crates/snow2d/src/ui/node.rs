@@ -97,6 +97,14 @@ pub struct Text {
     // TODO: decoration information (spans for colors, etc)
 }
 
+impl Text {
+    pub fn new(txt: &str) -> Self {
+        Self {
+            txt: txt.to_string(),
+        }
+    }
+}
+
 /// Visible object in a UI layer
 #[derive(Debug, Clone)]
 pub struct Node {

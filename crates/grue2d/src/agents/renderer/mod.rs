@@ -141,20 +141,18 @@ impl WorldRenderer {
         let n_entries = self.sort_buf.len() as f32;
         for (entry_ix, entry) in self.sort_buf.iter().enumerate() {
             let actor = &world.entities[entry.actor_index];
-            let pos = actor.view.pos_world_render(&world.map.tiled);
-            let alpha = self.actor_alpha_f32(entry.actor_index.slot() as usize) as u8;
-
             let layer = ui.layer_mut(UiLayer::Actors);
 
-            // sprite animation and z ordering
-            let node = &mut layer.nodes[&actor.nodes.img];
-            node.draw = actor.view.sprite().into();
-            node.order = entry_ix as f32 / n_entries;
+            let alpha = self.actor_alpha_f32(entry.actor_index.slot() as usize) as u8;
 
-            // position and color
-            let params = &mut node.params;
-            params.pos = pos;
-            params.color = Color::WHITE.with_alpha(alpha);
+            let base_node = &mut layer.nodes[&actor.nodes.base];
+            base_node.order = entry_ix as f32 / n_entries;
+            base_node.params.pos = actor.view.base_pos_world(&world.map.tiled);
+
+            let img_node = &mut layer.nodes[&actor.nodes.img];
+            img_node.order = entry_ix as f32 / n_entries;
+            img_node.draw = actor.view.sprite().into();
+            img_node.params.color = Color::WHITE.with_alpha(alpha);
         }
     }
 
