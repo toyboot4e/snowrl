@@ -78,6 +78,10 @@ impl Color {
         x.a = a;
         x
     }
+
+    pub fn set_alpha(&mut self, a: u8) {
+        self.a = a;
+    }
 }
 
 macro_rules! def_colors {

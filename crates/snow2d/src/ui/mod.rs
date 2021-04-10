@@ -1,5 +1,5 @@
 /*!
-User interface (sprites and animations)
+UI or scene graph: container of sprites and animations
 */
 
 pub mod anim;
