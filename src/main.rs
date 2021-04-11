@@ -24,7 +24,7 @@ use rlbox::{
 use grue2d::{
     ctrl::Control,
     data::{
-        resources::{Resources, Ui, VInput},
+        res::{Resources, Ui, VInput},
         world::{actor::*, World},
     },
     platform::PlatformLifetime,

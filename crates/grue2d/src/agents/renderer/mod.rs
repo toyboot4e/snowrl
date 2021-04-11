@@ -15,7 +15,7 @@ use {
 };
 
 use crate::data::{
-    resources::{Ui, UiLayer},
+    res::{Ui, UiLayer},
     world::{actor::Actor, World},
 };
 

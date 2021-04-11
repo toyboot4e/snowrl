@@ -16,7 +16,7 @@ use snow2d::{
 };
 
 use grue2d::data::{
-    resources::UiLayer,
+    res::UiLayer,
     world::{actor::Actor, World},
     Data,
 };

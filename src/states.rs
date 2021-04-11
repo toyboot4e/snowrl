@@ -9,14 +9,14 @@ use snow2d::utils::arena::Index;
 use grue2d::{
     ctrl::{
         rogue::{
-            anim::{AnimResult, AnimUpdateContext},
+            anim::AnimResult,
             ev,
             script::ScriptRef,
             tick::{AnimContext, GameLoop, TickResult},
         },
         Control,
     },
-    data::{resources::Ui, world::actor::Actor, Data},
+    data::{res::Ui, world::actor::Actor, Data},
     fsm::{GameState, StateCommand, StateReturn},
 };
 
@@ -119,24 +119,14 @@ pub struct Animation {}
 
 impl GameState for Animation {
     fn update(&mut self, data: &mut Data, ctrl: &mut Control) -> StateReturn {
-        let mut ucx = AnimUpdateContext {
-            world: &mut data.world,
-            ice: &mut data.ice,
-        };
-
-        match ctrl.rogue.anims.update(&mut ucx) {
+        match ctrl.rogue.anims.update(data) {
             AnimResult::GotoNextFrame => StateReturn::NextFrame(vec![]),
             AnimResult::Finish => StateReturn::ThisFrame(vec![StateCommand::Pop]),
         }
     }
 
     fn on_enter(&mut self, data: &mut Data, ctrl: &mut Control) {
-        let mut ucx = AnimUpdateContext {
-            world: &mut data.world,
-            ice: &mut data.ice,
-        };
-
-        ctrl.rogue.anims.on_start(&mut ucx);
+        ctrl.rogue.anims.on_start(data);
     }
 }
 

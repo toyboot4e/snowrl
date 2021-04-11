@@ -15,7 +15,7 @@ pub mod states;
 use {
     grue2d::{
         agents::WorldRenderer,
-        data::{resources::UiLayer, Data},
+        data::{res::UiLayer, Data},
         hot_crate,
         platform::PlatformLifetime,
         GrueRl,

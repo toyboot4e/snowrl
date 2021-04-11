@@ -4,7 +4,7 @@ Non-blocking animations
 
 use {rlbox::rl::grid2d::Dir8, snow2d::utils::arena::Index, std::time::Duration};
 
-use crate::data::world::actor::Actor;
+use crate::data::{res::UiLayer, world::actor::Actor};
 
 use super::{Anim, AnimResult, AnimUpdateContext, Timer};
 
