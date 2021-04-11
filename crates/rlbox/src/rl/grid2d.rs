@@ -4,6 +4,7 @@ Discrete geometry types
 
 use auto_ops::*;
 use serde::{Deserialize, Serialize};
+use snow2d::gfx::geom2d::Vec2f;
 
 pub use snow2d::input::{Dir4, Dir8, Sign};
 
@@ -99,6 +100,7 @@ impl_op_ex!(/|lhs: &Vec2i, rhs: &i32| -> Vec2i { Vec2i::new(lhs.x / rhs, lhs.y /
 impl_op_ex!(*= |lhs: &mut Vec2i, rhs: &i32| { lhs.x *= rhs; lhs.y *= rhs; });
 impl_op_ex!(/= |lhs: &mut Vec2i, rhs: &i32| { lhs.x /= rhs; lhs.y /= rhs; });
 
+/// Constructors and type conversion
 impl Vec2i {
     pub fn new(x: i32, y: i32) -> Self {
         Self { x, y }
@@ -118,6 +120,12 @@ impl Vec2i {
         }
     }
 
+    pub fn to_vec2f(&self) -> Vec2f {
+        Vec2f::new(self.x as f32, self.y as f32)
+    }
+}
+
+impl Vec2i {
     pub fn len_rock(&self) -> u32 {
         (self.x.abs() + self.y.abs()) as u32
     }

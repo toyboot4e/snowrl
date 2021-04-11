@@ -36,6 +36,7 @@ impl<T, U: Into<T>> From<[U; 2]> for Delta<T> {
 }
 
 /// Fluent API to create animation objects
+#[derive(Debug)]
 pub struct AnimBuilder<'a> {
     anims: &'a mut AnimArena,
     node: Option<Handle<Node>>,
@@ -45,6 +46,7 @@ pub struct AnimBuilder<'a> {
 }
 
 impl<'a> AnimBuilder<'a> {
+    /// Make sure to call [`node`](Self::node) after creating this builder
     pub fn new(anims: &'a mut AnimArena) -> Self {
         Self {
             anims,
@@ -54,13 +56,20 @@ impl<'a> AnimBuilder<'a> {
         }
     }
 
-    pub fn clear_log(&mut self) {
-        self.built.clear();
+    pub fn with_node(self, node: &Handle<Node>) -> Self {
+        Self {
+            node: Some(node.clone()),
+            ..self
+        }
     }
 
     pub fn node<'x>(&mut self, node: &Handle<Node>) -> &mut Self {
         self.node = Some(node.clone());
         self
+    }
+
+    pub fn clear_log(&mut self) {
+        self.built.clear();
     }
 
     pub fn dt(&mut self, dt: ez::EasedDt) -> &mut Self {
@@ -86,6 +95,7 @@ macro_rules! add_tween {
                 let delta = delta.into();
 
                 let index = self.anims.insert($Tween {
+                    is_active: true,
                     tween: ez::Tweened {
                         a: delta.a,
                         b: delta.b,
@@ -93,8 +103,8 @@ macro_rules! add_tween {
                     },
                     node: self.node.clone().unwrap(),
                 });
-                self.built.push(index);
 
+                self.built.push(index);
                 self
             }
         }
@@ -108,4 +118,3 @@ add_tween!(SizeTween, size, Vec2f);
 add_tween!(ColorTween, color, Color);
 add_tween!(AlphaTween, alpha, u8);
 add_tween!(RotTween, rot, f32);
-

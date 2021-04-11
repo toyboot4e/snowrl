@@ -82,6 +82,7 @@ impl GenAnim for MeleeAttack {
             self.actor,
             self.dir
                 .unwrap_or_else(|| acx.world.entities[self.actor].dir),
+            // FIXME: magic number
             tweak!(8.0 / 60.0),
         )))
     }

@@ -73,7 +73,7 @@ impl Layer {
     pub fn new(coord: CoordSystem) -> Self {
         Self {
             nodes: NodePool::new(),
-            anims: AnimArena(Arena::with_capacity(16)),
+            anims: AnimArena::new(),
             coord,
             ord_buf: Vec::with_capacity(16),
         }
@@ -195,20 +195,42 @@ impl NodePool {
     }
 }
 
-/// [`Arena`] of animations
+// TODO: add animation runner in AnimArena
+// #[derive(Debug)]
+// pub enum AnimBatch {
+//     /// Run the animations in order
+//     Seq {
+//         anims: Vec<Index<Anim>>,
+//         // dt: ez::EasedDt,
+//     },
+//     /// Run the animations in parallel
+//     Parallel { anims: Vec<Index<Anim>> },
+// }
+
+/// Extended [`Arena`] for animations
 #[derive(Debug)]
-pub struct AnimArena(Arena<Anim>);
+pub struct AnimArena {
+    anims: Arena<Anim>,
+}
+
+impl AnimArena {
+    pub fn new() -> Self {
+        Self {
+            anims: Arena::with_capacity(16),
+        }
+    }
+}
 
 impl std::ops::Deref for AnimArena {
     type Target = Arena<Anim>;
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.anims
     }
 }
 
 impl std::ops::DerefMut for AnimArena {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.anims
     }
 }
 
@@ -221,7 +243,11 @@ impl AnimArena {
     pub fn update(&mut self, dt: Duration, nodes: &mut Pool<Node>) {
         let mut removals = vec![];
 
-        for (ix, a) in self.0.iter_mut() {
+        for (ix, a) in self.anims.iter_mut() {
+            if !a.is_active() {
+                continue;
+            }
+
             if a.is_end() {
                 removals.push(ix);
                 continue;
@@ -233,7 +259,7 @@ impl AnimArena {
 
         for ix in removals {
             // log::trace!("remove animation at {:?}", ix);
-            self.0.remove(ix);
+            self.anims.remove(ix);
         }
     }
 }
