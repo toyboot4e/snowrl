@@ -27,7 +27,7 @@ use grue2d::{
         res::{Resources, Ui, VInput},
         world::{actor::*, World},
     },
-    platform::PlatformLifetime,
+    PlatformLifetime,
 };
 
 use snowrl::{
@@ -41,7 +41,7 @@ use snowrl::{
 fn main() -> Result<()> {
     env_logger::init();
 
-    let init = grue2d::platform::Init {
+    let init = grue2d::Init {
         title: "SnowRL".to_string(),
         w: 1280,
         h: 720,
@@ -60,10 +60,10 @@ fn main() -> Result<()> {
     game.data.ice.audio.set_global_volume(0.0);
     let app = SnowRl::new(game);
 
-    grue2d::platform::run(platform, app)
+    grue2d::run(platform, app)
 }
 
-fn new_game(init: &grue2d::platform::Init, platform: &PlatformLifetime) -> GrueRl {
+fn new_game(init: &grue2d::Init, platform: &PlatformLifetime) -> GrueRl {
     // create our game context
     let mut data = {
         let mut ice = Ice::new(unsafe {

@@ -17,7 +17,7 @@ use {
         agents::WorldRenderer,
         data::{res::UiLayer, Data},
         hot_crate,
-        platform::PlatformLifetime,
+        PlatformLifetime,
         GrueRl,
     },
     rokol::gfx as rg,
@@ -223,7 +223,7 @@ impl SnowRl {
 mod impl_ {
     use std::time::Duration;
 
-    use grue2d::platform::{Lifecycle, PlatformLifetime};
+    use grue2d::{Lifecycle, PlatformLifetime};
     use rokol::gfx as rg;
 
     use crate::SnowRl;
