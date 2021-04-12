@@ -83,6 +83,8 @@ impl Fsm {
 
             if finish {
                 break;
+            } else {
+                continue;
             }
         }
     }

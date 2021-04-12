@@ -1,5 +1,7 @@
 /*!
 Frame-based actor sprite animation
+
+NOTE: actor renderer is NOT in this crate.
 */
 
 use std::{collections::HashMap, time::Duration};
@@ -14,7 +16,10 @@ use snow2d::{
         tex::{SpriteData, Texture2dDrop},
         Color,
     },
-    ui::node::Node,
+    ui::{
+        node::{self, Node},
+        Layer,
+    },
     utils::{
         ez,
         pool::Handle,
@@ -332,40 +337,6 @@ impl ActorImage {
         self.dir_anim_state.set_pattern(dir, true);
     }
 
-    /// Position in world coordinates. This is common among various sizes of images, so suitable for
-    /// e.g., camera.
-    ///
-    /// Align the center of the sprite to the center of the cell.
-    pub fn pos_world_centered(&self, tiled: &tiled::Map) -> Vec2f {
-        let pos_prev = self.align_center(self.state_diff.b().pos, tiled);
-        let pos_curr = self.align_center(self.state_diff.a().pos, tiled);
-        let mut pos = self.walk_dt.lerp(pos_prev, pos_curr);
-        pos.floor_mut();
-        pos
-    }
-
-    /// Align the bottom-center of an actor to the bottom-center of a cell
-    fn align_center(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
-        crate::render::tiled::t2w_center(pos, &tiled)
-    }
-
-    /// Position in world coordinates with offsets for rendering
-    pub fn pos_world_render(&self, tiled: &tiled::Map) -> Vec2f {
-        let pos_prev = self.align_render(self.state_diff.b().pos, tiled);
-        let pos_curr = self.align_render(self.state_diff.a().pos, tiled);
-        let mut pos = self.walk_dt.lerp(pos_prev, pos_curr);
-        pos.floor_mut();
-        pos
-    }
-
-    /// Align the center of the sprite to the bottom-center of the cell
-    fn align_render(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
-        let mut pos = crate::render::tiled::t2w_center(pos, &tiled);
-        pos.y += tiled.tile_height as f32 / 2.0;
-        pos.y -= self.sprite().sub_tex_size_unscaled()[1] / 2.0;
-        pos
-    }
-
     /// Sprite for current frame
     pub fn sprite(&self) -> &SpriteData {
         self.dir_anim_state.current_frame()
@@ -377,11 +348,81 @@ impl ActorImage {
     }
 }
 
+/// Coordinates
+impl ActorImage {
+    /// Position in world coordinates. This is common among various sizes of images, so suitable for
+    /// e.g., camera.
+    ///
+    /// Align the center of the sprite to the center of the cell.
+    pub fn pos_world_centered(&self, tiled: &tiled::Map) -> Vec2f {
+        let pos_prev = self.align_cell_center(self.state_diff.b().pos, tiled);
+        let pos_curr = self.align_cell_center(self.state_diff.a().pos, tiled);
+        let mut pos = self.walk_dt.lerp(pos_prev, pos_curr);
+        pos.floor_mut();
+        pos
+    }
+
+    /// Align the bottom-center of an actor to the bottom-center of a cell
+    fn align_cell_center(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
+        crate::render::tiled::t2w_center(pos, &tiled)
+    }
+
+    /// Base node position in world coordinates
+    pub fn base_pos_world(&self, tiled: &tiled::Map) -> Vec2f {
+        let pos_prev = Self::align_base(self.state_diff.b().pos, tiled);
+        let pos_curr = Self::align_base(self.state_diff.a().pos, tiled);
+        let mut pos = self.walk_dt.lerp(pos_prev, pos_curr);
+        pos.floor_mut();
+        pos
+    }
+
+    /// Align the center of the sprite to the bottom-center of the cell
+    fn align_base(pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
+        let delta = Vec2f::new(0.0, tiled.tile_height as f32 / 2.0);
+        crate::render::tiled::t2w_center(pos, &tiled) + delta
+    }
+
+    /// Image position in world coordinates
+    pub fn img_pos_world(&self, tiled: &tiled::Map) -> Vec2f {
+        let pos_prev = self.align_img(self.state_diff.b().pos, tiled);
+        let pos_curr = self.align_img(self.state_diff.a().pos, tiled);
+        let mut pos = self.walk_dt.lerp(pos_prev, pos_curr);
+        pos.floor_mut();
+        pos
+    }
+
+    /// Align the center of the sprite to the bottom-center of the cell
+    fn align_img(&self, pos: Vec2i, tiled: &tiled::Map) -> Vec2f {
+        Self::align_base(pos, &tiled) + self.img_offset()
+    }
+
+    pub fn img_offset(&self) -> Vec2f {
+        Vec2f::new(0.0, -self.sprite().sub_tex_size_unscaled()[1] / 2.0)
+    }
+}
+
 /// Handle of nodes for an actor in a pool
 #[derive(Debug, Clone)]
 pub struct ActorNodes {
+    /// Other nodes are stored as children of this node
+    pub base: Handle<Node>,
     pub img: Handle<Node>,
     pub hp: Handle<Node>,
     // /// Non-ordinary view components
     // pub extras: Vec<Handle<Node>>,
+}
+
+impl ActorNodes {
+    pub fn new(layer: &mut Layer, img_sprite: &SpriteData) -> Self {
+        let base = layer.nodes.add(node::Draw::None);
+
+        let h = img_sprite.sub_tex_size_unscaled()[1];
+        let mut img = Node::from(img_sprite);
+        img.params.pos = Vec2f::new(0.0, -h / 2.0);
+
+        let img = layer.nodes.attach_child(&base, img);
+        let hp = layer.nodes.attach_child(&base, node::Text::new("").into());
+
+        Self { base, img, hp }
+    }
 }

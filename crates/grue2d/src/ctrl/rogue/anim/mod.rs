@@ -11,11 +11,8 @@ pub use parallel::*;
 
 use {
     downcast_rs::{impl_downcast, Downcast},
-    snow2d::Ice,
     std::{collections::VecDeque, fmt, time::Duration},
 };
-
-use crate::data::world::World;
 
 /// Utility for implementing animations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -23,15 +20,16 @@ pub struct Timer {
     /// Do not tick on first frame
     is_started: bool,
     dt: Duration,
-    duration: Duration,
+    target_duration: Duration,
 }
 
+/// Creation
 impl Timer {
     pub fn new(dt: Duration, duration: Duration) -> Self {
         Self {
             is_started: false,
             dt,
-            duration,
+            target_duration: duration,
         }
     }
 
@@ -45,14 +43,25 @@ impl Timer {
     }
 
     pub fn from_frames(frames: u64) -> Self {
+        // FIXME: hard-coded FPS
         let ns = 1_000_000_000 * frames / 60;
         Self::from_duration(Duration::from_nanos(ns))
+    }
+}
+
+impl Timer {
+    /// Target duration
+    pub fn target(&self) -> Duration {
+        self.target_duration
     }
 
     pub fn set_started(&mut self, b: bool) {
         self.is_started = b;
     }
+}
 
+/// Lifecycle
+impl Timer {
     /// Ticks the timer and returns if it's finished
     pub fn tick(&mut self, dt: Duration) -> bool {
         if !self.is_started {
@@ -61,7 +70,7 @@ impl Timer {
         } else {
             self.dt += dt;
         }
-        self.dt > self.duration
+        self.dt > self.target_duration
     }
 
     pub fn tick_as_result(&mut self, dt: Duration) -> AnimResult {
@@ -81,11 +90,7 @@ pub enum AnimResult {
 }
 
 /// Context to process any [`Anim`]
-#[derive(Debug)]
-pub struct AnimUpdateContext<'a, 'b> {
-    pub world: &'a mut World,
-    pub ice: &'b mut Ice,
-}
+pub type AnimUpdateContext = crate::data::Data;
 
 /// Roguelike animation object
 pub trait Anim: fmt::Debug + Downcast {

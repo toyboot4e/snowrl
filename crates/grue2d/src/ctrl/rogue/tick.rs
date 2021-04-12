@@ -20,7 +20,7 @@ use {
 };
 
 use crate::data::{
-    resources::VInput,
+    res::VInput,
     world::{actor::Actor, World},
 };
 

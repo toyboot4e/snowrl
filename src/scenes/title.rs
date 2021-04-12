@@ -7,7 +7,7 @@ use snow2d::{
     ui::{
         anim::{Anim, AnimImpl},
         node::{Draw, Node},
-        AnimArena, Layer,
+        AnimStorage, Layer,
     },
 };
 
@@ -23,7 +23,7 @@ pub enum Choice {
     Exit,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Phased<T> {
     pub selected: T,
     pub not_selected: T,
@@ -50,7 +50,7 @@ impl Choice {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ColorConfig {
     pub item: Phased<Color>,
     pub shadow: Phased<Color>,
@@ -71,12 +71,12 @@ impl Default for ColorConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TitleState {
     pub cursor: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TitleAssets {
     pub logo: SpriteData,
     pub choices: [SpriteData; 3],
@@ -98,7 +98,7 @@ impl TitleAssets {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TitleNodes {
     pub logo: Handle<Node>,
     /// [ [shadow, front ] ]
@@ -135,7 +135,7 @@ impl TitleNodes {
 }
 
 /// TODO: put animations in pool so that the animation remain when `Title` is poped
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TitleAnims {
     init_choices: Vec<Index<Anim>>,
 }
@@ -154,7 +154,7 @@ impl TitleAnims {
 
     pub fn init(
         cfg: &ColorConfig,
-        anims: &mut AnimArena,
+        anims: &mut AnimStorage,
         nodes: &TitleNodes,
         cursor: usize,
     ) -> Self {
@@ -227,7 +227,7 @@ impl TitleAnims {
             .color([cfg.shadow.not_selected, cfg.shadow.selected]);
     }
 
-    pub fn on_exit(&mut self, anims: &mut AnimArena, nodes: &TitleNodes) {
+    pub fn on_exit(&mut self, anims: &mut AnimStorage, nodes: &TitleNodes) {
         let mut b = anims.builder();
         b.dt(ez::EasedDt::new(24.0 / 60.0, ez::Ease::SinOut));
 

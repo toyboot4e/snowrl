@@ -27,6 +27,7 @@ Another approach would be using non-reference-counted [`Index`] in [`arena`].
 */
 
 use std::{
+    cmp,
     marker::PhantomData,
     ops, slice,
     sync::mpsc::{channel, Receiver, Sender},
@@ -58,6 +59,13 @@ pub struct Handle<T> {
     gen: Gen,
     sender: Sender<Message>,
     _phantom: PhantomData<fn() -> T>,
+}
+
+impl<T> cmp::PartialEq for Handle<T> {
+    fn eq(&self, other: &Handle<T>) -> bool {
+        // WARNING: it doesn't consider belonging pool
+        self.gen == other.gen
+    }
 }
 
 impl<T> Handle<T> {
@@ -98,7 +106,7 @@ impl<T> Drop for Handle<T> {
 ///
 /// The item is identified with generational index.
 #[derive(Derivative)]
-#[derivative(Debug, Clone, Copy)]
+#[derivative(Debug, PartialEq, Clone, Copy)]
 pub struct WeakHandle<T> {
     index: Slot,
     gen: Gen,

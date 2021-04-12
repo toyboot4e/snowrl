@@ -61,7 +61,7 @@ impl crate::utils::ez::Lerp for Dir8 {
     fn lerp(a: Self, b: Self, t: f32) -> Dir8 {
         let n_steps = (b as u8 + 8 - a as u8) % 8;
 
-        let (n_steps, step_size) = if n_steps <  4 {
+        let (n_steps, step_size) = if n_steps < 4 {
             (n_steps, 1)
         } else {
             (8 - n_steps, 8 - 1)
@@ -182,6 +182,7 @@ impl Default for EasedDt {
     }
 }
 
+/// Constructors
 impl EasedDt {
     pub fn new(target_secs: f32, ease: Ease) -> Self {
         Self {
@@ -191,9 +192,20 @@ impl EasedDt {
         }
     }
 
+    pub fn linear(target_secs: f32) -> Self {
+        Self {
+            target: target_secs,
+            accum: 0.0,
+            ease: Ease::Linear,
+        }
+    }
+}
+
+/// Conversion
+impl EasedDt {
     pub fn with_accum(&self, accum: f32) -> Self {
         Self {
-            accum: accum,
+            accum,
             target: self.target,
             ease: self.ease,
         }
@@ -205,15 +217,10 @@ impl EasedDt {
             ease: self.ease,
         }
     }
+}
 
-    pub fn completed() -> Self {
-        Self {
-            target: 1.0,
-            accum: 1.0,
-            ease: Ease::Linear,
-        }
-    }
-
+/// Lifecycle
+impl EasedDt {
     pub fn tick(&mut self, dt: Duration) {
         self.accum += dt.as_secs_f32();
         if self.accum > self.target {
@@ -223,6 +230,17 @@ impl EasedDt {
 
     pub fn reset(&mut self) {
         self.accum = 0.0;
+    }
+}
+
+/// Accessors
+impl EasedDt {
+    pub fn completed() -> Self {
+        Self {
+            target: 1.0,
+            accum: 1.0,
+            ease: Ease::Linear,
+        }
     }
 
     pub fn is_end(&self) -> bool {

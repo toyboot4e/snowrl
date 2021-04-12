@@ -8,9 +8,9 @@ use snow2d::Ice;
 
 use rlbox::rl::grid2d::*;
 
-use grue2d::data::resources::{Resources, Ui, UiLayer};
+use grue2d::data::res::{Resources, Ui, UiLayer};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Title {
     cfg: title::ColorConfig,
     state: title::TitleState,

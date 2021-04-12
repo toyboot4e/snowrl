@@ -113,7 +113,7 @@ fn img_desc(w: u32, h: u32, filter: rg::Filter, wrap: rg::Wrap) -> rg::ImageDesc
 /// Owned 2D texture
 ///
 /// Frees GPU image on drop. It's an [`AssetItem`].
-#[derive(Debug, Default)]
+#[derive(Debug, PartialEq, Default)]
 pub struct Texture2dDrop {
     img: rg::Image,
     w: u32,
@@ -145,7 +145,7 @@ impl AssetLoader for TextureLoader {
 }
 
 /// Texture with uv values
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SharedSubTexture2d {
     pub tex: Asset<Texture2dDrop>,
     /// [x, y, width, height]
@@ -153,7 +153,7 @@ pub struct SharedSubTexture2d {
 }
 
 /// Full-featured texture
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SpriteData {
     pub tex: Asset<Texture2dDrop>,
     /// [x, y, width, height]
@@ -220,7 +220,7 @@ impl SpriteBuilder {
 }
 
 /// Suitable for, e.g., window image
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NineSliceSprite {
     pub tex: Asset<Texture2dDrop>,
 }

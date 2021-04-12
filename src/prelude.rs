@@ -20,7 +20,7 @@ pub use snow2d::{
 
 pub use grue2d::{
     data::{
-        resources::{Fonts, Ui, UiLayer, VInput},
+        res::{Fonts, Ui, UiLayer, VInput},
         Data,
     },
     GrueRl,

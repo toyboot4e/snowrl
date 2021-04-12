@@ -41,6 +41,30 @@ impl GenAnim for Hit {
 }
 
 #[derive(Debug)]
+pub struct JustSwing {
+    pub actor: Index<Actor>,
+    pub dir: Option<Dir8>,
+}
+
+impl Event for JustSwing {
+    fn run(&self, ecx: &mut EventContext) -> EventResult {
+        EventResult::Finish
+    }
+}
+
+impl GenAnim for JustSwing {
+    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+        Some(Box::new(anim::SwingAnim::new(
+            self.actor,
+            self.dir
+                .unwrap_or_else(|| acx.world.entities[self.actor].dir),
+            // FIXME: magic number
+            tweak!(8.0 / 60.0),
+        )))
+    }
+}
+
+#[derive(Debug)]
 pub struct MeleeAttack {
     pub actor: Index<Actor>,
     pub dir: Option<Dir8>,
@@ -82,6 +106,7 @@ impl GenAnim for MeleeAttack {
             self.actor,
             self.dir
                 .unwrap_or_else(|| acx.world.entities[self.actor].dir),
+            // FIXME: magic number
             tweak!(8.0 / 60.0),
         )))
     }

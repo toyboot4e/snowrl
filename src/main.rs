@@ -24,10 +24,10 @@ use rlbox::{
 use grue2d::{
     ctrl::Control,
     data::{
-        resources::{Resources, Ui, VInput},
+        res::{Resources, Ui, VInput},
         world::{actor::*, World},
     },
-    platform::PlatformLifetime,
+    PlatformLifetime,
 };
 
 use snowrl::{
@@ -41,7 +41,7 @@ use snowrl::{
 fn main() -> Result<()> {
     env_logger::init();
 
-    let init = grue2d::platform::Init {
+    let init = grue2d::Init {
         title: "SnowRL".to_string(),
         w: 1280,
         h: 720,
@@ -56,13 +56,14 @@ fn main() -> Result<()> {
         })
         .map_err(Error::msg)?;
 
-    let game = self::new_game(&init, &platform);
+    let mut game = self::new_game(&init, &platform);
+    game.data.ice.audio.set_global_volume(0.0);
     let app = SnowRl::new(game);
 
-    grue2d::platform::run(platform, app)
+    grue2d::run(platform, app)
 }
 
-fn new_game(init: &grue2d::platform::Init, platform: &PlatformLifetime) -> GrueRl {
+fn new_game(init: &grue2d::Init, platform: &PlatformLifetime) -> GrueRl {
     // create our game context
     let mut data = {
         let mut ice = Ice::new(unsafe {
@@ -171,12 +172,13 @@ fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::Resu
 
 fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
     // TODO: use RON
+    let layer = ui.layer_mut(UiLayer::Actors);
 
     // player
     ActorSpawn::new("ika-chan")
         .pos([14, 10])
         .dir(Dir8::S)
-        .spawn(world, ui)?;
+        .spawn(world, layer)?;
 
     // non-player characters
     let mut spawn = ActorSpawn::new("mokusei-san");
@@ -185,13 +187,13 @@ fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
         .pos([14, 12])
         .dir(Dir8::W)
         .friendly()
-        .spawn(world, ui)?;
+        .spawn(world, layer)?;
 
     spawn
         .pos([25, 18])
         .dir(Dir8::E)
         .hostile()
-        .spawn(world, ui)?;
+        .spawn(world, layer)?;
 
     Ok(())
 }

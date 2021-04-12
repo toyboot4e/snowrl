@@ -106,13 +106,8 @@ impl Vec2f {
         Self { x, y }
     }
 
-    pub fn zero() -> Self {
-        Self { x: 0.0, y: 0.0 }
-    }
-
-    pub fn one() -> Self {
-        Self { x: 1.0, y: 1.0 }
-    }
+    pub const ZERO: Self = Self { x: 0.0, y: 0.0 };
+    pub const ONE: Self = Self { x: 1.0, y: 1.0 };
 
     pub fn offset(&self, x: impl Into<Self>) -> Self {
         self + x.into()

@@ -5,7 +5,7 @@ Game entity with GUI
 use serde::{Deserialize, Serialize};
 
 use snow2d::{
-    ui::{self, node},
+    ui::Layer,
     utils::{
         arena::Index,
         tyobj::{SerdeRepr, TypeObject, TypeObjectId},
@@ -17,10 +17,7 @@ use rlbox::{
     view::actor::{ActorImage, ActorImageType, ActorNodes},
 };
 
-use crate::data::{
-    resources::{Ui, UiLayer},
-    world::World,
-};
+use crate::data::world::World;
 
 /// Internal and view states of an actor
 #[derive(Debug, Clone)]
@@ -77,7 +74,7 @@ impl TypeObject for Script {}
 /// Create [`Actor`] from RON files
 #[derive(Debug, Clone)]
 pub struct ActorSpawn {
-    pub type_: TypeObjectId<ActorType>,
+    pub type_id: TypeObjectId<ActorType>,
     pub pos: Vec2i,
     pub dir: Dir8,
     pub relation: Relation,
@@ -86,7 +83,7 @@ pub struct ActorSpawn {
 impl ActorSpawn {
     pub fn new(type_: impl Into<TypeObjectId<ActorType>>) -> Self {
         Self {
-            type_: type_.into(),
+            type_id: type_.into(),
             pos: Vec2i::default(),
             dir: Dir8::S,
             relation: Relation::Friendly,
@@ -118,18 +115,14 @@ impl ActorSpawn {
         self
     }
 
-    pub fn spawn(&self, world: &mut World, ui: &mut Ui) -> anyhow::Result<Index<Actor>> {
-        let type_ = ActorType::from_type_key(&self.type_)?;
+    pub fn spawn(&self, world: &mut World, layer: &mut Layer) -> anyhow::Result<Index<Actor>> {
+        let type_ = ActorType::from_type_key(&self.type_id)?;
         let img: ActorImage = type_
             .img
             .map(|desc| ActorImage::from_desc_default(desc))
             .unwrap();
 
-        let layer = ui.layer_mut(UiLayer::Actors);
-        let nodes = ActorNodes {
-            img: layer.nodes.add(img.sprite()),
-            hp: layer.nodes.add(img.sprite()),
-        };
+        let nodes = ActorNodes::new(layer, img.sprite());
 
         let mut actor = Actor {
             pos: self.pos,

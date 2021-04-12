@@ -16,7 +16,7 @@ use snow2d::{
 };
 
 use grue2d::data::{
-    resources::UiLayer,
+    res::UiLayer,
     world::{actor::Actor, World},
     Data,
 };
@@ -33,7 +33,7 @@ pub struct TalkViewCommand<'a> {
 }
 
 /// Direction and baloon kind
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TalkConfig {
     pub dir: TalkDirection,
     pub kind: TalkKind,
@@ -54,7 +54,7 @@ pub enum TalkKind {
 }
 
 /// Layout of talk window, text and baloon
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct TalkLayout {
     pub txt: Vec2f,
     /// Center of the window
@@ -124,7 +124,7 @@ impl<'a> TalkViewCommand<'a> {
 }
 
 /// Data to draw talk
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct TalkView {
     layout: TalkLayout,
     win_sprite: NineSliceSprite,
@@ -169,7 +169,7 @@ impl TalkView {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct TalkNodes {
     win: Handle<Node>,
     txt: Handle<Node>,
@@ -177,7 +177,7 @@ struct TalkNodes {
 }
 
 /// State to play talk
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PlayTalk {
     cfg: TalkConfig,
     view: TalkView,

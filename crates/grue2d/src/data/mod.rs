@@ -5,12 +5,12 @@ The point is to make flat data structure. Agents that work on data is put in ano
 [`Data`] doesn't have to nest big structs.
 */
 
-pub mod resources;
+pub mod res;
 pub mod world;
 
 use snow2d::Ice;
 
-use self::{resources::Resources, world::World};
+use self::{res::Resources, world::World};
 
 /// Passive data. They don't work to each other; they just update themselves.
 #[derive(Debug)]

@@ -20,6 +20,9 @@ use crate::{
 /// Common animation lifecycle
 #[enum_dispatch]
 pub trait AnimImpl: std::fmt::Debug + Clone {
+    /// Delayed animations are activated later
+    fn is_active(&self) -> bool;
+    fn set_active(&mut self, b: bool);
     fn tick(&mut self, dt: Duration);
     fn is_end(&self) -> bool;
     fn apply(&self, nodes: &mut Pool<Node>);
@@ -40,15 +43,24 @@ impl<T> AnimFn for T where
 {
 }
 
-/// TODO: oes it work?
+/// TODO: does it work?
 #[derive(Debug, Clone)]
 pub struct DynAnim {
+    pub is_active: bool,
     pub dt: ez::EasedDt,
     pub node: Handle<Node>,
     pub f: Box<dyn AnimFn>,
 }
 
 impl AnimImpl for DynAnim {
+    fn is_active(&self) -> bool {
+        self.is_active
+    }
+
+    fn set_active(&mut self, b: bool) {
+        self.is_active = b;
+    }
+
     fn tick(&mut self, dt: Duration) {
         self.dt.tick(dt);
     }
@@ -70,11 +82,20 @@ macro_rules! def_tween_anim {
     ($ty:ident, $val:ident, $apply:expr) => {
         #[derive(Debug, Clone)]
         pub struct $ty {
+            pub is_active: bool,
             pub tween: ez::Tweened<$val>,
             pub node: Handle<Node>,
         }
 
         impl AnimImpl for $ty {
+            fn is_active(&self) -> bool {
+                self.is_active
+            }
+
+            fn set_active(&mut self, b: bool) {
+                self.is_active = b;
+            }
+
             fn tick(&mut self, dt: Duration) {
                 self.tween.tick(dt);
             }
@@ -144,3 +165,6 @@ pub enum Anim {
     RotTween,
     // ParamsTween,
 }
+
+/// Index of [`Anim`] in expected collection (i.e., generational arena)
+pub type AnimIndex = crate::utils::arena::Index<Anim>;
