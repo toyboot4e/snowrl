@@ -83,17 +83,18 @@ impl Anim for SwingAnim {
             );
             size * Vec2i::from(self.dir).to_vec2f()
         };
+        let img_offset = actor.view.img_offset();
 
         // TODO: implement animation runner in AnimArena
         // TODO: later, wait until the swing finishes even if we add more animations
-        builder.pos([Vec2f::ZERO, dpos]);
+        builder.pos([img_offset, img_offset + dpos]);
 
         builder.dt(ez::EasedDt::new(
             self.timer.target().as_secs_f32() / 1.0,
             ez::Ease::Linear,
         ));
 
-        builder.pos([dpos, Vec2f::ZERO]);
+        builder.pos([img_offset + dpos, img_offset + Vec2f::ZERO]);
 
         self.anims = Some(builder.built);
     }

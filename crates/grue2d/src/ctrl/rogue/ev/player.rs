@@ -53,7 +53,10 @@ impl Event for Interact {
                 }),
             }
         } else {
-            EventResult::chain(NotConsumeTurn { actor: self.actor })
+            EventResult::chain(JustSwing {
+                actor: self.actor,
+                dir: None,
+            })
         }
     }
 }
@@ -130,12 +133,11 @@ impl PlayerTurn {
 
 impl Event for PlayerTurn {
     fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let (select, turn, rest, dir, enter) = (
+        let (select, turn, rest, dir) = (
             ecx.vi.select.is_pressed(),
             ecx.vi.turn.is_pressed(),
             ecx.vi.rest.is_pressed(),
             ecx.vi.dir.dir8_down(),
-            ecx.ice.input.kbd.is_key_down(Key::Enter),
         );
 
         if select {
@@ -177,13 +179,6 @@ impl Event for PlayerTurn {
                     dir,
                 })
             };
-        }
-
-        if enter {
-            return EventResult::chain(MeleeAttack {
-                actor: self.actor,
-                dir: None,
-            });
         }
 
         EventResult::GotoNextFrame

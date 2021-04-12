@@ -20,7 +20,7 @@ pub use crate::gfx::tex::{NineSliceSprite, SpriteData};
 pub type Order = f32;
 
 /// Common geometry data that animations can operate on
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct DrawParams {
     pub pos: Vec2f,
     pub size: Vec2f,
@@ -47,7 +47,7 @@ impl DrawParams {
 }
 
 /// [`Node`] surface
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Draw {
     Sprite(SpriteData),
     NineSlice(NineSliceSprite),
@@ -106,7 +106,7 @@ impl Text {
 }
 
 /// Visible object in a UI layer
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Node {
     pub draw: Draw,
     /// Common geometry data

@@ -4,7 +4,7 @@ UI node animation builder
 
 use crate::{
     gfx::{geom2d::Vec2f, Color},
-    ui::{anim::*, node::Node, AnimArena},
+    ui::{anim::*, node::Node, AnimStorage},
     utils::{arena::Index, ez, pool::Handle},
 };
 
@@ -38,7 +38,7 @@ impl<T, U: Into<T>> From<[U; 2]> for Delta<T> {
 /// Fluent API to create animation objects
 #[derive(Debug)]
 pub struct AnimBuilder<'a> {
-    anims: &'a mut AnimArena,
+    anims: &'a mut AnimStorage,
     node: Option<Handle<Node>>,
     dt: ez::EasedDt,
     /// Built animation handles
@@ -47,7 +47,7 @@ pub struct AnimBuilder<'a> {
 
 impl<'a> AnimBuilder<'a> {
     /// Make sure to call [`node`](Self::node) after creating this builder
-    pub fn new(anims: &'a mut AnimArena) -> Self {
+    pub fn new(anims: &'a mut AnimStorage) -> Self {
         Self {
             anims,
             node: None,

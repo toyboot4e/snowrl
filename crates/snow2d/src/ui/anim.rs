@@ -20,8 +20,9 @@ use crate::{
 /// Common animation lifecycle
 #[enum_dispatch]
 pub trait AnimImpl: std::fmt::Debug + Clone {
+    /// Delayed animations are activated later
     fn is_active(&self) -> bool;
-    fn set_is_active(&mut self, b: bool);
+    fn set_active(&mut self, b: bool);
     fn tick(&mut self, dt: Duration);
     fn is_end(&self) -> bool;
     fn apply(&self, nodes: &mut Pool<Node>);
@@ -56,7 +57,7 @@ impl AnimImpl for DynAnim {
         self.is_active
     }
 
-    fn set_is_active(&mut self, b: bool) {
+    fn set_active(&mut self, b: bool) {
         self.is_active = b;
     }
 
@@ -91,7 +92,7 @@ macro_rules! def_tween_anim {
                 self.is_active
             }
 
-            fn set_is_active(&mut self, b: bool) {
+            fn set_active(&mut self, b: bool) {
                 self.is_active = b;
             }
 

@@ -39,6 +39,9 @@ use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
 
 use crate::utils::Cheat;
 
+/// Generational index or identity of assets
+type Gen = u32;
+
 /// Get asset path relative to `assets` directory
 pub fn path(path: impl AsRef<Path>) -> PathBuf {
     // TODO: supply appropreate root path
@@ -84,6 +87,13 @@ pub trait AssetLoader: fmt::Debug + Sized + 'static {
 pub struct Asset<T: AssetItem> {
     item: Option<Arc<Mutex<T>>>,
     path: Rc<PathBuf>,
+    identity: Gen,
+}
+
+impl<T: AssetItem> std::cmp::PartialEq for Asset<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.identity == other.identity
+    }
 }
 
 // TODO: impl deref with dummy asset
@@ -93,6 +103,7 @@ impl<T: AssetItem> Clone for Asset<T> {
         Self {
             item: self.item.as_ref().map(|x| Arc::clone(x)),
             path: Rc::clone(&self.path),
+            identity: self.identity,
         }
     }
 }
@@ -201,6 +212,7 @@ struct AssetCacheEntry<T: AssetItem> {
 pub struct AssetCacheT<T: AssetItem> {
     entries: Vec<AssetCacheEntry<T>>,
     loader: T::Loader,
+    gen: Gen,
 }
 
 impl<T: AssetItem> AssetCacheT<T> {
@@ -208,6 +220,7 @@ impl<T: AssetItem> AssetCacheT<T> {
         Self {
             entries: Vec::with_capacity(16),
             loader,
+            gen: 0,
         }
     }
 
@@ -247,7 +260,9 @@ impl<T: AssetItem> AssetCacheT<T> {
                 Some(Arc::new(Mutex::new(item)))
             },
             path: Rc::clone(&path),
+            identity: self.gen,
         };
+        self.gen += 1;
 
         let entry = AssetCacheEntry {
             id,

@@ -11,6 +11,7 @@ use {glam::Mat4, std::time::Duration};
 use crate::{
     utils::{
         arena::Arena,
+        ez,
         pool::{Handle, Pool, Slot},
         Cheat,
     },
@@ -64,7 +65,7 @@ impl<'a> Iterator for SortedNodesMut<'a> {
 #[derive(Debug)]
 pub struct Layer {
     pub nodes: NodePool,
-    pub anims: AnimArena,
+    pub anims: AnimStorage,
     pub coord: CoordSystem,
     ord_buf: Vec<OrderEntry>,
 }
@@ -73,7 +74,7 @@ impl Layer {
     pub fn new(coord: CoordSystem) -> Self {
         Self {
             nodes: NodePool::new(),
-            anims: AnimArena::new(),
+            anims: AnimStorage::new(),
             coord,
             ord_buf: Vec::with_capacity(16),
         }
@@ -195,70 +196,96 @@ impl NodePool {
     }
 }
 
-// TODO: add animation runner in AnimArena
-// #[derive(Debug)]
-// pub enum AnimBatch {
-//     /// Run the animations in order
-//     Seq {
-//         anims: Vec<Index<Anim>>,
-//         // dt: ez::EasedDt,
-//     },
-//     /// Run the animations in parallel
-//     Parallel { anims: Vec<Index<Anim>> },
-// }
+#[derive(Debug)]
+struct DelayedAnim {
+    anim: Anim,
+    is_first_tick: bool,
+    delay: ez::LinearDt,
+}
 
 /// Extended [`Arena`] for animations
 #[derive(Debug)]
-pub struct AnimArena {
+pub struct AnimStorage {
+    /// TODO: guarantee no duplicates exist
     anims: Arena<Anim>,
+    delayed_anims: Arena<DelayedAnim>,
 }
 
-impl AnimArena {
+impl AnimStorage {
     pub fn new() -> Self {
         Self {
             anims: Arena::with_capacity(16),
+            delayed_anims: Arena::with_capacity(16),
         }
     }
 }
 
-impl std::ops::Deref for AnimArena {
+impl std::ops::Deref for AnimStorage {
     type Target = Arena<Anim>;
     fn deref(&self) -> &Self::Target {
         &self.anims
     }
 }
 
-impl std::ops::DerefMut for AnimArena {
+impl std::ops::DerefMut for AnimStorage {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.anims
     }
 }
 
-impl AnimArena {
+impl AnimStorage {
     pub fn builder(&mut self) -> anim_builder::AnimBuilder {
         anim_builder::AnimBuilder::new(self)
     }
 
     /// Tick and apply animations. Remove finished animations
     pub fn update(&mut self, dt: Duration, nodes: &mut Pool<Node>) {
+        // delayed_anims
         let mut removals = vec![];
 
-        for (ix, a) in self.anims.iter_mut() {
-            if !a.is_active() {
+        for (removal_ix, anim) in self.delayed_anims.iter_mut() {
+            // TODO: use Timer
+            if anim.is_first_tick {
+                anim.is_first_tick = false;
+                if anim.delay.is_end() {
+                    // actually an undelayed animation
+                    removals.push(removal_ix);
+                }
+                anim.delay.tick(dt);
                 continue;
+            } else {
+                anim.delay.tick(dt);
+                // FIXME: do not tick in first frame, right
+                if anim.delay.is_end() {
+                    removals.push(removal_ix);
+                }
             }
-
-            if a.is_end() {
-                removals.push(ix);
-                continue;
-            }
-
-            a.tick(dt);
-            a.apply(nodes);
         }
 
         for ix in removals {
-            // log::trace!("remove animation at {:?}", ix);
+            let delayed_anim = self.delayed_anims.remove(ix).unwrap();
+            self.anims.insert(delayed_anim.anim);
+        }
+
+        // anims
+        let mut removals = vec![];
+
+        for (removal_ix, anim) in self.anims.iter_mut() {
+            // TODO: active property not needed?
+            if !anim.is_active() {
+                continue;
+            }
+
+            if anim.is_end() {
+                removals.push(removal_ix);
+                continue;
+            }
+
+            anim.tick(dt);
+            anim.apply(nodes);
+        }
+
+        for ix in removals {
             self.anims.remove(ix);
         }
     }

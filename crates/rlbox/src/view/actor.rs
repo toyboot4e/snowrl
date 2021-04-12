@@ -396,7 +396,7 @@ impl ActorImage {
         Self::align_base(pos, &tiled) + self.img_offset()
     }
 
-    fn img_offset(&self) -> Vec2f {
+    pub fn img_offset(&self) -> Vec2f {
         Vec2f::new(0.0, -self.sprite().sub_tex_size_unscaled()[1] / 2.0)
     }
 }

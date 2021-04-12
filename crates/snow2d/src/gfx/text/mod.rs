@@ -161,8 +161,10 @@ pub fn set_text_quad_with_shadow(
     shadow_offset: Vec2f,
     shadow_color: [u8; 4],
 ) {
+    // shadow
     let q = quads.next_quad_mut(img);
     self::set_text_quad(q, fons_quad, base_pos + shadow_offset, shadow_color);
+    // text
     let q = quads.next_quad_mut(img);
     self::set_text_quad(q, fons_quad, base_pos, text_color);
 }

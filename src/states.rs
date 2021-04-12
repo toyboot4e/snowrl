@@ -40,13 +40,14 @@ impl GameState for Roguelike {
             match res {
                 TickResult::TakeTurn(actor) => {
                     // TODO: don't hard code player detection
-                    if actor.slot() == 0 {
+                    const PLAYER_SLOT: u32 = 0;
+                    if actor.slot() == PLAYER_SLOT {
                         // NOTE: if we handle "change direction" animation, it can results in an
                         // infinite loop:
                         // run batched walk animation if it's player's turn
                         if ctrl.rogue.anims.any_batch() {
                             return StateReturn::ThisFrame(vec![StateCommand::Push(TypeId::of::<
-                                Animation,
+                                self::Animation,
                             >(
                             ))]);
                         }
@@ -114,7 +115,7 @@ impl GameState for Roguelike {
 /// Roguelike game animation state
 ///
 /// TODO: Animation should have the anmation queue and handle PushAnim event (if possible)
-#[derive(Debug, Default)]
+#[derive(Debug, PartialEq, Default)]
 pub struct Animation {}
 
 impl GameState for Animation {
@@ -131,7 +132,7 @@ impl GameState for Animation {
 }
 
 /// Title screen
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Title {
     title: crate::scenes::Title,
 }
@@ -157,34 +158,29 @@ impl GameState for Title {
     }
 
     fn update(&mut self, data: &mut Data, _ctrl: &mut Control) -> StateReturn {
-        // // if debug
-        // #[cfg(debug_assertions)]
-        // if gl.ice.input.kbd.is_key_pressed(snow2d::input::Key::R) {
-        //     self.init();
-        // }
-
-        let res = match self.title.handle_input(&mut data.ice, &mut data.res) {
+        let choice = match self.title.handle_input(&mut data.ice, &mut data.res) {
             Some(res) => res,
             None => return StateReturn::NextFrame(vec![]),
         };
 
         use crate::scenes::title::Choice::*;
-        match res {
-            NewGame => StateReturn::NextFrame(vec![StateCommand::PopAndRemove]),
+
+        StateReturn::NextFrame(match choice {
+            NewGame => vec![StateCommand::PopAndRemove],
             Continue => {
                 println!("unimplemented");
-                return StateReturn::NextFrame(vec![]);
+                vec![]
             }
             Exit => {
                 println!("unimplemented");
-                return StateReturn::NextFrame(vec![]);
+                vec![]
             }
-        }
+        })
     }
 }
 
 /// Just plays hard-coded script (for now)
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PlayScript {
     window: NineSliceSprite,
     baloon: SpriteData,
@@ -233,7 +229,7 @@ impl GameState for PlayScript {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PlayTalkState {
     data: play::talk::PlayTalk,
 }
