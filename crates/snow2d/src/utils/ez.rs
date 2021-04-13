@@ -288,7 +288,7 @@ impl LinearDt {
     }
 
     pub fn is_end(&self) -> bool {
-        self.accum > self.target
+        self.accum >= self.target
     }
 
     /// Interpolation vaule in range `[0.0, 1.0]`
