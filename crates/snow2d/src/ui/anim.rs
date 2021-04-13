@@ -23,6 +23,7 @@ pub trait AnimImpl: std::fmt::Debug + Clone {
     /// Delayed animations are activated later
     fn is_active(&self) -> bool;
     fn set_active(&mut self, b: bool);
+    fn duration(&self) -> Duration;
     fn tick(&mut self, dt: Duration);
     fn is_end(&self) -> bool;
     fn apply(&self, nodes: &mut Pool<Node>);
@@ -61,6 +62,10 @@ impl AnimImpl for DynAnim {
         self.is_active = b;
     }
 
+    fn duration(&self) -> Duration {
+        Duration::from_secs_f32(self.dt.target)
+    }
+
     fn tick(&mut self, dt: Duration) {
         self.dt.tick(dt);
     }
@@ -94,6 +99,10 @@ macro_rules! def_tween_anim {
 
             fn set_active(&mut self, b: bool) {
                 self.is_active = b;
+            }
+
+            fn duration(&self) -> Duration {
+                Duration::from_secs_f32(self.tween.dt.target)
             }
 
             fn tick(&mut self, dt: Duration) {

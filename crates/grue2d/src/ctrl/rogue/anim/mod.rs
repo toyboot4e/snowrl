@@ -82,7 +82,7 @@ impl Timer {
     }
 }
 
-/// Return alue of [`Anim::update`]
+/// Return value of [`Anim::update`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AnimResult {
     GotoNextFrame,

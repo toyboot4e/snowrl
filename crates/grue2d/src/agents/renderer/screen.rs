@@ -278,7 +278,7 @@ impl SnowRenderer {
         let size = glam::Vec2::from(window.size_f32());
         self.shd.set_fs_uniform(0, as_bytes(&size));
 
-        // NOTE: we have to skip unfocused duration; GameClock does it!
+        // NOTE: we have to skip duration while window doesn't have focus; `GameClock` does it!
         let past_time = clock.past_duration() - self.start_duration;
         self.shd
             .set_fs_uniform(1, as_bytes(&past_time.as_secs_f32()));

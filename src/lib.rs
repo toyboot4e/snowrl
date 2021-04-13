@@ -13,11 +13,7 @@ pub mod scenes;
 pub mod states;
 
 use {
-    grue2d::{
-        agents::WorldRenderer,
-        data::{res::UiLayer, Data},
-        hot_crate, GrueRl, PlatformLifetime,
-    },
+    grue2d::{agents::WorldRenderer, data::res::UiLayer, hot_crate, GrueRl, PlatformLifetime},
     rokol::gfx as rg,
     snow2d::gfx::Color,
     std::time::Duration,

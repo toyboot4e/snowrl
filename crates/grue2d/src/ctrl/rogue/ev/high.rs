@@ -47,7 +47,7 @@ pub struct JustSwing {
 }
 
 impl Event for JustSwing {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
+    fn run(&self, _ecx: &mut EventContext) -> EventResult {
         EventResult::Finish
     }
 }

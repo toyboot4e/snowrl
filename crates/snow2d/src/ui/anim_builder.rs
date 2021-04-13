@@ -2,13 +2,15 @@
 UI node animation builder
 */
 
+use std::time::Duration;
+
 use crate::{
     gfx::{geom2d::Vec2f, Color},
-    ui::{anim::*, node::Node, AnimStorage},
+    ui::{anim::*, node::Node, AnimStorage, DelayedAnim},
     utils::{arena::Index, ez, pool::Handle},
 };
 
-/// Internaly utility to provide with fluent API to supply two values
+/// Internaly utility for providing fluent API of tweens
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Delta<T> {
     pub a: T,
@@ -32,6 +34,64 @@ impl<T, U: Into<T>> From<[U; 2]> for Delta<T> {
             a: a.into(),
             b: b.into(),
         }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct AnimSeq {
+    pub(crate) anims: Vec<DelayedAnim>,
+    tot_delay: Duration,
+}
+
+impl AnimSeq {
+    pub fn begin() -> (Self, AnimGen) {
+        (Self::default(), AnimGen::default())
+    }
+
+    pub fn delay_at(&self, slot: usize) -> Duration {
+        let mut delay = Duration::default();
+        for i in 0..slot {
+            delay += self.anims[i].anim.duration();
+        }
+        delay
+    }
+}
+
+impl AnimSeq {
+    pub fn append(&mut self, anim: impl Into<Anim>) -> &mut Self {
+        let anim = anim.into();
+        let duration = anim.duration();
+        self.anims.push(DelayedAnim::new(self.tot_delay, anim));
+        self.tot_delay += duration;
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct AnimGen {
+    pub node: Option<Handle<Node>>,
+    pub dt: ez::EasedDt,
+}
+
+impl AnimGen {
+    pub fn node(&mut self, node: &Handle<Node>) -> &mut Self {
+        self.node = Some(node.clone());
+        self
+    }
+
+    pub fn dt(&mut self, dt: ez::EasedDt) -> &mut Self {
+        self.dt = dt;
+        self
+    }
+
+    pub fn secs(&mut self, secs: f32) -> &mut Self {
+        self.dt.target = secs;
+        self
+    }
+
+    pub fn ease(&mut self, ease: ez::Ease) -> &mut Self {
+        self.dt.ease = ease;
+        self
     }
 }
 
@@ -106,6 +166,22 @@ macro_rules! add_tween {
 
                 self.built.push(index);
                 self
+            }
+        }
+
+        impl AnimGen {
+            pub fn $name(&self, delta: impl Into<Delta<$data>>) -> $Tween {
+                let delta = delta.into();
+
+                $Tween {
+                    is_active: false,
+                    tween: ez::Tweened {
+                        a: delta.a,
+                        b: delta.b,
+                        dt: self.dt,
+                    },
+                    node: self.node.clone().unwrap(),
+                }
             }
         }
     };
