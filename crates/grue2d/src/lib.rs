@@ -44,10 +44,11 @@ pub struct GrueRl {
 
 impl GrueRl {
     pub fn new(screen_size: [u32; 2], data: Data, fsm: Fsm) -> Self {
+        let agents = Agents::new(screen_size, &data.ice.snow.clock);
         Self {
             data,
             ctrl: Control::new(),
-            agents: Agents::new(screen_size),
+            agents,
             fsm,
         }
     }
@@ -136,6 +137,52 @@ where
                         log::trace!("gain: {:?}", window_id);
                         focus[1] = true;
                     }
+                    // window focus (take only)
+                    WindowEvent::TakeFocus => {
+                        log::trace!("take: {:?}", window_id);
+                    }
+                    // window status
+                    WindowEvent::Shown => {
+                        log::trace!("shown: {:?}", window_id);
+                    }
+                    WindowEvent::Hidden => {
+                        log::trace!("hidden: {:?}", window_id);
+                    }
+                    WindowEvent::Exposed => {
+                        log::trace!("exposed: {:?}", window_id);
+                    }
+                    WindowEvent::Close => {
+                        log::trace!("closed: {:?}", window_id);
+                    }
+                    WindowEvent::HitTest => {
+                        log::trace!("hit-test: {:?}", window_id);
+                    }
+                    // window placement
+                    WindowEvent::Moved(x, y) => {
+                        log::trace!("moved: {:?} ({:?}, {:?})", window_id, x, y);
+                    }
+                    WindowEvent::Resized(w, h) => {
+                        log::trace!("resized: {:?} ({:?}, {:?})", window_id, w, h);
+                    }
+                    WindowEvent::SizeChanged(w, h) => {
+                        log::trace!("size changed: {:?} ({:?}, {:?})", window_id, w, h);
+                    }
+                    WindowEvent::Minimized => {
+                        log::trace!("minimized: {:?}", window_id);
+                    }
+                    WindowEvent::Maximized => {
+                        log::trace!("maximized: {:?}", window_id);
+                    }
+                    WindowEvent::Restored => {
+                        log::trace!("restored: {:?}", window_id);
+                    }
+                    // mouse cursor (enter/leave window area)
+                    WindowEvent::Enter => {
+                        //
+                    }
+                    WindowEvent::Leave => {
+                        //
+                    }
                     _ => {}
                 },
                 _ => {
@@ -180,6 +227,8 @@ where
 mod sdl2_impl {
     //! Rust-SDL2 support
 
+    use std::time::Duration;
+
     use sdl2::event::Event;
 
     use super::PlatformLifetime;
@@ -197,7 +246,7 @@ mod sdl2_impl {
             self.post_update(dt);
         }
 
-        pub fn pre_render(&mut self, _dt: std::time::Duration, platform: &mut PlatformLifetime) {
+        pub fn pre_render(&mut self, _dt: Duration, platform: &mut PlatformLifetime) {
             let size = platform.win.size();
 
             self.data.ice.pre_render(snow2d::gfx::WindowState {
@@ -207,6 +256,10 @@ mod sdl2_impl {
                 // dpi_scale: [2.0, 2.0],
                 dpi_scale: [1.0, 1.0],
             });
+        }
+
+        pub fn post_render(&mut self, dt: Duration) {
+            self.data.ice.post_render(dt);
         }
 
         pub fn on_end_frame(&mut self) {

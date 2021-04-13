@@ -8,7 +8,7 @@ use screen::*;
 use {
     rlbox::{render::tiled as tiled_render, rl::grid2d::Vec2i, utils::DoubleTrack},
     snow2d::{
-        gfx::{draw::*, Color, Snow2d, WindowState},
+        gfx::{draw::*, Color, GameClock, Snow2d, WindowState},
         utils::arena::Index,
     },
     std::time::Duration,
@@ -50,10 +50,10 @@ pub struct WorldRenderer {
 }
 
 impl WorldRenderer {
-    pub fn new(screen_size: [u32; 2]) -> Self {
+    pub fn new(screen_size: [u32; 2], clock: &GameClock) -> Self {
         Self {
             shadow_render: ShadowRenderer::new(screen_size),
-            snow_render: SnowRenderer::default(),
+            snow_render: SnowRenderer::new(clock),
             actor_visibilities: Default::default(),
             sort_buf: Vec::with_capacity(32),
         }
@@ -161,7 +161,7 @@ impl WorldRenderer {
         self.shadow_render.blend_to_screen(rdr, &world.cam);
     }
 
-    pub fn render_snow(&mut self, window: &WindowState) {
-        self.snow_render.render(window);
+    pub fn render_snow(&mut self, window: &WindowState, clock: &GameClock) {
+        self.snow_render.render(window, clock);
     }
 }

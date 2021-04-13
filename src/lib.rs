@@ -16,9 +16,7 @@ use {
     grue2d::{
         agents::WorldRenderer,
         data::{res::UiLayer, Data},
-        hot_crate,
-        PlatformLifetime,
-        GrueRl,
+        hot_crate, GrueRl, PlatformLifetime,
     },
     rokol::gfx as rg,
     snow2d::gfx::Color,
@@ -82,6 +80,7 @@ impl SnowRl {
             agents
                 .world_render
                 .setup_actor_nodes(world, &mut res.ui, dt);
+
             res.ui.layer_mut(UiLayer::Actors).render(ice, cam_mat);
 
             {
@@ -95,8 +94,12 @@ impl SnowRl {
             }
 
             agents.world_render.render_shadow(&mut ice.snow, world);
+
             res.ui.layer_mut(UiLayer::OnShadow).render(ice, cam_mat);
-            agents.world_render.render_snow(&ice.snow.window);
+
+            agents
+                .world_render
+                .render_snow(&ice.snow.window, &ice.snow.clock);
         }
 
         data.res
@@ -130,6 +133,7 @@ mod impl_ {
         fn render(&mut self, dt: Duration, platform: &mut PlatformLifetime) {
             self.grue.pre_render(dt, platform);
             self.render(dt, platform);
+            self.grue.post_render(dt);
             self.grue.on_end_frame();
             rg::commit();
             platform.swap_window();

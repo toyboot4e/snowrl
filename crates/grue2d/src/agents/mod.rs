@@ -5,6 +5,8 @@ Object for the finite state machine
 mod renderer;
 pub use renderer::*;
 
+use snow2d::gfx::GameClock;
+
 /// Objects with exclusive states that work on other data
 #[derive(Debug)]
 pub struct Agents {
@@ -12,9 +14,9 @@ pub struct Agents {
 }
 
 impl Agents {
-    pub fn new(screen_size: [u32; 2]) -> Self {
+    pub fn new(screen_size: [u32; 2], clock: &GameClock) -> Self {
         Self {
-            world_render: WorldRenderer::new(screen_size),
+            world_render: WorldRenderer::new(screen_size, clock),
         }
     }
 }

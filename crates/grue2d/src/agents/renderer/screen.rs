@@ -14,11 +14,11 @@ use {
     snow2d::{
         gfx::{
             draw::*, geom2d::Vec2f, mesh::StaticMesh, shaders, shaders::PosUvVert,
-            tex::RenderTexture, Shader, Snow2d, WindowState,
+            tex::RenderTexture, GameClock, Shader, Snow2d, WindowState,
         },
         utils::bytemuck,
     },
-    std::time::Instant,
+    std::time::Duration,
 };
 
 use crate::data::world::World;
@@ -246,23 +246,23 @@ impl ShadowRenderer {
 #[derive(Debug)]
 pub struct SnowRenderer {
     shd: Shader,
-    start_time: Instant,
+    /// Past duration of [`GameClock`] when creating = starting this renderer
+    start_duration: Duration,
     mesh: StaticMesh<PosUvVert>,
 }
 
-impl Default for SnowRenderer {
-    fn default() -> Self {
-        // NOTE: this works only for OpenGL
+impl SnowRenderer {
+    pub fn new(clock: &GameClock) -> Self {
         Self {
             shd: shaders::snow(),
-            start_time: Instant::now(),
+            start_duration: clock.past_duration(),
             mesh: StaticMesh::new_16(&SCREEN_TRIANGLE, &[0, 1, 2]),
         }
     }
 }
 
 impl SnowRenderer {
-    pub fn render(&mut self, window: &WindowState) {
+    pub fn render(&mut self, window: &WindowState, clock: &GameClock) {
         {
             let fbuf = window.framebuf_size_u32();
             rg::begin_default_pass(&rg::PassAction::LOAD, fbuf[0], fbuf[1]);
@@ -278,8 +278,10 @@ impl SnowRenderer {
         let size = glam::Vec2::from(window.size_f32());
         self.shd.set_fs_uniform(0, as_bytes(&size));
 
-        let time = (Instant::now() - self.start_time).as_secs_f32();
-        self.shd.set_fs_uniform(1, as_bytes(&time));
+        // NOTE: we have to skip unfocused duration; GameClock does it!
+        let past_time = clock.past_duration() - self.start_duration;
+        self.shd
+            .set_fs_uniform(1, as_bytes(&past_time.as_secs_f32()));
 
         // TODO: mouse position changes what?
         let mouse = glam::Vec2::from(window.size_f32()) / 2.0;

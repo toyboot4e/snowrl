@@ -20,6 +20,8 @@ pub mod text;
 
 pub use pass::RenderPassBuilder;
 
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 
 use rokol::{
@@ -211,11 +213,40 @@ impl WindowState {
     }
 }
 
+/// Game time progress
+#[derive(Debug, Clone)]
+pub struct GameClock {
+    past: Duration,
+}
+
+/// Lifetime
+impl GameClock {
+    fn new() -> Self {
+        Self {
+            past: Duration::default(),
+        }
+    }
+
+    /// Ticks the game time
+    pub(crate) fn tick(&mut self, dt: Duration) {
+        self.past += dt;
+    }
+}
+
+impl GameClock {
+    /// Past duration (only while the game window is updated)
+    pub fn past_duration(&self) -> Duration {
+        self.past
+    }
+}
+
 /// The 2D renderer
 #[derive(Debug)]
 pub struct Snow2d {
     /// Window state used by the renderer
     pub window: WindowState,
+    /// Game time progress
+    pub clock: GameClock,
     /// Vertex/index buffer and images slots
     pub batch: Batch,
     pub fontbook: FontBook,
@@ -234,6 +265,7 @@ impl Snow2d {
 
         Self {
             window,
+            clock: GameClock::new(),
             batch: Batch::default(),
             fontbook: {
                 let fontbook = FontBook {
@@ -259,6 +291,10 @@ impl Snow2d {
             // call it every frame but only once
             self.fontbook.tex.maybe_update_image();
         }
+    }
+
+    pub fn post_render(&mut self, _dt: Duration) {
+        // does nothing..
     }
 }
 

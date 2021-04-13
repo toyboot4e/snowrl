@@ -79,14 +79,19 @@ impl Ice {
     }
 
     /// Updates frame counter
-    pub fn pre_update(&mut self, dt: std::time::Duration) {
+    pub fn pre_update(&mut self, dt: Duration) {
         self.frame_count += 1;
         self.dt = dt;
+        self.snow.clock.tick(dt);
     }
 
     /// Updates font texture
     pub fn pre_render(&mut self, window: WindowState) {
         self.snow.pre_render(window);
+    }
+
+    pub fn post_render(&mut self, dt: Duration) {
+        self.snow.post_render(dt);
     }
 
     /// Debug render?
