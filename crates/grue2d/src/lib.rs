@@ -17,8 +17,8 @@ pub mod fsm;
 
 use std::time::{Duration, Instant};
 
-use ::sdl2::event::Event;
 use anyhow::{Error, Result};
+use sdl2::event::{Event, WindowEvent};
 
 use snow2d::gfx::geom2d::Vec2f;
 
@@ -114,22 +114,62 @@ where
     let mut now = Instant::now();
     let mut accum = Duration::default();
 
+    // new, previous
+    let mut focus = [false, false];
+
     'running: loop {
         for ev in pump.poll_iter() {
             match ev {
                 Event::Quit { .. } => break 'running,
+                Event::Window {
+                    // main `window_id` is `1`
+                    window_id,
+                    win_event,
+                    ..
+                } => match win_event {
+                    // keyborad focus
+                    WindowEvent::FocusLost => {
+                        log::trace!("focus lost: {:?}", window_id);
+                        focus[1] = false;
+                    }
+                    WindowEvent::FocusGained => {
+                        log::trace!("gain: {:?}", window_id);
+                        focus[1] = true;
+                    }
+                    _ => {}
+                },
                 _ => {
                     app.event(ev);
                 }
             }
         }
 
-        let new_now = Instant::now();
-        accum += new_now - now;
-        now = new_now;
+        match (focus[0], focus[1]) {
+            (false, true) => {
+                // gain focus
+                accum = Duration::default();
+                now = Instant::now();
+            }
+            (true, false) => {
+                // lose focus
+                accum = Duration::default();
+                now = Instant::now();
+            }
+            (true, true) => {
+                // been focused
+                let new_now = Instant::now();
+                accum += new_now - now;
+                now = new_now;
 
-        app.update(target_dt, &mut platform);
-        app.render(target_dt, &mut platform);
+                // update the game ONLY WHILE FOCUSED
+                app.update(target_dt, &mut platform);
+                app.render(target_dt, &mut platform);
+            }
+            (false, false) => {
+                // been unfocused: stop the game
+            }
+        }
+        focus[0] = focus[1];
 
         std::thread::sleep(Duration::from_millis(1));
     }
