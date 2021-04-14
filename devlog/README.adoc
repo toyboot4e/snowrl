@@ -75,19 +75,23 @@ image::http://img.youtube.com/vi/h8XE-1vEI8w/maxresdefault.jpg[link=https://www.
 As you can see in the video,
 
 * It's snowing with {just-snow} shader!
-* `snow2d` got a sprite-based `ui` module:
-** The title texts (`ui::Node` s) can be applied animation objects.
-** Entities can now talk! The text is hard-coded for now. Texts are drawn via {fons-rs}.
-** I implemented {nine-slice}[Nine slice sprite] for the talking windows.
+* `snow2d` got a sprite-based `ui` module, i.e., simple scene graph:
+** The title texts (`ui::Node` s) can be applied simple animation objects.
+** Entities can now talk! The text is hard-coded for now. Texts are drawn via {fons-rs}. (Alternative to it in Rust is {fontdue}. NOTE: SDF font is probablly the go-to way in game dev context in 2021).
+** I implemented {nine-slice}[nine slice sprite] for the talking windows.
 
 Also there's an audio module, i.e., re-exports of {soloud-rs}. I'm sticking with the idea to use
 C/C++ for low level things and Rust for higher-level code.
 
+NOTE: I thought it's awesome C is the "de-fact lingua franca", but I'd prefer pure Rust libraries next time; they have better API!
+
 === Pixel-perfect shadow
 
-I added camera. FoV/FoW shadow was flickering or shaking when scrolling. I was using shadow textures
-with size of screen size / 4, but I needed +1 pixels so that each shadow pixel (1x1) maps to *screen
-pixels (4x4) in a same cell*.
+I added camera. FoV/FoW shadow was flickering or shaking when scrolling.
+
+Details: I was using shadow textures with size of screen size / 4, but I needed +1 pixels so that *each shadow pixel (1x1) maps to screen pixels (4x4) in a same cell*.
+
+The shadow texture is created every frame, but I think it's not that much heavy, so I'm not fixing it right now. Rather, the snow shader is heavy.
 
 === Pools
 
@@ -100,11 +104,11 @@ My UI node animations are stored in this kind of pool.
 
 - **Reference-counted pool**. Example: {froggy}, https://docs.rs/bevy/latest/bevy/asset/index.html[bevy_asset]
 +
-My UI nodes are stored in this kind of pool. Nodes won't be freed while their animations are alive.. though it also indicates there's some chance of memory leak.
+My UI nodes are stored in this kind of pool. Nodes won't be freed while their animations are alive. NOTE: It can be cause of memory leak.
 
 - **Reference-counted pointers**, wrappers of `Arc<Mutex<T>>`. Examples: {rg3d-res} in {rg3d}
 +
-I also put assets in this kind of pointer, though I don't have a particular reason for this. I would have to write some custom (de)serializer for assets since `serde` doesn't serialize `Rc` or `Arc` objects correctly. This problem is also known as interning.
+I also put assets in this kind of pointer, though I don't have a particular reason for this. I would have to write some custom (de)serializer for assets since `serde` doesn't serialize `Rc` or `Arc` objects correctly. This problem is also known as "interning".
 
 == Non-ECS (Feb 25, 2021)
 
@@ -117,35 +121,40 @@ Yes, but only occasionally. So basically no. My game code looks like this:
 [source,rust]
 ----
 pub struct SnowRl {
-    /// Data (contexts and the game world)
-    global: Global,
-    /// Logic (controller of the game). A stack-based finite state machine
+    /// Passive data (contexts, game world, renderer, etc.)
+    data: Data,
+    /// Stack-based finite state machine that works on the data
     fsm: Fsm,
 }
 ----
 +
 After coming to this structure, I didn't have to struggle with the borrow rules. Maybe it's because
 SnowRl is a simple, turn-based game. Real-time actions games would have other problems, but I guess
-basically separating logic from data (**not using methods**) is the point. I hear that returning
-messages to make changes is also super helpful.
+the point is using passive data. I also hear that returning messages to make changes (return value,
+`VecDeque` or `channel`) is also helpful.
 
 . How do you handle variants of entities?
 +
 Maybe I would use `enum`? But making `Player` and `Npc` different types is horrible. I need to
 rethink about it later.
++
+Extensibility with non-ECS structure is one of the key points. About handling variants of
+animations, it turned out I only needed limited kind of animations. Also, if I need to add
+parameters to animations, I can extract them to somewhere else and modify `Node`.
 
 . The startup code for your game is messy, right?
 +
-Yes. The https://github.com/lowenware/push-it/blob/main/src/main.rs[main.rs] of Dotrix example game
-is so nice compared to my `main.rs`.
+Yes. For example, the https://github.com/lowenware/push-it/blob/main/src/main.rs[main.rs] of Dotrix
+example game is much nicer than mine.
 
-I'm temped to try ECS, but it would be after finishing SnowRL.
+I'm temped to try ECS; the open-ended extensibility and the API is nice, but that would be after
+finishing SnowRL.
 
 == Refactoring (Mar 9, 2021)
 
 I was suffering from nest of data. To access dependencies, I had to do like `collection.sub_collection.data_a.collection.get(index)`. Today it became much better..
 
-I though of my game data a list of rows:
+I just grouped my passive game `Data`:
 
 .Data (passive data. They just update themselves)
 |===
@@ -156,13 +165,13 @@ I though of my game data a list of rows:
 | Resources | Fonts, Ui, VirtualInput,
 |===
 
-\.. it basically reflects my `Data` struct.
+I can reduce the nests with aliases: `let Data { mut ctx, mut world, mut res} = data;`.
 
-There's also `Agents` and `Fsm` structs. `Agents` have exclusive memory and work referring to `Data` (such as renderers). `Fsm` drives the game referring to `Data` and `Agents`.
+== Misc (Mar 17, 2021)
 
-== Utilities
+=== Utilities
 
-* https://docs.rs/inline_tweak/latest/inline_tweak/[inline_tweak) for tweaking literals on debug build.
+* https://docs.rs/inline_tweak/latest/inline_tweak/[inline_tweak] for tweaking literals on debug build.
 +
 [source,rust]
 ++++
@@ -176,11 +185,17 @@ pub mod consts {
 * https://docs.rs/thunderdome/latest/thunderdome/[thunderdome] for generational arena. I'm using a for that uses typed `Index<T>`.
 * https://github.com/mcarton/rust-derivative[derivative] can handle `#[derive(..)]` with `PhantomData` field: https://github.com/mcarton/rust-derivative/blob/d3ff6f700c69e02e213f26549f38a97c7165c544/tests/derive-ord.rs#L110[derive_ord.rs]
 
-== `serde`
+=== `serde` integration
 
 * My `Asset<T>` is wrapper of `Arc<Mutex<T>>`
 
-== Migrating from `rokol::app` to Rust-SDL2
+=== Migrating from `rokol::app` to Rust-SDL2
 
 `sokol_app.h` lacks some important functionalities; one of them is resizing windows via code. I'm switching to Rust-SDL2 decoupling platform-dependent code (initialization and screen information).
+
+// == Title?
+
+// === Type objects
+
+// === Animation API
 
