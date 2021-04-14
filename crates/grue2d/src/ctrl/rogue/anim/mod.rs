@@ -1,7 +1,7 @@
 /*!
 Animations for the builtin events
 
-They're created referencing rogulike events and then we forget about original events.
+Animations are created referencing rogulike events and original events will be forgot.
 */
 
 mod blocking;

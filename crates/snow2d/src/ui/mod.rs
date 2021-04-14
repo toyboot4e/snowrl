@@ -236,6 +236,10 @@ impl AnimStorage {
             self.delayed.insert(anim);
         }
     }
+
+    pub fn insert_delayed(&mut self, delay: Duration, anim: Anim) {
+        self.delayed.insert(DelayedAnim::new(delay, anim));
+    }
 }
 
 impl std::ops::Deref for AnimStorage {
@@ -252,10 +256,6 @@ impl std::ops::DerefMut for AnimStorage {
 }
 
 impl AnimStorage {
-    pub fn builder(&mut self) -> anim_builder::AnimBuilder {
-        anim_builder::AnimBuilder::new(self)
-    }
-
     /// Tick and apply animations. Remove finished animations
     pub fn update(&mut self, dt: Duration, nodes: &mut Pool<Node>) {
         // update `delayed` animations

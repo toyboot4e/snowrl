@@ -6,8 +6,12 @@ use std::time::Duration;
 
 use crate::{
     gfx::{geom2d::Vec2f, Color},
-    ui::{anim::*, node::Node, AnimStorage, DelayedAnim},
-    utils::{arena::Index, ez, pool::Handle},
+    ui::{anim::*, node::Node, DelayedAnim},
+    utils::{
+        arena::{Arena, Index},
+        ez,
+        pool::Handle,
+    },
 };
 
 /// Internaly utility for providing fluent API of tweens
@@ -95,86 +99,14 @@ impl AnimGen {
     }
 }
 
-/// Fluent API to create animation objects
-#[derive(Debug)]
-pub struct AnimBuilder<'a> {
-    anims: &'a mut AnimStorage,
-    node: Option<Handle<Node>>,
-    dt: ez::EasedDt,
-    /// Built animation handles
-    pub built: Vec<Index<Anim>>,
-}
-
-impl<'a> AnimBuilder<'a> {
-    /// Make sure to call [`node`](Self::node) after creating this builder
-    pub fn new(anims: &'a mut AnimStorage) -> Self {
-        Self {
-            anims,
-            node: None,
-            dt: ez::EasedDt::new(0.0, ez::Ease::Linear),
-            built: Vec::with_capacity(4),
-        }
-    }
-
-    pub fn with_node(self, node: &Handle<Node>) -> Self {
-        Self {
-            node: Some(node.clone()),
-            ..self
-        }
-    }
-
-    pub fn node<'x>(&mut self, node: &Handle<Node>) -> &mut Self {
-        self.node = Some(node.clone());
-        self
-    }
-
-    pub fn clear_log(&mut self) {
-        self.built.clear();
-    }
-
-    pub fn dt(&mut self, dt: ez::EasedDt) -> &mut Self {
-        self.dt = dt;
-        self
-    }
-
-    pub fn secs(&mut self, secs: f32) -> &mut Self {
-        self.dt.target = secs;
-        self
-    }
-
-    pub fn ease(&mut self, ease: ez::Ease) -> &mut Self {
-        self.dt.ease = ease;
-        self
-    }
-}
-
 macro_rules! add_tween {
     ($Tween:ident, $name:ident, $data:ident) => {
-        impl<'a> AnimBuilder<'a> {
-            pub fn $name(&mut self, delta: impl Into<Delta<$data>>) -> &mut Self {
-                let delta = delta.into();
-
-                let index = self.anims.insert($Tween {
-                    is_active: true,
-                    tween: ez::Tweened {
-                        a: delta.a,
-                        b: delta.b,
-                        dt: self.dt,
-                    },
-                    node: self.node.clone().unwrap(),
-                });
-
-                self.built.push(index);
-                self
-            }
-        }
-
         impl AnimGen {
             pub fn $name(&self, delta: impl Into<Delta<$data>>) -> $Tween {
                 let delta = delta.into();
 
                 $Tween {
-                    is_active: false,
+                    is_active: true,
                     tween: ez::Tweened {
                         a: delta.a,
                         b: delta.b,
@@ -194,3 +126,27 @@ add_tween!(SizeTween, size, Vec2f);
 add_tween!(ColorTween, color, Color);
 add_tween!(AlphaTween, alpha, u8);
 add_tween!(RotTween, rot, f32);
+
+/// Shorthand for multiple `vec.push(anims.insert( .. ));`
+#[derive(Debug)]
+pub struct AnimInsertLog<'a> {
+    anims: &'a mut Arena<Anim>,
+    log: Vec<Index<Anim>>,
+}
+
+impl<'a> AnimInsertLog<'a> {
+    pub fn bind(anims: &'a mut Arena<Anim>) -> Self {
+        Self {
+            anims,
+            log: Vec::with_capacity(4),
+        }
+    }
+
+    pub fn into_vec(self) -> Vec<Index<Anim>> {
+        self.log
+    }
+
+    pub fn insert(&mut self, anim: impl Into<Anim>) {
+        self.log.push(self.anims.insert(anim.into()));
+    }
+}
