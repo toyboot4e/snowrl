@@ -20,6 +20,7 @@ use crate::{
 
 use self::{
     anim::{Anim, AnimImpl},
+    anim_builder::AnimSeq,
     node::{Node, Order},
 };
 
@@ -196,81 +197,100 @@ impl NodePool {
     }
 }
 
-#[derive(Debug)]
-struct DelayedAnim {
-    anim: Anim,
-    is_first_tick: bool,
+#[derive(Debug, Clone)]
+pub(crate) struct DelayedAnim {
     delay: ez::LinearDt,
+    is_first_tick: bool,
+    anim: Anim,
+}
+
+impl DelayedAnim {
+    pub fn new(delay: Duration, anim: Anim) -> Self {
+        Self {
+            delay: ez::LinearDt::new(delay.as_secs_f32()),
+            is_first_tick: false,
+            anim,
+        }
+    }
 }
 
 /// Extended [`Arena`] for animations
+///
+/// TODO: guarantee no duplicates exist
 #[derive(Debug)]
 pub struct AnimStorage {
-    /// TODO: guarantee no duplicates exist
-    anims: Arena<Anim>,
-    delayed_anims: Arena<DelayedAnim>,
+    running: Arena<Anim>,
+    delayed: Arena<DelayedAnim>,
 }
 
 impl AnimStorage {
     pub fn new() -> Self {
         Self {
-            anims: Arena::with_capacity(16),
-            delayed_anims: Arena::with_capacity(16),
+            running: Arena::with_capacity(16),
+            delayed: Arena::with_capacity(16),
         }
+    }
+
+    pub fn insert_seq(&mut self, seq: AnimSeq) {
+        for anim in seq.anims {
+            self.delayed.insert(anim);
+        }
+    }
+
+    pub fn insert_delayed(&mut self, delay: Duration, anim: Anim) {
+        self.delayed.insert(DelayedAnim::new(delay, anim));
     }
 }
 
 impl std::ops::Deref for AnimStorage {
     type Target = Arena<Anim>;
     fn deref(&self) -> &Self::Target {
-        &self.anims
+        &self.running
     }
 }
 
 impl std::ops::DerefMut for AnimStorage {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.anims
+        &mut self.running
     }
 }
 
 impl AnimStorage {
-    pub fn builder(&mut self) -> anim_builder::AnimBuilder {
-        anim_builder::AnimBuilder::new(self)
-    }
-
     /// Tick and apply animations. Remove finished animations
     pub fn update(&mut self, dt: Duration, nodes: &mut Pool<Node>) {
-        // delayed_anims
-        let mut removals = vec![];
+        // update `delayed` animations
+        let mut starts = vec![];
 
-        for (removal_ix, anim) in self.delayed_anims.iter_mut() {
-            // TODO: use Timer
+        for (anim_ix, anim) in self.delayed.iter_mut() {
+            // TODO: refactor with Timer, maybe in `ez`
             if anim.is_first_tick {
                 anim.is_first_tick = false;
+                // first tick: do end check BEFORE ticking
                 if anim.delay.is_end() {
-                    // actually an undelayed animation
-                    removals.push(removal_ix);
+                    starts.push(anim_ix);
+                } else {
+                    anim.delay.tick(dt);
                 }
-                anim.delay.tick(dt);
-                continue;
             } else {
                 anim.delay.tick(dt);
-                // FIXME: do not tick in first frame, right
+                // non-first tick: do end check AFTER ticking
                 if anim.delay.is_end() {
-                    removals.push(removal_ix);
+                    starts.push(anim_ix);
                 }
             }
         }
 
-        for ix in removals {
-            let delayed_anim = self.delayed_anims.remove(ix).unwrap();
-            self.anims.insert(delayed_anim.anim);
+        for ix in starts {
+            log::trace!("START");
+            let mut delayed_anim = self.delayed.remove(ix).unwrap();
+            delayed_anim.anim.set_active(true);
+            self.running.insert(delayed_anim.anim);
         }
 
-        // anims
+        // update `running` animations
         let mut removals = vec![];
 
-        for (removal_ix, anim) in self.anims.iter_mut() {
+        for (removal_ix, anim) in self.running.iter_mut() {
             // TODO: active property not needed?
             if !anim.is_active() {
                 continue;
@@ -286,7 +306,7 @@ impl AnimStorage {
         }
 
         for ix in removals {
-            self.anims.remove(ix);
+            self.running.remove(ix);
         }
     }
 }

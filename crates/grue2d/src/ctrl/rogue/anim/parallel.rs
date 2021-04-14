@@ -2,15 +2,15 @@
 Non-blocking animations
 */
 
+use std::time::Duration;
+
 use {
-    rlbox::rl::grid2d::Dir8,
-    rlbox::rl::grid2d::Vec2i,
+    rlbox::rl::grid2d::{Dir8, Vec2i},
     snow2d::{
         gfx::geom2d::Vec2f,
-        ui::anim::AnimIndex,
-        utils::{arena::Index, ez},
+        ui::{anim::AnimIndex, anim_builder::AnimSeq},
+        utils::arena::Index,
     },
-    std::time::Duration,
 };
 
 use crate::data::{res::UiLayer, world::actor::Actor};
@@ -69,13 +69,7 @@ impl Anim for SwingAnim {
         let actor = &ucx.world.entities[self.actor];
         let actor_layer = ucx.res.ui.layer_mut(UiLayer::Actors);
 
-        let mut builder = actor_layer.anims.builder().with_node(&actor.nodes.img);
-
-        builder.dt(ez::EasedDt::new(
-            self.timer.target().as_secs_f32() / 2.0,
-            ez::Ease::Linear,
-        ));
-
+        // parameters
         let dpos = {
             let size = Vec2f::new(
                 ucx.world.map.tiled.tile_width as f32,
@@ -85,18 +79,15 @@ impl Anim for SwingAnim {
         };
         let img_offset = actor.view.img_offset();
 
-        // TODO: implement animation runner in AnimArena
-        // TODO: later, wait until the swing finishes even if we add more animations
-        builder.pos([img_offset, img_offset + dpos]);
-
-        builder.dt(ez::EasedDt::new(
-            self.timer.target().as_secs_f32() / 1.0,
-            ez::Ease::Linear,
-        ));
-
-        builder.pos([img_offset + dpos, img_offset + Vec2f::ZERO]);
-
-        self.anims = Some(builder.built);
+        // animation sequence
+        actor_layer.anims.insert_seq({
+            let (mut seq, mut gen) = AnimSeq::begin();
+            gen.node(&actor.nodes.img)
+                .secs(self.timer.target().as_secs_f32() / 2.0);
+            seq.append(gen.pos([img_offset, img_offset + dpos]));
+            seq.append(gen.pos([img_offset + dpos, img_offset]));
+            seq
+        });
     }
 
     fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {

@@ -6,6 +6,7 @@ use snow2d::{
     audio::src::Wav,
     ui::{
         anim::{Anim, AnimImpl},
+        anim_builder::{AnimGen, AnimInsertLog},
         node::{Draw, Node},
         AnimStorage, Layer,
     },
@@ -137,7 +138,7 @@ impl TitleNodes {
 /// TODO: put animations in pool so that the animation remain when `Title` is poped
 #[derive(Debug, PartialEq)]
 pub struct TitleAnims {
-    init_choices: Vec<Index<Anim>>,
+    init_anims: Vec<Index<Anim>>,
 }
 
 impl TitleAnims {
@@ -160,37 +161,36 @@ impl TitleAnims {
     ) -> Self {
         let dt = ez::EasedDt::new(tweak!(1.2), ez::Ease::ExpOut);
 
-        let mut b = anims.builder();
-        b.node(&nodes.logo)
-            .dt(dt)
-            .pos([Self::logo_pos().offset([120.0, 6.0]), Self::logo_pos()])
-            .color([Color::TRANSPARENT, Color::OPAQUE]);
+        let mut gen = AnimGen::default();
+        gen.node(&nodes.logo).dt(dt);
 
-        b.clear_log();
+        let mut log = AnimInsertLog::bind(anims);
+        log.insert(gen.pos([Self::logo_pos().offset([120.0, 6.0]), Self::logo_pos()]));
+        log.insert(gen.color([Color::TRANSPARENT, Color::OPAQUE]));
 
         for i in 0..3 {
             // offset
             let from = Self::choice_pos(i).offset([tweak!(-120.0), tweak!(-30.0)]);
             let to = Self::choice_pos(i);
 
-            b.dt(dt);
+            gen.dt(dt);
 
             // shadow
-            b.node(&nodes.choices[i][0])
-                .pos([
-                    from.offset(Self::DELTA_SHADOW),
-                    to.offset(Self::DELTA_SHADOW),
-                ])
-                .color([Color::TRANSPARENT, cfg.shadow.get(i == cursor)]);
+            gen.node(&nodes.choices[i][0]);
+            log.insert(gen.pos([
+                from.offset(Self::DELTA_SHADOW),
+                to.offset(Self::DELTA_SHADOW),
+            ]));
+            log.insert(gen.color([Color::TRANSPARENT, cfg.shadow.get(i == cursor)]));
 
             // text
-            b.node(&nodes.choices[i][1])
-                .pos([from, to])
-                .color([Color::TRANSPARENT, cfg.item.get(i == cursor)]);
+            gen.node(&nodes.choices[i][1]);
+            log.insert(gen.pos([from, to]));
+            log.insert(gen.color([Color::TRANSPARENT, cfg.item.get(i == cursor)]));
         }
 
         Self {
-            init_choices: b.built,
+            init_anims: log.into_vec(),
         }
     }
 
@@ -203,7 +203,7 @@ impl TitleAnims {
         to: usize,
     ) {
         // remove all the initial animations
-        for ix in self.init_choices.drain(0..) {
+        for ix in self.init_anims.drain(0..) {
             if let Some(anim) = layer.anims.get_mut(ix) {
                 anim.set_accum_norm(1.0);
                 anim.apply(&mut layer.nodes);
@@ -211,46 +211,54 @@ impl TitleAnims {
             layer.anims.remove(ix);
         }
 
-        let mut b = layer.anims.builder();
-        b.dt(EasedDt::new(6.0 / 60.0, Ease::Linear));
+        let mut gen = AnimGen::default();
+        gen.dt(EasedDt::new(6.0 / 60.0, Ease::Linear));
 
         // items
-        b.node(&nodes.choices[from][1])
-            .color([cfg.item.selected, cfg.item.not_selected]);
-        b.node(&nodes.choices[to][1])
-            .color([cfg.item.not_selected, cfg.item.selected]);
+        layer.anims.insert(
+            gen.node(&nodes.choices[from][1])
+                .color([cfg.item.selected, cfg.item.not_selected]),
+        );
+        layer.anims.insert(
+            gen.node(&nodes.choices[to][1])
+                .color([cfg.item.not_selected, cfg.item.selected]),
+        );
 
         // shadows
-        b.node(&nodes.choices[from][0])
-            .color([cfg.shadow.selected, cfg.shadow.not_selected]);
-        b.node(&nodes.choices[to][0])
-            .color([cfg.shadow.not_selected, cfg.shadow.selected]);
+        layer.anims.insert(
+            gen.node(&nodes.choices[from][0])
+                .color([cfg.shadow.selected, cfg.shadow.not_selected]),
+        );
+        layer.anims.insert(
+            gen.node(&nodes.choices[to][0])
+                .color([cfg.shadow.not_selected, cfg.shadow.selected]),
+        );
     }
 
     pub fn on_exit(&mut self, anims: &mut AnimStorage, nodes: &TitleNodes) {
-        let mut b = anims.builder();
-        b.dt(ez::EasedDt::new(24.0 / 60.0, ez::Ease::SinOut));
+        let mut gen = AnimGen::default();
+        gen.dt(ez::EasedDt::new(24.0 / 60.0, ez::Ease::SinOut));
 
-        b.node(&nodes.logo)
-            .pos([
-                Self::logo_pos(),
-                Self::logo_pos().offset([tweak!(-120.0), tweak!(-6.0)]),
-            ])
-            .color([Color::OPAQUE, Color::TRANSPARENT]);
+        gen.node(&nodes.logo);
+        anims.insert(gen.pos([
+            Self::logo_pos(),
+            Self::logo_pos().offset([tweak!(-120.0), tweak!(-6.0)]),
+        ]));
+        anims.insert(gen.color([Color::OPAQUE, Color::TRANSPARENT]));
 
         for i in 0..3 {
             let pos = Self::choice_pos(i);
 
             // text
-            b.node(&nodes.choices[i][1])
-                .pos([pos, pos.offset([40.0, 20.0])])
-                .alpha([255, 0]);
+            gen.node(&nodes.choices[i][1]);
+            anims.insert(gen.pos([pos, pos.offset([40.0, 20.0])]));
+            anims.insert(gen.alpha([255, 0]));
 
             // shadow
             let pos = pos + Vec2f::from(Self::DELTA_SHADOW);
-            b.node(&nodes.choices[i][1])
-                .pos([pos, pos.offset(Self::DELTA_SHADOW).offset([40.0, 20.0])])
-                .alpha([255, 0]);
+            gen.node(&nodes.choices[i][1]);
+            anims.insert(gen.pos([pos, pos.offset(Self::DELTA_SHADOW).offset([40.0, 20.0])]));
+            anims.insert(gen.alpha([255, 0]));
         }
     }
 }

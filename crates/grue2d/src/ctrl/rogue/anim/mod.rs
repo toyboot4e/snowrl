@@ -1,7 +1,7 @@
 /*!
 Animations for the builtin events
 
-They're created referencing rogulike events and then we forget about original events.
+Animations are created referencing rogulike events and original events will be forgot.
 */
 
 mod blocking;
@@ -82,7 +82,7 @@ impl Timer {
     }
 }
 
-/// Return alue of [`Anim::update`]
+/// Return value of [`Anim::update`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AnimResult {
     GotoNextFrame,

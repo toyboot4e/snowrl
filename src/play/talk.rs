@@ -11,7 +11,7 @@ use snow2d::{
         tex::{NineSliceSprite, SpriteData},
         text::style::FontStyle,
     },
-    ui::node::*,
+    ui::{anim_builder::AnimGen, node::*},
     utils::{arena::Index, ez, pool::Handle, tweak::*},
 };
 
@@ -218,14 +218,15 @@ impl PlayTalk {
         };
 
         let dt = ez::EasedDt::new(consts::TALK_WIN_ANIM_TIME, consts::TALK_WIN_EASE);
-        let mut b = layer.anims.builder();
 
         let rect = &view.layout.win;
-        b.dt(dt)
-            .node(&nodes.win)
-            .pos([(rect.x + rect.w / 2.0, rect.y), (rect.x, rect.y)])
-            .size(([0.0, rect.h], rect.size()));
-        b.node(&nodes.baloon).alpha([0, 255]);
+        let mut gen = AnimGen::default();
+        gen.dt(dt).node(&nodes.win);
+        layer
+            .anims
+            .insert(gen.pos([(rect.x + rect.w / 2.0, rect.y), (rect.x, rect.y)]));
+        layer.anims.insert(gen.size(([0.0, rect.h], rect.size())));
+        layer.anims.insert(gen.node(&nodes.baloon).alpha([0, 255]));
 
         Self {
             cfg: talk.cfg,
