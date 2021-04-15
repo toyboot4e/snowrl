@@ -10,7 +10,7 @@ use rlbox::rl::grid2d::*;
 use crate::{
     ctrl::rogue::{
         anim::{self, Anim},
-        tick::{AnimContext, Event, EventResult, GenAnim},
+        tick::{Event, EventResult, GenAnim},
     },
     data::world::actor::Actor,
     Data,
@@ -32,7 +32,7 @@ pub struct NotConsumeTurn {
 }
 
 impl GenAnim for NotConsumeTurn {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         // TODO: don't hard code
         if self.actor.slot() as usize == PLAYER {
             // wait for one frame so that we won't enter inifinite loop
@@ -60,7 +60,7 @@ pub struct RestOneTurn {
 }
 
 impl GenAnim for RestOneTurn {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         None
     }
 }
@@ -79,7 +79,7 @@ pub struct ChangeDir {
 }
 
 impl GenAnim for ChangeDir {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         // TODO: play rotation and wait for it to finish
         None
     }
@@ -114,7 +114,7 @@ pub struct Move {
 }
 
 impl GenAnim for Move {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         Some(Box::new(anim::WalkAnim::new(self.actor)))
     }
 }
@@ -142,7 +142,7 @@ pub struct GiveDamage {
 }
 
 impl GenAnim for GiveDamage {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         Some(Box::new(anim::DamageText::new(self.actor, self.amount)))
     }
 }

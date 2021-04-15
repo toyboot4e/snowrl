@@ -19,10 +19,7 @@ use {
     },
 };
 
-use crate::{
-    data::world::{actor::Actor, World},
-    Data,
-};
+use crate::{data::world::actor::Actor, Data};
 
 use crate::ctrl::rogue::{anim::Anim, ev};
 
@@ -152,16 +149,9 @@ fn game_loop() -> Gen {
 // --------------------------------------------------------------------------------
 // Animation
 
-/// Context for making animation
-#[derive(Debug)]
-pub struct AnimContext<'a, 'b> {
-    pub world: &'a mut World,
-    pub ice: &'b mut Ice,
-}
-
 /// TODO: generate animations externally
 pub trait GenAnim {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         None
     }
 }

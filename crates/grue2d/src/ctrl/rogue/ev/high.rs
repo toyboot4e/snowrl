@@ -15,7 +15,7 @@ use rlbox::rl::grid2d::*;
 use crate::{
     ctrl::rogue::{
         anim::{self as rl_anim, Anim},
-        tick::{AnimContext, Event, EventResult, GenAnim},
+        tick::{Event, EventResult, GenAnim},
     },
     data::{res::UiLayer, world::actor::Actor},
     Data,
@@ -49,7 +49,7 @@ impl Event for Hit {
 }
 
 impl GenAnim for Hit {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         todo!()
     }
 }
@@ -67,11 +67,11 @@ impl Event for JustSwing {
 }
 
 impl GenAnim for JustSwing {
-    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,
             self.dir
-                .unwrap_or_else(|| acx.world.entities[self.actor].dir),
+                .unwrap_or_else(|| data.world.entities[self.actor].dir),
             // FIXME: magic number
             tweak!(8.0 / 60.0),
         )))
@@ -115,11 +115,11 @@ impl Event for MeleeAttack {
 }
 
 impl GenAnim for MeleeAttack {
-    fn gen_anim(&self, acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,
             self.dir
-                .unwrap_or_else(|| acx.world.entities[self.actor].dir),
+                .unwrap_or_else(|| data.world.entities[self.actor].dir),
             // FIXME: magic number
             tweak!(8.0 / 60.0),
         )))
