@@ -281,7 +281,6 @@ impl AnimStorage {
         }
 
         for ix in starts {
-            log::trace!("START");
             let mut delayed_anim = self.delayed.remove(ix).unwrap();
             delayed_anim.anim.set_active(true);
             self.running.insert(delayed_anim.anim);

@@ -15,7 +15,7 @@ use {
 
 use crate::data::{res::UiLayer, world::actor::Actor};
 
-use super::{Anim, AnimResult, AnimUpdateContext, Timer};
+use super::{Anim, AnimResult, Data, Timer};
 
 #[derive(Debug, Clone)]
 pub struct DamageText {
@@ -36,12 +36,12 @@ impl DamageText {
 }
 
 impl Anim for DamageText {
-    fn on_start(&mut self, _ucx: &mut AnimUpdateContext) {
+    fn on_start(&mut self, _data: &mut Data) {
         // log::trace!("{:?}", self.actors);
     }
 
-    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
-        self.timer.tick_as_result(ucx.ice.dt())
+    fn update(&mut self, data: &mut Data) -> AnimResult {
+        self.timer.tick_as_result(data.ice.dt())
     }
 }
 
@@ -65,15 +65,15 @@ impl SwingAnim {
 }
 
 impl Anim for SwingAnim {
-    fn on_start(&mut self, ucx: &mut AnimUpdateContext) {
-        let actor = &ucx.world.entities[self.actor];
-        let actor_layer = ucx.res.ui.layer_mut(UiLayer::Actors);
+    fn on_start(&mut self, data: &mut Data) {
+        let actor = &data.world.entities[self.actor];
+        let actor_layer = data.res.ui.layer_mut(UiLayer::Actors);
 
         // parameters
         let dpos = {
             let size = Vec2f::new(
-                ucx.world.map.tiled.tile_width as f32,
-                ucx.world.map.tiled.tile_height as f32,
+                data.world.map.tiled.tile_width as f32,
+                data.world.map.tiled.tile_height as f32,
             );
             size * Vec2i::from(self.dir).to_vec2f()
         };
@@ -90,7 +90,7 @@ impl Anim for SwingAnim {
         });
     }
 
-    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
-        self.timer.tick_as_result(ucx.ice.dt())
+    fn update(&mut self, ata: &mut Data) -> AnimResult {
+        self.timer.tick_as_result(ata.ice.dt())
     }
 }

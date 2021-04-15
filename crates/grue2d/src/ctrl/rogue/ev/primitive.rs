@@ -136,6 +136,7 @@ impl Event for Move {
 }
 
 /// (Primitive) Change actor's HP
+#[derive(Debug)]
 pub struct GiveDamage {
     pub actor: Index<Actor>,
     pub amount: u32,
@@ -144,5 +145,15 @@ pub struct GiveDamage {
 impl GenAnim for GiveDamage {
     fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         Some(Box::new(anim::DamageText::new(self.actor, self.amount)))
+    }
+}
+
+impl Event for GiveDamage {
+    fn run(&self, data: &mut Data) -> EventResult {
+        let actor = &mut data.world.entities[self.actor];
+        actor.stats.hp -= self.amount;
+        // TODO: handle death
+
+        EventResult::Finish
     }
 }

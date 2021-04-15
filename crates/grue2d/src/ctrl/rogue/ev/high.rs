@@ -7,7 +7,7 @@ use snow2d::{
         anim_builder::AnimGen,
         node::{self, Node},
     },
-    utils::{arena::Index, tweak::*},
+    utils::{arena::Index, ez, tweak::*},
 };
 
 use rlbox::rl::grid2d::*;
@@ -36,21 +36,33 @@ pub struct Hit {
 }
 
 impl Event for Hit {
-    fn run(&self, data: &mut Data) -> EventResult {
-        let target = &data.world.entities[self.target];
-        // let [on_shadow, on_actors] = data.res.ui.layer_mut([UiLayer::OnShadow, UiLayer::OnActors]);
-        // let mut gen = AnimGen::default();
-        // let mut text = Node::from(node::Text::new("HIT"));
-        // text.pos = e
-        // gen.node(&self.target).dt(ez::EasedDt::linear(
-        // layer.anims.insert(gen.text
-        EventResult::Finish
+    fn run(&self, _data: &mut Data) -> EventResult {
+        EventResult::chain(GiveDamage {
+            actor: self.target,
+            amount: 10,
+        })
     }
 }
 
 impl GenAnim for Hit {
-    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
-        todo!()
+    fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
+        let actor = &data.world.entities[self.target];
+
+        let [actors, on_actors] = data.res.ui.layers_mut([UiLayer::Actors, UiLayer::OnActors]);
+        let actor_node = &actors.nodes[&actor.nodes.img];
+        let pos = actor_node.params.pos;
+
+        let text = on_actors.nodes.add({
+            let mut text = Node::from(node::Text::new("HIT"));
+            text.params.pos = pos;
+            text
+        });
+
+        let mut gen = AnimGen::default();
+        gen.node(&text).dt(ez::EasedDt::linear(2.0));
+
+        todo!("wait for UiAnim Anim")
+        // Some(on_actors.anims.insert(gen.alpha([0, 255])))
     }
 }
 

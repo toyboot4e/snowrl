@@ -23,12 +23,13 @@ const REPEAT_MULTI_FRAMES: u64 = 6;
 pub struct Ui {
     actors: Layer,
     on_actors: Layer,
+    on_shadow: Layer,
     screen: Layer,
 }
 
 pub enum UiLayer {
     Actors,
-    // TODO: OnActor
+    OnActors,
     OnShadow,
     Screen,
 }
@@ -38,6 +39,7 @@ impl Ui {
         Self {
             actors: Layer::new(CoordSystem::World),
             on_actors: Layer::new(CoordSystem::World),
+            on_shadow: Layer::new(CoordSystem::World),
             screen: Layer::new(CoordSystem::Screen),
         }
     }
@@ -45,7 +47,8 @@ impl Ui {
     pub fn layer(&self, layer: UiLayer) -> &Layer {
         match layer {
             UiLayer::Actors => &self.actors,
-            UiLayer::OnShadow => &self.on_actors,
+            UiLayer::OnActors => &self.on_actors,
+            UiLayer::OnShadow => &self.on_shadow,
             UiLayer::Screen => &self.screen,
         }
     }
@@ -53,7 +56,8 @@ impl Ui {
     pub fn layer_mut(&mut self, layer: UiLayer) -> &mut Layer {
         match layer {
             UiLayer::Actors => &mut self.actors,
-            UiLayer::OnShadow => &mut self.on_actors,
+            UiLayer::OnActors => &mut self.on_actors,
+            UiLayer::OnShadow => &mut self.on_shadow,
             UiLayer::Screen => &mut self.screen,
         }
     }
@@ -68,7 +72,7 @@ impl Ui {
 
     pub fn update(&mut self, dt: Duration) {
         self.actors.update(dt);
-        self.on_actors.update(dt);
+        self.on_shadow.update(dt);
         self.screen.update(dt);
     }
 }

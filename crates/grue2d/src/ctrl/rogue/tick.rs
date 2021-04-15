@@ -13,10 +13,7 @@ use std::{
 
 use {
     downcast_rs::{impl_downcast, Downcast},
-    snow2d::{
-        utils::{arena::Index, Cheat},
-        Ice,
-    },
+    snow2d::utils::{arena::Index, Cheat},
 };
 
 use crate::{data::world::actor::Actor, Data};
