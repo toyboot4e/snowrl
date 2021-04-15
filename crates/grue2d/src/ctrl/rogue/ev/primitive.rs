@@ -10,9 +10,10 @@ use rlbox::rl::grid2d::*;
 use crate::{
     ctrl::rogue::{
         anim::{self, Anim},
-        tick::{AnimContext, Event, EventContext, EventResult, GenAnim},
+        tick::{AnimContext, Event, EventResult, GenAnim},
     },
     data::world::actor::Actor,
+    Data,
 };
 
 use super::*;
@@ -43,7 +44,7 @@ impl GenAnim for NotConsumeTurn {
 }
 
 impl Event for NotConsumeTurn {
-    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+    fn run(&self, _data: &mut Data) -> EventResult {
         if self.actor.slot() as usize == PLAYER {
             // TODO: require one frame wait
             EventResult::chain(PlayerTurn { actor: self.actor })
@@ -65,7 +66,7 @@ impl GenAnim for RestOneTurn {
 }
 
 impl Event for RestOneTurn {
-    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+    fn run(&self, _data: &mut Data) -> EventResult {
         EventResult::Finish
     }
 }
@@ -85,8 +86,8 @@ impl GenAnim for ChangeDir {
 }
 
 impl Event for ChangeDir {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let actor = &mut ecx.world.entities[self.actor];
+    fn run(&self, data: &mut Data) -> EventResult {
+        let actor = &mut data.world.entities[self.actor];
         actor.dir = self.dir;
 
         // FIXME: it's dangerous..
@@ -119,9 +120,9 @@ impl GenAnim for Move {
 }
 
 impl Event for Move {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
-        if !ecx.world.is_blocked(self.to_pos) {
-            let actor = &mut ecx.world.entities[self.actor];
+    fn run(&self, data: &mut Data) -> EventResult {
+        if !data.world.is_blocked(self.to_pos) {
+            let actor = &mut data.world.entities[self.actor];
             actor.dir = self.to_dir;
             actor.pos = self.to_pos;
             EventResult::Finish

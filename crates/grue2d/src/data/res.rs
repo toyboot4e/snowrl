@@ -28,6 +28,7 @@ pub struct Ui {
 
 pub enum UiLayer {
     Actors,
+    // TODO: OnActor
     OnShadow,
     Screen,
 }
@@ -55,6 +56,14 @@ impl Ui {
             UiLayer::OnShadow => &mut self.on_actors,
             UiLayer::Screen => &mut self.screen,
         }
+    }
+
+    pub fn layers<const N: usize>(&self, layers: [UiLayer; N]) -> [&Layer; N] {
+        layers.map(|l| self.layer(l))
+    }
+
+    pub fn layers_mut<const N: usize>(&mut self, layers: [UiLayer; N]) -> [&mut Layer; N] {
+        layers.map(|l| unsafe { (&mut *(self as *mut Self)).layer_mut(l) })
     }
 
     pub fn update(&mut self, dt: Duration) {

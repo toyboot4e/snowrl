@@ -4,8 +4,7 @@ Framework for SnowRL
 Based on [`rlbox`] (roguelike toolbox) and [`snow2d`] (2D framework)
 */
 
-// use generator (unstable Rust)
-#![feature(generators, generator_trait)]
+#![feature(generators, generator_trait, array_map)]
 
 pub extern crate hot_crate;
 pub extern crate rlbox;

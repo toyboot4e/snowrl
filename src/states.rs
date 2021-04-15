@@ -33,9 +33,7 @@ pub struct Roguelike {
 impl GameState for Roguelike {
     fn update(&mut self, data: &mut Data, ctrl: &mut Control) -> StateReturn {
         loop {
-            let res = self
-                .game_loop
-                .tick(&mut data.world, &mut data.ice, &mut data.res.vi);
+            let res = self.game_loop.tick(data);
 
             match res {
                 TickResult::TakeTurn(actor) => {

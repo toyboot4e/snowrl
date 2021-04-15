@@ -31,7 +31,7 @@ impl<T> Cheat<T> {
         }
     }
 
-    pub unsafe fn empty() -> Self {
+    pub unsafe fn null() -> Self {
         Self {
             ptr: std::ptr::null_mut(),
         }

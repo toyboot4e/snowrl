@@ -7,8 +7,9 @@ use snow2d::{input::Key, utils::arena::Index};
 use rlbox::rl::grid2d::*;
 
 use crate::{
-    ctrl::rogue::tick::{Event, EventContext, EventResult, GenAnim},
+    ctrl::rogue::tick::{Event, EventResult, GenAnim},
     data::world::actor::{Actor, Relation},
+    Data,
 };
 
 use super::*;
@@ -23,7 +24,7 @@ pub struct InteractWithActor {
 impl GenAnim for InteractWithActor {}
 
 impl Event for InteractWithActor {
-    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+    fn run(&self, _data: &mut Data) -> EventResult {
         EventResult::Finish
     }
 }
@@ -37,11 +38,11 @@ pub struct Interact {
 impl GenAnim for Interact {}
 
 impl Event for Interact {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let actor = &ecx.world.entities[self.actor];
+    fn run(&self, data: &mut Data) -> EventResult {
+        let actor = &data.world.entities[self.actor];
         let pos = actor.pos + Vec2i::from(self.dir);
 
-        if let Some((target_ix, target)) = ecx.world.entities.iter().find(|(_i, e)| e.pos == pos) {
+        if let Some((target_ix, target)) = data.world.entities.iter().find(|(_i, e)| e.pos == pos) {
             match target.relation {
                 Relation::Friendly => EventResult::chain(InteractWithActor {
                     from: self.actor,
@@ -71,8 +72,8 @@ pub struct PlayerWalk {
 impl GenAnim for PlayerWalk {}
 
 impl Event for PlayerWalk {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let EventContext { world, vi, .. } = ecx;
+    fn run(&self, data: &mut Data) -> EventResult {
+        let (world, vi) = (&mut data.world, &mut data.res.vi);
 
         let actor = &mut world.entities[self.actor];
         let pos = actor.pos + Vec2i::from(self.dir.signs_i32());
@@ -110,11 +111,11 @@ impl GenAnim for PlayerTurn {}
 
 impl PlayerTurn {
     /// Find he only actor that is at an adjacent cell to the controlled actor
-    fn find_only_neighbor(&self, ecx: &EventContext) -> Option<Dir8> {
+    fn find_only_neighbor(&self, data: &Data) -> Option<Dir8> {
         let mut res = Option::<Dir8>::None;
 
-        let origin = ecx.world.entities[self.actor].pos;
-        for (_ix, e) in &ecx.world.entities {
+        let origin = data.world.entities[self.actor].pos;
+        for (_ix, e) in &data.world.entities {
             let dvec = e.pos - origin;
             if dvec.len_king() != 1 {
                 continue;
@@ -132,23 +133,23 @@ impl PlayerTurn {
 }
 
 impl Event for PlayerTurn {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
+    fn run(&self, data: &mut Data) -> EventResult {
         let (select, turn, rest, dir) = (
-            ecx.vi.select.is_pressed(),
-            ecx.vi.turn.is_pressed(),
-            ecx.vi.rest.is_pressed(),
-            ecx.vi.dir.dir8_down(),
+            data.res.vi.select.is_pressed(),
+            data.res.vi.turn.is_pressed(),
+            data.res.vi.rest.is_pressed(),
+            data.res.vi.dir.dir8_down(),
         );
 
         if select {
             return EventResult::chain(Interact {
                 actor: self.actor,
-                dir: ecx.world.entities[self.actor].dir,
+                dir: data.world.entities[self.actor].dir,
             });
         }
 
         if turn {
-            if let Some(dir) = self.find_only_neighbor(ecx) {
+            if let Some(dir) = self.find_only_neighbor(data) {
                 return EventResult::chain(ChangeDir {
                     actor: self.actor,
                     dir,
@@ -161,7 +162,7 @@ impl Event for PlayerTurn {
         }
 
         if let Some(dir) = dir {
-            let is_shift_down = ecx
+            let is_shift_down = data
                 .ice
                 .input
                 .kbd
