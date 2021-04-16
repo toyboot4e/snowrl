@@ -40,11 +40,17 @@ type GenCounter = u32;
 type RefCount = u16;
 
 /// Newtype of `u32`
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Slot(u32);
 
+impl Slot {
+    pub fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+}
+
 /// Reference counting message (New | Drop)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum Message {
     New(Slot),
     Drop(Slot),
@@ -55,7 +61,7 @@ enum Message {
 /// It can't identify the belonging [`Pool`].
 #[derive(Debug)]
 pub struct Handle<T> {
-    index: Slot,
+    slot: Slot,
     gen: Gen,
     sender: Sender<Message>,
     _phantom: PhantomData<fn() -> T>,
@@ -69,9 +75,14 @@ impl<T> cmp::PartialEq for Handle<T> {
 }
 
 impl<T> Handle<T> {
+    /// Index that corrresponds to memory location
+    pub fn slot(&self) -> Slot {
+        self.slot
+    }
+
     pub fn downgrade(self) -> WeakHandle<T> {
         WeakHandle {
-            index: self.index,
+            slot: self.slot,
             gen: self.gen,
             _phantom: PhantomData,
         }
@@ -85,9 +96,9 @@ impl<T> Handle<T> {
 impl<T> Clone for Handle<T> {
     fn clone(&self) -> Self {
         // TODO: it dies if the pool is already dead?
-        self.sender.send(Message::New(self.index)).unwrap();
+        self.sender.send(Message::New(self.slot)).unwrap();
         Self {
-            index: self.index,
+            slot: self.slot,
             gen: self.gen,
             sender: self.sender.clone(),
             _phantom: Default::default(),
@@ -98,7 +109,7 @@ impl<T> Clone for Handle<T> {
 impl<T> Drop for Handle<T> {
     fn drop(&mut self) {
         // fails if the pool is already dead
-        self.sender.send(Message::Drop(self.index)).ok();
+        self.sender.send(Message::Drop(self.slot)).ok();
     }
 }
 
@@ -108,15 +119,22 @@ impl<T> Drop for Handle<T> {
 #[derive(Derivative)]
 #[derivative(Debug, PartialEq, Clone, Copy)]
 pub struct WeakHandle<T> {
-    index: Slot,
+    slot: Slot,
     gen: Gen,
     _phantom: PhantomData<fn() -> T>,
+}
+
+impl<T> WeakHandle<T> {
+    /// Index that corrresponds to memory location
+    pub fn slot(&self) -> Slot {
+        self.slot
+    }
 }
 
 impl<T> From<Handle<T>> for WeakHandle<T> {
     fn from(h: Handle<T>) -> Self {
         Self {
-            index: h.index,
+            slot: h.slot,
             gen: h.gen,
             _phantom: PhantomData,
         }
@@ -135,8 +153,7 @@ pub(crate) struct PoolEntry<T> {
 /// Dynamic array with reference-counted [`Handle`]s
 #[derive(Debug)]
 pub struct Pool<T> {
-    /// NOTE: we never call [`Vec::remove`]. It aligns other items amd changes corresponding indices
-    /// of stored items.
+    /// NOTE: we never call [`Vec::remove`]; it aligns (change positions of) other items.
     entries: Vec<PoolEntry<T>>,
     /// Generation counter per [`Pool`]. Another option is per slot.
     gen_count: GenCounter,
@@ -183,21 +200,26 @@ impl<T> Pool<T> {
         // TODO: can we assume messages are correctly ordered?
         while let Ok(mes) = self.receiver.try_recv() {
             match mes {
-                Message::New(ix) => {
-                    let e = &mut self.entries[ix.0 as usize];
+                Message::New(slot) => {
+                    let e = &mut self.entries[slot.as_usize()];
                     e.ref_count += 1;
                 }
-                Message::Drop(ix) => {
-                    let e = &mut self.entries[ix.0 as usize];
-                    e.ref_count -= 1;
-                    if e.ref_count == 0 {
-                        // invalidate the entry
-                        e.gen = None;
+                Message::Drop(slot) => {
+                    let entry = &mut self.entries[slot.as_usize()];
+                    entry.ref_count -= 1;
+                    if entry.ref_count == 0 {
+                        entry.gen = None;
                     }
                 }
             }
         }
     }
+
+    // /// Force removing a reference-counted node
+    // pub unsafe fn remove_node(&mut self, slot: Slot) {
+    //     let entry = &mut self.entries[slot.as_usize()];
+    //     entry.gen = None;
+    // }
 }
 
 /// Handle-based accessors
@@ -227,7 +249,7 @@ impl<T> Pool<T> {
 
         self.gen_count += 1;
 
-        let index = match self.find_empty_slot() {
+        let slot = match self.find_empty_slot() {
             Some(i) => {
                 self.entries[i] = entry;
                 i
@@ -240,7 +262,7 @@ impl<T> Pool<T> {
         };
 
         Handle {
-            index: Slot(index as u32),
+            slot: Slot(slot as u32),
             gen: gen.unwrap(),
             sender: self.sender.clone(),
             _phantom: Default::default(),
@@ -251,7 +273,7 @@ impl<T> Pool<T> {
     ///
     /// For strong [`Handle`]s, use index (`pool[handle]`).
     pub fn get(&self, weak_handle: &WeakHandle<T>) -> Option<&T> {
-        let entry = &self.entries[weak_handle.index.0 as usize];
+        let entry = &self.entries[weak_handle.slot.as_usize()];
         if entry.gen == Some(weak_handle.gen) {
             Some(&entry.item)
         } else {
@@ -263,7 +285,7 @@ impl<T> Pool<T> {
     ///
     /// For strong [`Handle`]s, use index (`pool[handle]`).
     pub fn get_mut(&mut self, weak_handle: &WeakHandle<T>) -> Option<&mut T> {
-        let entry = &mut self.entries[weak_handle.index.0 as usize];
+        let entry = &mut self.entries[weak_handle.slot.as_usize()];
         if entry.gen == Some(weak_handle.gen) {
             Some(&mut entry.item)
         } else {
@@ -275,20 +297,20 @@ impl<T> Pool<T> {
 impl<T> ops::Index<&Handle<T>> for Pool<T> {
     type Output = T;
     fn index(&self, handle: &Handle<T>) -> &Self::Output {
-        &self.entries[handle.index.0 as usize].item
+        &self.entries[handle.slot.as_usize()].item
     }
 }
 
 impl<T> ops::IndexMut<&Handle<T>> for Pool<T> {
     fn index_mut(&mut self, handle: &Handle<T>) -> &mut Self::Output {
-        &mut self.entries[handle.index.0 as usize].item
+        &mut self.entries[handle.slot.as_usize()].item
     }
 }
 
 impl<T> ops::Index<&WeakHandle<T>> for Pool<T> {
     type Output = T;
     fn index(&self, handle: &WeakHandle<T>) -> &Self::Output {
-        let entry = &self.entries[handle.index.0 as usize];
+        let entry = &self.entries[handle.slot.as_usize()];
         assert!(entry.gen == Some(handle.gen));
         &entry.item
     }
@@ -296,7 +318,7 @@ impl<T> ops::Index<&WeakHandle<T>> for Pool<T> {
 
 impl<T> ops::IndexMut<&WeakHandle<T>> for Pool<T> {
     fn index_mut(&mut self, handle: &WeakHandle<T>) -> &mut Self::Output {
-        let entry = &mut self.entries[handle.index.0 as usize];
+        let entry = &mut self.entries[handle.slot.as_usize()];
         assert!(entry.gen == Some(handle.gen));
         &mut entry.item
     }
@@ -304,13 +326,15 @@ impl<T> ops::IndexMut<&WeakHandle<T>> for Pool<T> {
 
 /// Slot-based accessors
 impl<T> Pool<T> {
+    /// Retruns the item if it's valid
     pub fn get_by_slot(&self, slot: Slot) -> Option<&T> {
-        let entry = self.entries.get(slot.0 as usize)?;
+        let entry = self.entries.get(slot.as_usize())?;
         entry.gen.and(Some(&entry.item))
     }
 
+    /// Retruns the item if it's valid
     pub fn get_mut_by_slot(&mut self, slot: Slot) -> Option<&mut T> {
-        let entry = self.entries.get_mut(slot.0 as usize)?;
+        let entry = self.entries.get_mut(slot.as_usize())?;
         entry.gen.and(Some(&mut entry.item))
     }
 
