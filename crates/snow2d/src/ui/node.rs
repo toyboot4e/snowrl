@@ -143,6 +143,7 @@ impl From<Draw> for Node {
             },
             ..Default::default()
         };
+
         Node {
             draw,
             params: params.clone(),
