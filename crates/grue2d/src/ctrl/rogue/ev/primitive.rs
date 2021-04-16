@@ -154,10 +154,38 @@ impl Event for GiveDamage {
 
         if actor.stats.hp > self.amount {
             actor.stats.hp -= self.amount;
+            EventResult::Finish
         } else {
             actor.stats.hp = 0;
-            log::trace!("TODO: handle death");
+            EventResult::Chain(Box::new(Death { actor: self.actor }))
         }
+    }
+}
+
+/// Actor died
+#[derive(Debug)]
+pub struct Death {
+    pub actor: Index<Actor>,
+}
+
+impl GenAnim for Death {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
+        None
+    }
+}
+
+impl Event for Death {
+    fn run(&self, data: &mut Data) -> EventResult {
+        log::trace!("actor at slot {:?} died", self.actor.slot());
+
+        if self.actor.slot() == PLAYER as u32 {
+            todo!("implement player death");
+        }
+
+        // NOTE: deleting actors IMMEDIATELY can result in invalid indices.
+        //       should we invalidate the actor AFTER finishing animation?
+        // let actor = &mut data.world.entities[self.actor];
+        data.world.entities.remove(self.actor).unwrap();
 
         EventResult::Finish
     }
