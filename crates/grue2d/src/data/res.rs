@@ -27,6 +27,7 @@ pub struct Ui {
     screen: Layer,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UiLayer {
     Actors,
     OnActors,
@@ -72,6 +73,7 @@ impl Ui {
 
     pub fn update(&mut self, dt: Duration) {
         self.actors.update(dt);
+        self.on_actors.update(dt);
         self.on_shadow.update(dt);
         self.screen.update(dt);
     }

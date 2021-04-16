@@ -73,8 +73,8 @@ impl AnimSeq {
 
 #[derive(Debug, Clone, Default)]
 pub struct AnimGen {
-    pub node: Option<Handle<Node>>,
-    pub dt: ez::EasedDt,
+    node: Option<Handle<Node>>,
+    dt: ez::EasedDt,
 }
 
 impl AnimGen {

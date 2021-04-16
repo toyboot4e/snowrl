@@ -156,7 +156,7 @@ def_tween_anim!(AlphaTween, u8, |me: &Self, nodes: &mut Pool<Node>| {
 
 def_tween_anim!(RotTween, f32, |me: &Self, nodes: &mut Pool<Node>| {
     let n = &mut nodes[&me.node];
-    n.params.rot = me.tween.get();
+    n.params.rot = Some(me.tween.get());
 });
 
 /// One of [`AnimImpl`] impls

@@ -78,6 +78,7 @@ impl SnowRl {
                 .setup_actor_nodes(world, &mut res.ui, dt);
 
             res.ui.layer_mut(UiLayer::Actors).render(ice, cam_mat);
+            res.ui.layer_mut(UiLayer::OnActors).render(ice, cam_mat);
 
             {
                 let mut screen = ice

@@ -3,6 +3,7 @@ High level commands
 */
 
 use snow2d::{
+    gfx::geom2d::Vec2f,
     ui::{
         anim_builder::AnimGen,
         node::{self, Node},
@@ -14,7 +15,7 @@ use rlbox::rl::grid2d::*;
 
 use crate::{
     ctrl::rogue::{
-        anim::{self as rl_anim, Anim},
+        anim::{self as rl_anim, *},
         tick::{Event, EventResult, GenAnim},
     },
     data::{res::UiLayer, world::actor::Actor},
@@ -49,20 +50,26 @@ impl GenAnim for Hit {
         let actor = &data.world.entities[self.target];
 
         let [actors, on_actors] = data.res.ui.layers_mut([UiLayer::Actors, UiLayer::OnActors]);
-        let actor_node = &actors.nodes[&actor.nodes.img];
-        let pos = actor_node.params.pos;
+        let base_pos = actors.nodes[&actor.nodes.base].params.pos;
 
         let text = on_actors.nodes.add({
             let mut text = Node::from(node::Text::new("HIT"));
-            text.params.pos = pos;
+            // FIXME: set font texture size and align
+            text.params.pos = base_pos - Vec2f::new(20.0, 20.0);
             text
         });
 
         let mut gen = AnimGen::default();
-        gen.node(&text).dt(ez::EasedDt::linear(2.0));
+        gen.node(&text).dt(ez::EasedDt::linear(1.0));
+        on_actors.anims.insert(gen.alpha([0, 255]));
 
-        todo!("wait for UiAnim Anim")
-        // Some(on_actors.anims.insert(gen.alpha([0, 255])))
+        // TODO: wait for reserved duration (swing animation)
+        // Some(Box::new(WaitForUiAnim::new(
+        //     on_actors.anims.insert(gen.alpha([0, 255])),
+        //     UiLayer::OnActors,
+        // )))
+
+        None
     }
 }
 

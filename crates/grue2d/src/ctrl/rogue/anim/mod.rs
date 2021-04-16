@@ -95,7 +95,6 @@ pub enum AnimResult {
 pub trait Anim: fmt::Debug + Downcast {
     fn on_start(&mut self, _ucx: &mut Data) {}
     fn update(&mut self, ucx: &mut Data) -> AnimResult;
-    // TODO: render animation
 }
 
 // we can cast `Box<Anim>` to `Box<Any>` with `as_any`

@@ -4,9 +4,12 @@ Animations for the builtin events
 They're created referencing rogulike events and then we forget about original events.
 */
 
-use snow2d::{ui::anim::Anim as UiAnim, utils::arena::Index};
+use snow2d::{
+    ui::anim::{Anim as UiAnim, AnimImpl},
+    utils::arena::Index,
+};
 
-use crate::data::world::actor::Actor;
+use crate::data::{res::UiLayer, world::actor::Actor};
 
 use super::{Anim, AnimResult, Data, Timer};
 
@@ -94,31 +97,31 @@ impl Anim for WalkAnim {
     }
 }
 
-// TODO: wait for UI animation. but we can't distinguish belonging pool.
-// #[derive(Debug, Clone)]
-// pub struct WaitForUiAnim {
-//     anim: Index<UiAnim>,
-// }
-//
-// impl WaitForUiAnim {
-//     pub fn new(anim: Index<UiAnim>) -> Self {
-//         Self { anim }
-//     }
-// }
-//
-// impl Anim for WalkAnim {
-//     fn on_start(&mut self, data: &mut Data) {
-//         // be sure to start animation in this frame
-//         self.timer.set_started(true);
-//
-//         if self.actors.iter().any(|a| a.slot() == PLAYER) {
-//             // update Player FoV in this frame
-//             data.world.shadow.mark_dirty();
-//         }
-//     }
-//
-//     fn update(&mut self, data: &mut Data) -> AnimResult {
-//         let node = data.
-//         AnimResult::
-//     }
-// }
+#[derive(Debug, Clone)]
+pub struct WaitForUiAnim {
+    anim: Index<UiAnim>,
+    layer: UiLayer,
+}
+
+impl WaitForUiAnim {
+    pub fn new(anim: Index<UiAnim>, layer: UiLayer) -> Self {
+        Self { anim, layer }
+    }
+}
+
+impl Anim for WaitForUiAnim {
+    fn on_start(&mut self, _data: &mut Data) {}
+
+    fn update(&mut self, data: &mut Data) -> AnimResult {
+        let anim = match data.res.ui.layer(self.layer).anims.get(self.anim) {
+            Some(node) => node,
+            None => return AnimResult::Finish,
+        };
+
+        if anim.is_end() {
+            AnimResult::Finish
+        } else {
+            AnimResult::GotoNextFrame
+        }
+    }
+}

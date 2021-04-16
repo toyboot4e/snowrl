@@ -151,8 +151,13 @@ impl GenAnim for GiveDamage {
 impl Event for GiveDamage {
     fn run(&self, data: &mut Data) -> EventResult {
         let actor = &mut data.world.entities[self.actor];
-        actor.stats.hp -= self.amount;
-        // TODO: handle death
+
+        if actor.stats.hp > self.amount {
+            actor.stats.hp -= self.amount;
+        } else {
+            actor.stats.hp = 0;
+            log::trace!("TODO: handle death");
+        }
 
         EventResult::Finish
     }
