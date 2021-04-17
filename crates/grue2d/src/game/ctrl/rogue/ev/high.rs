@@ -13,7 +13,7 @@ use snow2d::{
 
 use rlbox::rl::grid2d::*;
 
-use crate::{
+use crate::game::{
     ctrl::rogue::{
         anim::{self as rl_anim, *},
         tick::{Event, EventResult, GenAnim},

@@ -9,7 +9,7 @@ use snow2d::{
     utils::arena::Index,
 };
 
-use crate::data::{res::UiLayer, world::actor::Actor};
+use crate::game::data::{res::UiLayer, world::actor::Actor};
 
 use super::{Anim, AnimResult, Data, Timer};
 

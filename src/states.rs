@@ -7,17 +7,17 @@ use std::{any::TypeId, borrow::Cow};
 use snow2d::utils::arena::Index;
 
 use grue2d::{
-    ctrl::{
-        rogue::{
+    fsm::{GameState, StateCommand, StateReturn},
+    game::{
+        ctrl::rogue::{
             anim::AnimResult,
             ev,
             script::ScriptRef,
             tick::{GameLoop, TickResult},
         },
-        Control,
+        data::{res::Ui, world::actor::Actor},
+        Control, Data,
     },
-    data::{res::Ui, world::actor::Actor, Data},
-    fsm::{GameState, StateCommand, StateReturn},
 };
 
 use crate::{play, prelude::*, utils::paths};

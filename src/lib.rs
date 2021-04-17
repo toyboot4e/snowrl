@@ -13,7 +13,11 @@ pub mod scenes;
 pub mod states;
 
 use {
-    grue2d::{agents::WorldRenderer, data::res::UiLayer, hot_crate, GrueRl, PlatformLifetime},
+    grue2d::{
+        app::Platform,
+        game::{agents::WorldRenderer, data::res::UiLayer},
+        hot_crate, GrueRl,
+    },
     rokol::gfx as rg,
     snow2d::gfx::Color,
     std::time::Duration,
@@ -50,12 +54,12 @@ impl SnowRl {
 /// Our game lifecycle
 impl SnowRl {
     #[inline]
-    fn pre_update(&mut self, _dt: Duration, _platform: &mut PlatformLifetime) {
+    fn pre_update(&mut self, _dt: Duration, _platform: &mut Platform) {
         //
     }
 
     #[inline]
-    fn render(&mut self, _dt: Duration, _platform: &mut PlatformLifetime) {
+    fn render(&mut self, _dt: Duration, _platform: &mut Platform) {
         let (data, agents) = (&mut self.grue.data, &mut self.grue.agents);
         let cam_mat = data.world.cam.to_mat4();
 
@@ -110,7 +114,7 @@ impl SnowRl {
 mod impl_ {
     use std::time::Duration;
 
-    use grue2d::{Lifecycle, PlatformLifetime};
+    use grue2d::app::{Lifecycle, Platform};
     use rokol::gfx as rg;
 
     use crate::SnowRl;
@@ -122,12 +126,12 @@ mod impl_ {
             self.grue.event(&ev);
         }
 
-        fn update(&mut self, dt: Duration, platform: &mut PlatformLifetime) {
+        fn update(&mut self, dt: Duration, platform: &mut Platform) {
             self.pre_update(dt, platform);
             self.grue.update(dt, platform);
         }
 
-        fn render(&mut self, dt: Duration, platform: &mut PlatformLifetime) {
+        fn render(&mut self, dt: Duration, platform: &mut Platform) {
             self.grue.pre_render(dt, platform);
             self.render(dt, platform);
             self.grue.post_render(dt);

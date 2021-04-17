@@ -17,7 +17,7 @@ use rlbox::{
     view::actor::{ActorImage, ActorImageType, ActorNodes},
 };
 
-use crate::data::world::World;
+use crate::game::data::world::World;
 
 /// Internal and view states of an actor
 #[derive(Debug, Clone)]
