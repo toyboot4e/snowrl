@@ -4,7 +4,7 @@ Controls of the game based on a stack-based finite state machine
 
 use std::{any::TypeId, collections::HashMap};
 
-use crate::grue::{Control, Data};
+use crate::game::{Control, Data};
 
 // type Event = rokol::app::Event;
 type Event = sdl2::event::Event;

@@ -11,7 +11,7 @@ pub extern crate rlbox;
 
 pub mod app;
 pub mod fsm;
-pub mod grue;
+pub mod game;
 
 #[cfg(debug_assertions)]
 pub mod debug;
@@ -25,7 +25,7 @@ use snow2d::gfx::geom2d::Vec2f;
 use crate::{
     app::Platform,
     fsm::*,
-    grue::{Agents, Control, Data},
+    game::{Agents, Control, Data},
 };
 
 /// TODO: Plugin-based game content?

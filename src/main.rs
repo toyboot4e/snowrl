@@ -14,7 +14,7 @@ use snow2d::gfx::WindowState;
 
 use grue2d::{
     app::Platform,
-    grue::{
+    game::{
         data::res::{Resources, Ui, VInput},
         Control,
     },

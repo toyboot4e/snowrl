@@ -16,7 +16,7 @@ use {
     snow2d::utils::{arena::Index, Cheat},
 };
 
-use crate::grue::{
+use crate::game::{
     ctrl::rogue::{anim::Anim, ev},
     data::world::actor::Actor,
     Data,

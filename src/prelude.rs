@@ -19,7 +19,7 @@ pub use snow2d::{
 };
 
 pub use grue2d::{
-    grue::{
+    game::{
         data::res::{Fonts, Ui, UiLayer, VInput},
         Data,
     },

@@ -13,7 +13,7 @@ use {
     },
 };
 
-use crate::grue::data::{res::UiLayer, world::actor::Actor};
+use crate::game::data::{res::UiLayer, world::actor::Actor};
 
 use super::{Anim, AnimResult, Data, Timer};
 

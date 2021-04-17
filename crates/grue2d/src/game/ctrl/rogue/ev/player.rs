@@ -6,7 +6,7 @@ use snow2d::{input::Key, utils::arena::Index};
 
 use rlbox::rl::grid2d::*;
 
-use crate::grue::{
+use crate::game::{
     ctrl::rogue::tick::{Event, EventResult, GenAnim},
     data::world::actor::{Actor, Relation},
     Data,

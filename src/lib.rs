@@ -15,7 +15,7 @@ pub mod states;
 use {
     grue2d::{
         app::Platform,
-        grue::{agents::WorldRenderer, data::res::UiLayer},
+        game::{agents::WorldRenderer, data::res::UiLayer},
         hot_crate, GrueRl,
     },
     rokol::gfx as rg,

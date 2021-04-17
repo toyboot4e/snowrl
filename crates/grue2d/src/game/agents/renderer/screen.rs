@@ -21,7 +21,7 @@ use {
     std::time::Duration,
 };
 
-use crate::grue::data::world::World;
+use crate::game::data::world::World;
 use rlbox::{render::tiled as tiled_render, rl::grid2d::Vec2i, view::camera::Camera2d};
 
 /// The smaller, the more blur

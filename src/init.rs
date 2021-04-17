@@ -14,7 +14,7 @@ use rlbox::{
     },
 };
 
-use grue2d::grue::data::{
+use grue2d::game::data::{
     res::Ui,
     world::{actor::*, World},
 };

@@ -8,7 +8,7 @@ use snow2d::utils::arena::Index;
 
 use grue2d::{
     fsm::{GameState, StateCommand, StateReturn},
-    grue::{
+    game::{
         ctrl::rogue::{
             anim::AnimResult,
             ev,
