@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rokol = { path = "../snow2d/rokol", features = ["glcore33"] }
+rokol = { path = "../snow2d/rokol", features = ["impl-gfx", "glcore33"] }
 snow2d = { path = "../snow2d" }
 rlbox = { path = "../rlbox" }
 hot_crate = { path = "hot_crate" }
@@ -31,4 +31,7 @@ serde = { version = "1.0.120", features = ["derive"] }
 ron = "0.6.4"
 glsp = "0.2.0"
 sdl2 = "0.34.3"
+
+# NOTE: should be patched in root directory
+imgui-backends = { git = "https://github.com/toyboot4e/imgui-backends-rs", branch = "main", features = ["sdl2-rokol-gl"] }
 

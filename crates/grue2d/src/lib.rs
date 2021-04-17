@@ -14,6 +14,9 @@ pub mod ctrl;
 pub mod data;
 pub mod fsm;
 
+#[cfg(debug_assertions)]
+pub mod debug;
+
 use std::time::{Duration, Instant};
 
 use anyhow::{Error, Result};
@@ -39,17 +42,24 @@ pub struct GrueRl {
     pub agents: Agents,
     /// Controls the game
     pub fsm: Fsm,
+    #[cfg(debug_assertions)]
+    /// (Debug-only) ImGUI
+    pub imgui: debug::Backend,
 }
 
 impl GrueRl {
-    pub fn new(screen_size: [u32; 2], data: Data, fsm: Fsm) -> Self {
+    pub fn new(platform: &PlatformLifetime, data: Data, fsm: Fsm, ctrl: Control) -> Result<Self> {
+        let screen_size = [platform.win.size().0, platform.win.size().1];
         let agents = Agents::new(screen_size, &data.ice.snow.clock);
-        Self {
+        let imgui = debug::create_backend(platform)?;
+
+        Ok(Self {
             data,
-            ctrl: Control::new(),
+            ctrl,
             agents,
             fsm,
-        }
+            imgui,
+        })
     }
 }
 
