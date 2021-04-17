@@ -6,7 +6,7 @@ Script integration
 
 use snow2d::utils::arena::Index;
 
-use crate::data::world::actor::Actor;
+use crate::grue::data::world::actor::Actor;
 
 /// Refers to a specifc script
 #[derive(Debug, Clone, Copy)]

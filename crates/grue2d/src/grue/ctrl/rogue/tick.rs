@@ -16,9 +16,11 @@ use {
     snow2d::utils::{arena::Index, Cheat},
 };
 
-use crate::{data::world::actor::Actor, Data};
-
-use crate::ctrl::rogue::{anim::Anim, ev};
+use crate::grue::{
+    ctrl::rogue::{anim::Anim, ev},
+    data::world::actor::Actor,
+    Data,
+};
 
 /// TODO: remove me
 const PLAYER: usize = 0;

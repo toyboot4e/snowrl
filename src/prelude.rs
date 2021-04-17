@@ -19,8 +19,8 @@ pub use snow2d::{
 };
 
 pub use grue2d::{
-    data::{
-        res::{Fonts, Ui, UiLayer, VInput},
+    grue::{
+        data::res::{Fonts, Ui, UiLayer, VInput},
         Data,
     },
     GrueRl,

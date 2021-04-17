@@ -7,7 +7,7 @@ use snow2d::utils::arena::Index;
 
 use rlbox::rl::grid2d::*;
 
-use crate::{
+use crate::grue::{
     ctrl::rogue::{
         anim::{self, Anim},
         tick::{Event, EventResult, GenAnim},

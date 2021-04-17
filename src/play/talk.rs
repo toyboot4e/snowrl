@@ -15,9 +15,11 @@ use snow2d::{
     utils::{arena::Index, ez, pool::Handle, tweak::*},
 };
 
-use grue2d::data::{
-    res::UiLayer,
-    world::{actor::Actor, World},
+use grue2d::grue::{
+    data::{
+        res::UiLayer,
+        world::{actor::Actor, World},
+    },
     Data,
 };
 

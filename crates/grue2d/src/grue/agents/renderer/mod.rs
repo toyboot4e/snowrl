@@ -14,7 +14,7 @@ use {
     std::time::Duration,
 };
 
-use crate::data::{
+use crate::grue::data::{
     res::{Ui, UiLayer},
     world::{actor::Actor, World},
 };

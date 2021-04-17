@@ -14,8 +14,10 @@ use snow2d::gfx::WindowState;
 
 use grue2d::{
     app::PlatformLifetime,
-    ctrl::Control,
-    data::res::{Resources, Ui, VInput},
+    grue::{
+        data::res::{Resources, Ui, VInput},
+        Control,
+    },
 };
 
 use snowrl::{init, prelude::*, states, SnowRl};

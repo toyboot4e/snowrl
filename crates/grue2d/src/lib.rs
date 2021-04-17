@@ -10,11 +10,8 @@ pub extern crate hot_crate;
 pub extern crate rlbox;
 
 pub mod app;
-
-pub mod agents;
-pub mod ctrl;
-pub mod data;
 pub mod fsm;
+pub mod grue;
 
 #[cfg(debug_assertions)]
 pub mod debug;
@@ -25,7 +22,11 @@ use anyhow::*;
 
 use snow2d::gfx::geom2d::Vec2f;
 
-use crate::{agents::Agents, app::PlatformLifetime, ctrl::Control, data::Data, fsm::*};
+use crate::{
+    app::PlatformLifetime,
+    fsm::*,
+    grue::{Agents, Control, Data},
+};
 
 /// TODO: Plugin-based game content?
 pub trait Plugin: std::fmt::Debug {}

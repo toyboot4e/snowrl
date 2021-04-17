@@ -8,7 +8,7 @@ use snow2d::Ice;
 
 use rlbox::rl::grid2d::*;
 
-use grue2d::data::res::{Resources, Ui, UiLayer};
+use grue2d::grue::data::res::{Resources, Ui, UiLayer};
 
 #[derive(Debug, PartialEq)]
 pub struct Title {
