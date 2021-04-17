@@ -10,19 +10,20 @@ use sdl2::event::{Event, WindowEvent};
 /// Utility for initializing the game window
 pub type Init = rokol::glue::sdl::Init;
 
+#[cfg(feature = "sdl2")]
 /// Handles of platform-dependenct RAII objects
-pub type PlatformLifetime = rokol::glue::sdl::WindowHandle;
+pub type Platform = rokol::glue::sdl::WindowHandle;
 
 /// Platform-independent application lifecycle
 pub trait Lifecycle {
     type Event;
     fn event(&mut self, ev: Self::Event);
-    fn update(&mut self, dt: Duration, platform: &mut PlatformLifetime);
-    fn render(&mut self, dt: Duration, platform: &mut PlatformLifetime);
+    fn update(&mut self, dt: Duration, platform: &mut Platform);
+    fn render(&mut self, dt: Duration, platform: &mut Platform);
 }
 
 /// Run an application that implements [`Lifecycle`]
-pub fn run<A>(mut platform: PlatformLifetime, mut app: A) -> Result<()>
+pub fn run<A>(mut platform: Platform, mut app: A) -> Result<()>
 where
     A: Lifecycle<Event = ::sdl2::event::Event>,
 {
@@ -149,7 +150,7 @@ mod sdl2_impl {
 
     use sdl2::event::Event;
 
-    use super::PlatformLifetime;
+    use super::Platform;
     use crate::GrueRl;
 
     /// Lifecycle methods
@@ -158,13 +159,13 @@ mod sdl2_impl {
             self.data.ice.event(ev);
         }
 
-        pub fn update(&mut self, dt: std::time::Duration, _platform: &mut PlatformLifetime) {
+        pub fn update(&mut self, dt: std::time::Duration, _platform: &mut Platform) {
             self.pre_update(dt);
             self.fsm.update(&mut self.data, &mut self.ctrl);
             self.post_update(dt);
         }
 
-        pub fn pre_render(&mut self, _dt: Duration, platform: &mut PlatformLifetime) {
+        pub fn pre_render(&mut self, _dt: Duration, platform: &mut Platform) {
             let size = platform.win.size();
 
             self.data.ice.pre_render(snow2d::gfx::WindowState {

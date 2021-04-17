@@ -23,7 +23,7 @@ use anyhow::*;
 use snow2d::gfx::geom2d::Vec2f;
 
 use crate::{
-    app::PlatformLifetime,
+    app::Platform,
     fsm::*,
     grue::{Agents, Control, Data},
 };
@@ -50,7 +50,7 @@ pub struct GrueRl {
 }
 
 impl GrueRl {
-    pub fn new(platform: &PlatformLifetime, data: Data, fsm: Fsm, ctrl: Control) -> Result<Self> {
+    pub fn new(platform: &Platform, data: Data, fsm: Fsm, ctrl: Control) -> Result<Self> {
         let screen_size = [platform.win.size().0, platform.win.size().1];
         let agents = Agents::new(screen_size, &data.ice.snow.clock);
         let imgui = debug::create_backend(platform)?;

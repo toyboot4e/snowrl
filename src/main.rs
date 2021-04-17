@@ -13,7 +13,7 @@ use anyhow::{Error, Result};
 use snow2d::gfx::WindowState;
 
 use grue2d::{
-    app::PlatformLifetime,
+    app::Platform,
     grue::{
         data::res::{Resources, Ui, VInput},
         Control,
@@ -48,7 +48,7 @@ fn main() -> Result<()> {
     grue2d::app::run(platform, app)
 }
 
-fn new_game(init: &grue2d::app::Init, platform: &PlatformLifetime) -> Result<GrueRl> {
+fn new_game(init: &grue2d::app::Init, platform: &Platform) -> Result<GrueRl> {
     // create our game context
     let mut data = {
         let mut ice = Ice::new(unsafe {
