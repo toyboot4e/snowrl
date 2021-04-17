@@ -12,7 +12,7 @@ use grue2d::{
             anim::AnimResult,
             ev,
             script::ScriptRef,
-            tick::{AnimContext, GameLoop, TickResult},
+            tick::{GameLoop, TickResult},
         },
         Control,
     },
@@ -33,9 +33,7 @@ pub struct Roguelike {
 impl GameState for Roguelike {
     fn update(&mut self, data: &mut Data, ctrl: &mut Control) -> StateReturn {
         loop {
-            let res = self
-                .game_loop
-                .tick(&mut data.world, &mut data.ice, &mut data.res.vi);
+            let res = self.game_loop.tick(data);
 
             match res {
                 TickResult::TakeTurn(actor) => {
@@ -67,10 +65,7 @@ impl GameState for Roguelike {
                 }
                 TickResult::Event(ev) => {
                     // play animations if any
-                    if let Some(anim) = ev.gen_anim(&mut AnimContext {
-                        world: &mut data.world,
-                        ice: &mut data.ice,
-                    }) {
+                    if let Some(anim) = ev.gen_anim(data) {
                         // log::trace!("event animation: {:?}", anim);
 
                         ctrl.rogue.anims.enqueue_box(anim);

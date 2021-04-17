@@ -2,6 +2,8 @@
 `snow2d` ❄️ framework
 */
 
+#![feature(drain_filter)]
+
 pub extern crate rokol;
 
 pub mod asset;

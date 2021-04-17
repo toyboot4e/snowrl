@@ -10,9 +10,10 @@ use rlbox::rl::grid2d::*;
 use crate::{
     ctrl::rogue::{
         anim::{self, Anim},
-        tick::{AnimContext, Event, EventContext, EventResult, GenAnim},
+        tick::{Event, EventResult, GenAnim},
     },
     data::world::actor::Actor,
+    Data,
 };
 
 use super::*;
@@ -31,7 +32,7 @@ pub struct NotConsumeTurn {
 }
 
 impl GenAnim for NotConsumeTurn {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         // TODO: don't hard code
         if self.actor.slot() as usize == PLAYER {
             // wait for one frame so that we won't enter inifinite loop
@@ -43,7 +44,7 @@ impl GenAnim for NotConsumeTurn {
 }
 
 impl Event for NotConsumeTurn {
-    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+    fn run(&self, _data: &mut Data) -> EventResult {
         if self.actor.slot() as usize == PLAYER {
             // TODO: require one frame wait
             EventResult::chain(PlayerTurn { actor: self.actor })
@@ -59,13 +60,13 @@ pub struct RestOneTurn {
 }
 
 impl GenAnim for RestOneTurn {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         None
     }
 }
 
 impl Event for RestOneTurn {
-    fn run(&self, _ecx: &mut EventContext) -> EventResult {
+    fn run(&self, _data: &mut Data) -> EventResult {
         EventResult::Finish
     }
 }
@@ -78,15 +79,15 @@ pub struct ChangeDir {
 }
 
 impl GenAnim for ChangeDir {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         // TODO: play rotation and wait for it to finish
         None
     }
 }
 
 impl Event for ChangeDir {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
-        let actor = &mut ecx.world.entities[self.actor];
+    fn run(&self, data: &mut Data) -> EventResult {
+        let actor = &mut data.world.entities[self.actor];
         actor.dir = self.dir;
 
         // FIXME: it's dangerous..
@@ -113,15 +114,15 @@ pub struct Move {
 }
 
 impl GenAnim for Move {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         Some(Box::new(anim::WalkAnim::new(self.actor)))
     }
 }
 
 impl Event for Move {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
-        if !ecx.world.is_blocked(self.to_pos) {
-            let actor = &mut ecx.world.entities[self.actor];
+    fn run(&self, data: &mut Data) -> EventResult {
+        if !data.world.is_blocked(self.to_pos) {
+            let actor = &mut data.world.entities[self.actor];
             actor.dir = self.to_dir;
             actor.pos = self.to_pos;
             EventResult::Finish
@@ -135,13 +136,57 @@ impl Event for Move {
 }
 
 /// (Primitive) Change actor's HP
+#[derive(Debug)]
 pub struct GiveDamage {
     pub actor: Index<Actor>,
     pub amount: u32,
 }
 
 impl GenAnim for GiveDamage {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         Some(Box::new(anim::DamageText::new(self.actor, self.amount)))
+    }
+}
+
+impl Event for GiveDamage {
+    fn run(&self, data: &mut Data) -> EventResult {
+        let actor = &mut data.world.entities[self.actor];
+
+        if actor.stats.hp > self.amount {
+            actor.stats.hp -= self.amount;
+            EventResult::Finish
+        } else {
+            actor.stats.hp = 0;
+            EventResult::Chain(Box::new(Death { actor: self.actor }))
+        }
+    }
+}
+
+/// Actor died
+#[derive(Debug)]
+pub struct Death {
+    pub actor: Index<Actor>,
+}
+
+impl GenAnim for Death {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
+        None
+    }
+}
+
+impl Event for Death {
+    fn run(&self, data: &mut Data) -> EventResult {
+        log::trace!("actor at slot {:?} died", self.actor.slot());
+
+        if self.actor.slot() == PLAYER as u32 {
+            todo!("implement player death");
+        }
+
+        // NOTE: deleting actors IMMEDIATELY can result in invalid indices.
+        //       should we invalidate the actor AFTER finishing animation?
+        // let actor = &mut data.world.entities[self.actor];
+        data.world.entities.remove(self.actor).unwrap();
+
+        EventResult::Finish
     }
 }

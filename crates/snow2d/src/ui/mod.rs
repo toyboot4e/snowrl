@@ -85,7 +85,6 @@ impl Layer {
         // tick and apply animations. remove finished animations
         self.anims.update(dt, &mut self.nodes);
 
-        // remove unreferenced nodes
         self.nodes.sync_refcounts();
 
         // calculate geometry
@@ -113,14 +112,24 @@ impl Layer {
 
         // apply transformation to children
         let parent = Cheat::new(child);
-        for child_slot in &parent.as_mut().children {
-            let child = nodes.as_mut().get_mut(child_slot).unwrap();
-            Self::update_node_rec(nodes.clone(), child, Some(parent.clone()));
-        }
+
+        let _ = parent
+            .as_mut()
+            .children
+            .drain_filter(|child_handle| {
+                if let Some(child) = nodes.as_mut().get_mut(child_handle) {
+                    Self::update_node_rec(nodes.clone(), child, Some(parent.clone()));
+                    false // keep the valid child index
+                } else {
+                    true // drain the dangling child index
+                }
+            })
+            .collect::<Vec<_>>();
     }
 
     fn sort_nodes(&mut self) {
         self.ord_buf.clear();
+
         for (slot, node) in self.nodes.enumerate_items() {
             self.ord_buf.push(OrderEntry {
                 slot,
@@ -259,54 +268,47 @@ impl AnimStorage {
     /// Tick and apply animations. Remove finished animations
     pub fn update(&mut self, dt: Duration, nodes: &mut Pool<Node>) {
         // update `delayed` animations
-        let mut starts = vec![];
-
-        for (anim_ix, anim) in self.delayed.iter_mut() {
+        let new_start_anims = self.delayed.drain_filter(|anim| {
             // TODO: refactor with Timer, maybe in `ez`
             if anim.is_first_tick {
                 anim.is_first_tick = false;
+
                 // first tick: do end check BEFORE ticking
                 if anim.delay.is_end() {
-                    starts.push(anim_ix);
+                    true // drain
                 } else {
                     anim.delay.tick(dt);
+                    false
                 }
             } else {
-                anim.delay.tick(dt);
                 // non-first tick: do end check AFTER ticking
-                if anim.delay.is_end() {
-                    starts.push(anim_ix);
-                }
+                anim.delay.tick(dt);
+                anim.delay.is_end()
             }
-        }
+        });
 
-        for ix in starts {
-            log::trace!("START");
-            let mut delayed_anim = self.delayed.remove(ix).unwrap();
-            delayed_anim.anim.set_active(true);
-            self.running.insert(delayed_anim.anim);
+        for mut anim in new_start_anims.map(|(_ix, delayed)| delayed.anim) {
+            anim.set_active(true);
+            self.running.insert(anim);
         }
 
         // update `running` animations
-        let mut removals = vec![];
+        let _ = self
+            .running
+            .drain_filter(|anim| {
+                // TODO: active property not needed?
+                if !anim.is_active() {
+                    return false;
+                }
 
-        for (removal_ix, anim) in self.running.iter_mut() {
-            // TODO: active property not needed?
-            if !anim.is_active() {
-                continue;
-            }
+                if anim.is_end() {
+                    return true; // drain
+                }
 
-            if anim.is_end() {
-                removals.push(removal_ix);
-                continue;
-            }
-
-            anim.tick(dt);
-            anim.apply(nodes);
-        }
-
-        for ix in removals {
-            self.running.remove(ix);
-        }
+                anim.tick(dt);
+                anim.apply(nodes);
+                false
+            })
+            .collect::<Vec<_>>();
     }
 }

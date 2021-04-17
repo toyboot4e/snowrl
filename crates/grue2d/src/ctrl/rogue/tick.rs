@@ -13,16 +13,10 @@ use std::{
 
 use {
     downcast_rs::{impl_downcast, Downcast},
-    snow2d::{
-        utils::{arena::Index, Cheat},
-        Ice,
-    },
+    snow2d::utils::{arena::Index, Cheat},
 };
 
-use crate::data::{
-    res::VInput,
-    world::{actor::Actor, World},
-};
+use crate::{data::world::actor::Actor, Data};
 
 use crate::ctrl::rogue::{anim::Anim, ev};
 
@@ -37,12 +31,7 @@ const PLAYER: usize = 0;
 /// pointer.
 type Gen = Box<dyn Generator<TickContext, Yield = TickResult, Return = ()> + Unpin>;
 
-#[derive(Debug, Clone)]
-struct TickContext {
-    world: Cheat<World>,
-    ice: Cheat<Ice>,
-    vi: Cheat<VInput>,
-}
+type TickContext = Cheat<crate::Data>;
 
 /// Return value of [`GameLoop::tick`]
 #[derive(Debug)]
@@ -86,25 +75,17 @@ impl Default for GameLoop {
     fn default() -> Self {
         Self {
             gen: self::game_loop(),
-            tcx: unsafe {
-                TickContext {
-                    world: Cheat::empty(),
-                    ice: Cheat::empty(),
-                    vi: Cheat::empty(),
-                }
-            },
+            tcx: unsafe { Cheat::null() },
         }
     }
 }
 
 impl GameLoop {
     /// Ticks the game for "one step"
-    pub fn tick(&mut self, world: &mut World, ice: &mut Ice, vi: &mut VInput) -> TickResult {
+    pub fn tick(&mut self, data: &mut Data) -> TickResult {
         // set cheat borrows here for the generator
         unsafe {
-            self.tcx.world = Cheat::new(world);
-            self.tcx.vi = Cheat::new(vi);
-            self.tcx.ice = Cheat::new(ice);
+            self.tcx = Cheat::new(data);
         }
 
         match Pin::new(&mut self.gen).resume(self.tcx.clone()) {
@@ -116,7 +97,7 @@ impl GameLoop {
 
 /// Internal game loop implemented as a generator
 fn game_loop() -> Gen {
-    Box::new(|mut tcx: TickContext| {
+    Box::new(|tcx: TickContext| {
         let mut actor_slot = 0;
 
         loop {
@@ -137,13 +118,7 @@ fn game_loop() -> Gen {
             yield TickResult::Event(ev.clone());
 
             loop {
-                let mut ecx = EventContext {
-                    world: &mut tcx.world,
-                    vi: &tcx.vi,
-                    ice: &tcx.ice,
-                };
-
-                match ev.run(&mut ecx) {
+                match ev.run(tcx.as_mut()) {
                     EventResult::GotoNextFrame => {
                         // wait for next frame
                         yield TickResult::ProcessingEvent;
@@ -171,16 +146,9 @@ fn game_loop() -> Gen {
 // --------------------------------------------------------------------------------
 // Animation
 
-/// Context for making animation
-#[derive(Debug)]
-pub struct AnimContext<'a, 'b> {
-    pub world: &'a mut World,
-    pub ice: &'b mut Ice,
-}
-
 /// TODO: generate animations externally
 pub trait GenAnim {
-    fn gen_anim(&self, _acx: &mut AnimContext) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         None
     }
 }
@@ -188,19 +156,10 @@ pub trait GenAnim {
 // --------------------------------------------------------------------------------
 // Event
 
-/// Context for event handling, both internals ang GUI
-#[derive(Debug)]
-pub struct EventContext<'a> {
-    pub world: &'a mut World,
-    /// TODO: remove input
-    pub vi: &'a VInput,
-    pub ice: &'a Ice,
-}
-
 /// Return value of event handling
 #[derive(Debug)]
 pub enum EventResult {
-    /// Interactive actions can take multiple frames returning this varient
+    /// Need another frame to process this action (often interactive actions)
     GotoNextFrame,
     Finish,
     Chain(Box<dyn Event>),
@@ -214,7 +173,7 @@ impl EventResult {
 
 /// TODO: prefer chain-of-responsibility pattern
 pub trait Event: fmt::Debug + Downcast + GenAnim {
-    fn run(&self, ecx: &mut EventContext) -> EventResult;
+    fn run(&self, ecx: &mut Data) -> EventResult;
 }
 
 impl_downcast!(Event);
@@ -225,7 +184,7 @@ impl_downcast!(Event);
 impl<T: GenAnim + ?Sized> GenAnim for Box<T> {}
 
 impl<T: Event + ?Sized> Event for Box<T> {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
+    fn run(&self, ecx: &mut Data) -> EventResult {
         (**self).run(ecx)
     }
 }
@@ -233,7 +192,7 @@ impl<T: Event + ?Sized> Event for Box<T> {
 impl<T: GenAnim + ?Sized> GenAnim for Rc<T> {}
 
 impl<T: Event + ?Sized> Event for Rc<T> {
-    fn run(&self, ecx: &mut EventContext) -> EventResult {
+    fn run(&self, ecx: &mut Data) -> EventResult {
         (**self).run(ecx)
     }
 }

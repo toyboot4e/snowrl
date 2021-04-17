@@ -104,7 +104,7 @@ pub trait QuadParamsBuilder {
         self
     }
 
-    /// Sets origin where we specify coordinates / where the quad rotates
+    /// Sets normalized origin, where we specify coordinates / rotation base
     fn origin(&mut self, origin: impl Into<Vec2f>) -> &mut Self {
         self.params().origin = origin.into();
         self

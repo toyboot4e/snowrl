@@ -26,19 +26,28 @@ pub struct DrawParams {
     pub size: Vec2f,
     pub color: Color,
     /// Rotation in radian
-    pub rot: f32,
+    pub rot: Option<f32>,
+    pub origin: Option<Vec2f>,
     // pub scales: Vec2f,
 }
 
 impl DrawParams {
     /// Sets up quad parameters
     pub fn setup_quad<'a, 'b: 'a, B: QuadParamsBuilder>(&self, builder: &'b mut B) -> &'a mut B {
-        builder
+        let b = builder
             .dst_pos_px(self.pos)
             .dst_size_px(self.size)
-            .color(self.color)
-            // TODO: It doesn't consider sprite's rotation. Do it in `Render`
-            .rot(self.rot)
+            .color(self.color);
+
+        if let Some(rot) = self.rot {
+            b.rot(rot);
+        }
+
+        if let Some(origin) = self.origin {
+            b.origin(origin);
+        }
+
+        b
     }
 
     pub fn transform_mut(&self, other: &mut DrawParams) {
@@ -92,8 +101,8 @@ impl_into_draw!(Text, Text);
 /// [`Draw`] variant
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Text {
-    // TODO: unsafe tetx reference?
     pub txt: String,
+    // TODO: size of text
     // TODO: decoration information (spans for colors, etc)
 }
 
@@ -134,6 +143,7 @@ impl From<Draw> for Node {
             },
             ..Default::default()
         };
+
         Node {
             draw,
             params: params.clone(),

@@ -14,6 +14,8 @@ use {
     std::{collections::VecDeque, fmt, time::Duration},
 };
 
+use crate::Data;
+
 /// Utility for implementing animations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Timer {
@@ -89,14 +91,10 @@ pub enum AnimResult {
     Finish,
 }
 
-/// Context to process any [`Anim`]
-pub type AnimUpdateContext = crate::data::Data;
-
 /// Roguelike animation object
 pub trait Anim: fmt::Debug + Downcast {
-    fn on_start(&mut self, _ucx: &mut AnimUpdateContext) {}
-    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult;
-    // TODO: render animation
+    fn on_start(&mut self, _ucx: &mut Data) {}
+    fn update(&mut self, ucx: &mut Data) -> AnimResult;
 }
 
 // we can cast `Box<Anim>` to `Box<Any>` with `as_any`
@@ -161,14 +159,14 @@ impl AnimPlayer {
         }
     }
 
-    pub fn on_start(&mut self, ucx: &mut AnimUpdateContext) {
+    pub fn on_start(&mut self, data: &mut Data) {
         assert!(
             !self.anims.is_empty(),
             "Tried to start playing animation stack while it's empty!"
         );
 
         let front = self.anims.front_mut().unwrap();
-        front.on_start(ucx);
+        front.on_start(data);
 
         // log::trace!("animation queue: {:?}", self.anims);
     }
@@ -180,7 +178,7 @@ impl AnimPlayer {
 
 /// Lifecycle
 impl AnimPlayer {
-    pub fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
+    pub fn update(&mut self, data: &mut Data) -> AnimResult {
         loop {
             let front = match self.anims.front_mut() {
                 Some(a) => a,
@@ -191,13 +189,13 @@ impl AnimPlayer {
             };
 
             // TODO: separate `AnimResult` and `AnimPlayerResult`
-            let res = front.update(ucx);
+            let res = front.update(data);
 
             if res == AnimResult::Finish {
                 self.anims.pop_front();
 
                 if let Some(front) = self.anims.front_mut() {
-                    front.on_start(ucx);
+                    front.on_start(data);
                 }
 
                 continue; // process next animation

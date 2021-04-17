@@ -4,11 +4,14 @@ Animations for the builtin events
 They're created referencing rogulike events and then we forget about original events.
 */
 
-use snow2d::utils::arena::Index;
+use snow2d::{
+    ui::anim::{Anim as UiAnim, AnimImpl},
+    utils::arena::Index,
+};
 
-use crate::data::world::actor::Actor;
+use crate::data::{res::UiLayer, world::actor::Actor};
 
-use super::{Anim, AnimResult, AnimUpdateContext, Timer};
+use super::{Anim, AnimResult, Data, Timer};
 
 /// TODO: rm
 const WALK_FRAMES: u64 = 8;
@@ -22,7 +25,7 @@ pub struct WaitFrames {
 }
 
 impl Anim for WaitFrames {
-    fn update(&mut self, _ucx: &mut AnimUpdateContext) -> AnimResult {
+    fn update(&mut self, _data: &mut Data) -> AnimResult {
         if self.frames == 0 {
             AnimResult::Finish
         } else {
@@ -46,8 +49,8 @@ impl WaitSecs {
 }
 
 impl Anim for WaitSecs {
-    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
-        self.timer.tick_as_result(ucx.ice.dt())
+    fn update(&mut self, data: &mut Data) -> AnimResult {
+        self.timer.tick_as_result(data.ice.dt())
     }
 }
 
@@ -79,17 +82,46 @@ impl WalkAnim {
 }
 
 impl Anim for WalkAnim {
-    fn on_start(&mut self, ucx: &mut AnimUpdateContext) {
+    fn on_start(&mut self, data: &mut Data) {
         // be sure to start animation in this frame
         self.timer.set_started(true);
 
         if self.actors.iter().any(|a| a.slot() == PLAYER) {
             // update Player FoV in this frame
-            ucx.world.shadow.mark_dirty();
+            data.world.shadow.mark_dirty();
         }
     }
 
-    fn update(&mut self, ucx: &mut AnimUpdateContext) -> AnimResult {
-        self.timer.tick_as_result(ucx.ice.dt())
+    fn update(&mut self, data: &mut Data) -> AnimResult {
+        self.timer.tick_as_result(data.ice.dt())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct WaitForUiAnim {
+    anim: Index<UiAnim>,
+    layer: UiLayer,
+}
+
+impl WaitForUiAnim {
+    pub fn new(anim: Index<UiAnim>, layer: UiLayer) -> Self {
+        Self { anim, layer }
+    }
+}
+
+impl Anim for WaitForUiAnim {
+    fn on_start(&mut self, _data: &mut Data) {}
+
+    fn update(&mut self, data: &mut Data) -> AnimResult {
+        let anim = match data.res.ui.layer(self.layer).anims.get(self.anim) {
+            Some(node) => node,
+            None => return AnimResult::Finish,
+        };
+
+        if anim.is_end() {
+            AnimResult::Finish
+        } else {
+            AnimResult::GotoNextFrame
+        }
     }
 }
