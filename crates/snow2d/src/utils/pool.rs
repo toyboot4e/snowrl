@@ -195,7 +195,7 @@ impl<T> Pool<T> {
         }
     }
 
-    /// Update reference counting of internal items
+    /// Update reference counting of internal items and remove unreferenced nodes
     pub fn sync_refcounts(&mut self) {
         // TODO: can we assume messages are correctly ordered?
         while let Ok(mes) = self.receiver.try_recv() {

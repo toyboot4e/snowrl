@@ -85,7 +85,6 @@ impl Layer {
         // tick and apply animations. remove finished animations
         self.anims.update(dt, &mut self.nodes);
 
-        // remove unreferenced nodes
         self.nodes.sync_refcounts();
 
         // calculate geometry
@@ -113,17 +112,16 @@ impl Layer {
 
         // apply transformation to children
         let parent = Cheat::new(child);
-        parent
+
+        let _ = parent
             .as_mut()
             .children
             .drain_filter(|child_handle| {
                 if let Some(child) = nodes.as_mut().get_mut(child_handle) {
                     Self::update_node_rec(nodes.clone(), child, Some(parent.clone()));
-                    // keep the valid child index
-                    false
+                    false // keep the valid child index
                 } else {
-                    // remove dangling child index
-                    true
+                    true // drain the dangling child index
                 }
             })
             .collect::<Vec<_>>();
@@ -270,7 +268,7 @@ impl AnimStorage {
     /// Tick and apply animations. Remove finished animations
     pub fn update(&mut self, dt: Duration, nodes: &mut Pool<Node>) {
         // update `delayed` animations
-        let mut new_start_anims = self.delayed.drain_filter(|anim| {
+        let new_start_anims = self.delayed.drain_filter(|anim| {
             // TODO: refactor with Timer, maybe in `ez`
             if anim.is_first_tick {
                 anim.is_first_tick = false;
@@ -289,9 +287,9 @@ impl AnimStorage {
             }
         });
 
-        for (_ix, mut delayed_anim) in new_start_anims {
-            delayed_anim.anim.set_active(true);
-            self.running.insert(delayed_anim.anim);
+        for mut anim in new_start_anims.map(|(_ix, delayed)| delayed.anim) {
+            anim.set_active(true);
+            self.running.insert(anim);
         }
 
         // update `running` animations
@@ -304,7 +302,7 @@ impl AnimStorage {
                 }
 
                 if anim.is_end() {
-                    return true;
+                    return true; // drain
                 }
 
                 anim.tick(dt);
