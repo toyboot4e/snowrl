@@ -13,7 +13,7 @@ pub mod scenes;
 pub mod states;
 
 use {
-    grue2d::{agents::WorldRenderer, data::res::UiLayer, hot_crate, GrueRl, PlatformLifetime},
+    grue2d::{agents::WorldRenderer, app::PlatformLifetime, data::res::UiLayer, hot_crate, GrueRl},
     rokol::gfx as rg,
     snow2d::gfx::Color,
     std::time::Duration,
@@ -110,7 +110,7 @@ impl SnowRl {
 mod impl_ {
     use std::time::Duration;
 
-    use grue2d::{Lifecycle, PlatformLifetime};
+    use grue2d::app::{Lifecycle, PlatformLifetime};
     use rokol::gfx as rg;
 
     use crate::SnowRl;

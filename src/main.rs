@@ -13,9 +13,9 @@ use anyhow::{Error, Result};
 use snow2d::gfx::WindowState;
 
 use grue2d::{
+    app::PlatformLifetime,
     ctrl::Control,
     data::res::{Resources, Ui, VInput},
-    PlatformLifetime,
 };
 
 use snowrl::{init, prelude::*, states, SnowRl};
@@ -23,7 +23,7 @@ use snowrl::{init, prelude::*, states, SnowRl};
 fn main() -> Result<()> {
     env_logger::init();
 
-    let init = grue2d::Init {
+    let init = grue2d::app::Init {
         title: "SnowRL".to_string(),
         // FIXME: magic value
         w: 1280,
@@ -43,10 +43,10 @@ fn main() -> Result<()> {
     game.data.ice.audio.set_global_volume(0.0);
     let app = SnowRl::new(game);
 
-    grue2d::run(platform, app)
+    grue2d::app::run(platform, app)
 }
 
-fn new_game(init: &grue2d::Init, platform: &PlatformLifetime) -> Result<GrueRl> {
+fn new_game(init: &grue2d::app::Init, platform: &PlatformLifetime) -> Result<GrueRl> {
     // create our game context
     let mut data = {
         let mut ice = Ice::new(unsafe {
