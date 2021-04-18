@@ -24,8 +24,6 @@ use {
 };
 
 /// The game
-///
-/// See `platform_impl.rs` for the internal game loop.
 pub struct SnowRl {
     pub grue: GrueRl,
     pub plugin: hot_crate::HotLibrary,
@@ -141,19 +139,3 @@ mod impl_ {
         }
     }
 }
-
-// /// Lifecycle forced by `rokol`
-// impl RApp for SnowRl {
-//     fn event(&mut self, ev: &Event) {
-//         self.grue.event(ev);
-//     }
-//
-//     /// Create our own lifecycle
-//     fn frame(&mut self) {
-//         self.pre_update();
-//         self.grue.update();
-//         self.render();
-//         self.grue.on_end_frame();
-//         rg::commit();
-//     }
-// }

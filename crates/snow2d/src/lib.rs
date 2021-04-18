@@ -26,7 +26,7 @@ use crate::{
     input::Input,
 };
 
-/// Set of generic game contexts
+/// Generic game context
 #[derive(Debug)]
 pub struct Ice {
     /// Clears target (frame buffer) with cornflower blue color

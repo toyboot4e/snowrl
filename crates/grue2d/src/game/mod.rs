@@ -1,5 +1,5 @@
 /*!
-Game data
+Game data controled by `fsm`
 */
 
 pub mod agents;
