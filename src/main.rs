@@ -16,6 +16,7 @@ use grue2d::{
     app::Platform,
     game::{
         data::res::{Resources, Ui, VInput},
+        cfg::GameConfig,
         Control,
     },
 };
@@ -74,6 +75,7 @@ fn new_game(init: &grue2d::app::Init, platform: &Platform) -> Result<GrueRl> {
                 vi: VInput::new(),
                 ui,
             },
+            cfg: GameConfig::default(),
         }
     };
 

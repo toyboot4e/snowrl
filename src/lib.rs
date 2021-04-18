@@ -62,7 +62,7 @@ impl SnowRl {
         let cam_mat = data.world.cam.to_mat4();
 
         {
-            let (ice, res, world) = (&mut data.ice, &mut data.res, &mut data.world);
+            let (ice, res, world, cfg) = (&mut data.ice, &mut data.res, &mut data.world, &data.cfg);
             let dt = ice.dt();
 
             {
@@ -92,13 +92,15 @@ impl SnowRl {
                 WorldRenderer::render_map(&mut screen, world, 100..);
             }
 
-            agents.world_render.render_shadow(&mut ice.snow, world);
+            agents
+                .world_render
+                .render_shadow(&mut ice.snow, world, &cfg.shadow_cfg);
 
             res.ui.layer_mut(UiLayer::OnShadow).render(ice, cam_mat);
 
             agents
                 .world_render
-                .render_snow(&ice.snow.window, &ice.snow.clock);
+                .render_snow(&ice.snow.window, &ice.snow.clock, &cfg.snow_cfg);
         }
 
         data.res
