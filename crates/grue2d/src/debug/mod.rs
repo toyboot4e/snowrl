@@ -7,8 +7,11 @@ use imgui_backends::{helper::QuickStart, platform::ImGuiSdl2, renderer::ImGuiRok
 
 /// ImGUI backend
 pub type Backend = imgui_backends::Backend<ImGuiSdl2, ImGuiRokolGfx>;
+pub type BackendUi<'a> = imgui_backends::BackendUi<'a, ImGuiSdl2, ImGuiRokolGfx>;
 
-use crate::Platform;
+use std::time::Duration;
+
+use crate::{app::Platform, game::Data};
 
 // FIXME: hard-coded value
 const W: usize = 1280;
@@ -30,4 +33,9 @@ pub fn create_backend(platform: &Platform) -> Result<Backend> {
         platform,
         renderer,
     })
+}
+
+pub fn debug_render(data: &mut Data, ui: &mut BackendUi<'_>) {
+    let mut is_opened: bool = true;
+    ui.show_demo_window(&mut is_opened);
 }

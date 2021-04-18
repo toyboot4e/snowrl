@@ -4,9 +4,17 @@ Animations for the builtin events
 They're created referencing rogulike events and then we forget about original events.
 */
 
-use snow2d::{
-    ui::anim::{Anim as UiAnim, AnimImpl},
-    utils::arena::Index,
+use {
+    rlbox::rl::grid2d::{Dir8, Vec2i},
+    snow2d::{
+        gfx::geom2d::Vec2f,
+        ui::{
+            anim::{Anim as UiAnim, AnimImpl, AnimIndex},
+            anim_builder::AnimSeq,
+        },
+        utils::arena::Index,
+    },
+    std::time::Duration,
 };
 
 use crate::game::data::{res::UiLayer, world::actor::Actor};
@@ -14,7 +22,7 @@ use crate::game::data::{res::UiLayer, world::actor::Actor};
 use super::{Anim, AnimResult, Data, Timer};
 
 /// TODO: rm
-const WALK_FRAMES: u64 = 8;
+const WALK_SECS: f32 = 8.0 / 60.0;
 
 /// TODO: don't hard code player detection
 const PLAYER: u32 = 0;
@@ -70,7 +78,7 @@ impl WalkAnim {
                 xs.push(actor);
                 xs
             },
-            timer: Timer::from_frames(WALK_FRAMES),
+            timer: Timer::from_duration(Duration::from_secs_f32(WALK_SECS)),
         }
     }
 
@@ -123,5 +131,57 @@ impl Anim for WaitForUiAnim {
         } else {
             AnimResult::GotoNextFrame
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SwingAnim {
+    pub actor: Index<Actor>,
+    pub dir: Dir8,
+    timer: Timer,
+    anims: Option<Vec<AnimIndex>>,
+}
+
+impl SwingAnim {
+    pub fn new(actor: Index<Actor>, dir: Dir8, secs: f32) -> Self {
+        Self {
+            actor,
+            dir,
+            timer: Timer::from_secs_f32(secs),
+            anims: None,
+        }
+    }
+}
+
+impl Anim for SwingAnim {
+    fn on_start(&mut self, data: &mut Data) {
+        log::trace!("swing secs: {}", self.timer.target().as_secs_f32());
+
+        let actor = &data.world.entities[self.actor];
+        let actor_layer = data.res.ui.layer_mut(UiLayer::Actors);
+
+        // parameters
+        let dpos = {
+            let size = Vec2f::new(
+                data.world.map.tiled.tile_width as f32,
+                data.world.map.tiled.tile_height as f32,
+            );
+            size * Vec2i::from(self.dir).to_vec2f()
+        };
+        let img_offset = actor.view.img_offset();
+
+        // sequence of animations
+        actor_layer.anims.insert_seq({
+            let (mut seq, mut gen) = AnimSeq::begin();
+            gen.node(&actor.nodes.img)
+                .secs(self.timer.target().as_secs_f32() / 2.0);
+            seq.append(gen.pos([img_offset, img_offset + dpos]));
+            seq.append(gen.pos([img_offset + dpos, img_offset]));
+            seq
+        });
+    }
+
+    fn update(&mut self, data: &mut Data) -> AnimResult {
+        self.timer.tick_as_result(data.ice.dt())
     }
 }

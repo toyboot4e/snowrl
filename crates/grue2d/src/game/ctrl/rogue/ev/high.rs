@@ -24,6 +24,9 @@ use crate::game::{
 
 use super::*;
 
+/// TODO: rm
+const SWING_SECS: f32 = 8.0 / 60.0;
+
 #[derive(Debug)]
 pub enum Attack {
     MeleeAttackFromActor { actor: Index<Actor> },
@@ -139,8 +142,7 @@ impl GenAnim for MeleeAttack {
             self.actor,
             self.dir
                 .unwrap_or_else(|| data.world.entities[self.actor].dir),
-            // FIXME: magic number
-            tweak!(8.0 / 60.0),
+            SWING_SECS,
         )))
     }
 }

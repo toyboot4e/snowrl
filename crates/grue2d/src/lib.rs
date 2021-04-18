@@ -98,4 +98,61 @@ impl GrueRl {
         agents.world_render.post_update(&data.world, dt);
         data.res.ui.update(dt);
     }
+
+    fn debug_update(&mut self, dt: Duration) {
+        self.imgui.update_delta_time(dt);
+    }
+
+    fn debug_render(&mut self, platform: &mut Platform) {
+        let mut ui = self.imgui.begin_frame(&platform.win);
+        crate::debug::debug_render(&mut self.data, &mut ui);
+        ui.end_frame(&mut platform.win, &mut ()).unwrap();
+    }
+}
+
+mod sdl2_impl {
+    //! Rust-SDL2 support
+
+    use std::time::Duration;
+
+    use sdl2::event::Event;
+
+    use super::Platform;
+    use crate::GrueRl;
+
+    /// Lifecycle methods
+    impl GrueRl {
+        pub fn event(&mut self, ev: &Event, platform: &Platform) {
+            self.data.ice.event(ev);
+            self.imgui.handle_event(&platform.win, ev);
+        }
+
+        pub fn update(&mut self, dt: std::time::Duration, _platform: &mut Platform) {
+            self.pre_update(dt);
+            self.debug_update(dt);
+            self.fsm.update(&mut self.data, &mut self.ctrl);
+            self.post_update(dt);
+        }
+
+        pub fn pre_render(&mut self, _dt: Duration, platform: &mut Platform) {
+            let size = platform.win.size();
+
+            self.data.ice.pre_render(snow2d::gfx::WindowState {
+                w: size.0,
+                h: size.1,
+                // FIXME: never hard code this value
+                // dpi_scale: [2.0, 2.0],
+                dpi_scale: [1.0, 1.0],
+            });
+        }
+
+        pub fn post_render(&mut self, dt: Duration, platform: &mut Platform) {
+            self.debug_render(platform);
+            self.data.ice.post_render(dt);
+        }
+
+        pub fn on_end_frame(&mut self) {
+            self.data.ice.on_end_frame();
+        }
+    }
 }

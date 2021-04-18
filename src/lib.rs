@@ -120,8 +120,8 @@ mod impl_ {
     impl Lifecycle for SnowRl {
         type Event = sdl2::event::Event;
 
-        fn event(&mut self, ev: Self::Event) {
-            self.grue.event(&ev);
+        fn event(&mut self, ev: Self::Event, platform: &mut Platform) {
+            self.grue.event(&ev, platform);
         }
 
         fn update(&mut self, dt: Duration, platform: &mut Platform) {
@@ -132,7 +132,7 @@ mod impl_ {
         fn render(&mut self, dt: Duration, platform: &mut Platform) {
             self.grue.pre_render(dt, platform);
             self.render(dt, platform);
-            self.grue.post_render(dt);
+            self.grue.post_render(dt, platform);
             self.grue.on_end_frame();
             rg::commit();
             platform.swap_window();

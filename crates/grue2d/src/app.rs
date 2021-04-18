@@ -17,7 +17,7 @@ pub type Platform = rokol::glue::sdl::WindowHandle;
 /// Platform-independent application lifecycle
 pub trait Lifecycle {
     type Event;
-    fn event(&mut self, ev: Self::Event);
+    fn event(&mut self, ev: Self::Event, platform: &mut Platform);
     fn update(&mut self, dt: Duration, platform: &mut Platform);
     fn render(&mut self, dt: Duration, platform: &mut Platform);
 }
@@ -104,10 +104,10 @@ where
                     }
                     _ => {}
                 },
-                _ => {
-                    app.event(ev);
-                }
+                _ => {}
             }
+
+            app.event(ev, &mut platform);
         }
 
         match (focus[0], focus[1]) {
@@ -141,48 +141,4 @@ where
     }
 
     Ok(())
-}
-
-mod sdl2_impl {
-    //! Rust-SDL2 support
-
-    use std::time::Duration;
-
-    use sdl2::event::Event;
-
-    use super::Platform;
-    use crate::GrueRl;
-
-    /// Lifecycle methods
-    impl GrueRl {
-        pub fn event(&mut self, ev: &Event) {
-            self.data.ice.event(ev);
-        }
-
-        pub fn update(&mut self, dt: std::time::Duration, _platform: &mut Platform) {
-            self.pre_update(dt);
-            self.fsm.update(&mut self.data, &mut self.ctrl);
-            self.post_update(dt);
-        }
-
-        pub fn pre_render(&mut self, _dt: Duration, platform: &mut Platform) {
-            let size = platform.win.size();
-
-            self.data.ice.pre_render(snow2d::gfx::WindowState {
-                w: size.0,
-                h: size.1,
-                // FIXME: never hard code this value
-                // dpi_scale: [2.0, 2.0],
-                dpi_scale: [1.0, 1.0],
-            });
-        }
-
-        pub fn post_render(&mut self, dt: Duration) {
-            self.data.ice.post_render(dt);
-        }
-
-        pub fn on_end_frame(&mut self) {
-            self.data.ice.on_end_frame();
-        }
-    }
 }
