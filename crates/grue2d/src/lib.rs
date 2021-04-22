@@ -29,7 +29,7 @@ use crate::{
 pub const PA_BLUE: rg::PassAction =
     rg::PassAction::clear_const([100.0 / 255.0, 149.0 / 255.0, 237.0 / 255.0, 250.0 / 255.0]);
 
-/// Data to schedule rendering
+/// Component of rendering schedule
 #[derive(Debug, Clone, Copy)]
 pub enum DrawStage {
     UiLayer(crate::game::data::res::UiLayer),
@@ -47,22 +47,7 @@ pub fn run_scheduled_render(schedule: &[DrawStage], grue: &mut GrueRl) {
     }
 }
 
-pub fn run_scheduled_render_default(grue: &mut GrueRl) {
-    run_scheduled_render(DrawStage::DEFAULT_SCHEDULE, grue);
-}
-
 impl DrawStage {
-    pub const DEFAULT_SCHEDULE: &'static [Self] = &[
-        DrawStage::MapDown,
-        DrawStage::UiLayer(UiLayer::Actors),
-        DrawStage::UiLayer(UiLayer::OnActors),
-        DrawStage::MapUp,
-        DrawStage::Shadow,
-        DrawStage::UiLayer(UiLayer::OnShadow),
-        DrawStage::Snow,
-        DrawStage::UiLayer(UiLayer::Screen),
-    ];
-
     pub fn draw(self, grue: &mut GrueRl) {
         let (data, agents) = (&mut grue.data, &mut grue.agents);
         let cam_mat = data.world.cam.to_mat4();
@@ -207,7 +192,7 @@ mod sdl2_impl {
     use sdl2::event::Event;
 
     use super::Platform;
-    use crate::GrueRl;
+    use crate::{game::data::res::UiLayer, DrawStage, GrueRl};
 
     /// Lifecycle methods
     impl GrueRl {
@@ -221,6 +206,22 @@ mod sdl2_impl {
             self.debug_update(dt);
             self.fsm.update(&mut self.data, &mut self.ctrl);
             self.post_update(dt);
+        }
+
+        pub const DEFAULT_RENDER_SCHEDULE: &'static [DrawStage] = &[
+            DrawStage::MapDown,
+            DrawStage::UiLayer(UiLayer::Actors),
+            DrawStage::UiLayer(UiLayer::OnActors),
+            DrawStage::MapUp,
+            DrawStage::Shadow,
+            DrawStage::UiLayer(UiLayer::OnShadow),
+            DrawStage::Snow,
+            DrawStage::UiLayer(UiLayer::Screen),
+        ];
+
+        /// Render the game in default order
+        pub fn render_default(&mut self) {
+            crate::run_scheduled_render(Self::DEFAULT_RENDER_SCHEDULE, self);
         }
 
         pub fn pre_render(&mut self, _dt: Duration, platform: &mut Platform) {

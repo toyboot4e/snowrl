@@ -47,7 +47,7 @@ impl SnowRl {
 
     #[inline]
     fn render(&mut self, _dt: Duration, _platform: &mut Platform) {
-        grue2d::run_scheduled_render_default(&mut self.grue);
+        self.grue.render_default();
     }
 }
 
