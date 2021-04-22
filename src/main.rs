@@ -15,8 +15,8 @@ use snow2d::gfx::WindowState;
 use grue2d::{
     app::Platform,
     game::{
-        data::res::{Resources, Ui, VInput},
         cfg::GameConfig,
+        data::res::{Resources, Ui, VInput},
         Control,
     },
 };
@@ -42,9 +42,10 @@ fn main() -> Result<()> {
         })
         .map_err(Error::msg)?;
 
-    let mut game = self::new_game(&init, &platform)?;
-    game.data.ice.audio.set_global_volume(0.0);
-    let app = SnowRl::new(game);
+    let app = {
+        let game = self::new_game(&init, &platform)?;
+        SnowRl::new(game)
+    };
 
     grue2d::app::run(platform, app)
 }

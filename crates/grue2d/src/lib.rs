@@ -17,16 +17,105 @@ pub mod game;
 pub mod debug;
 
 use std::time::Duration;
-
-use anyhow::*;
-
-use snow2d::gfx::geom2d::Vec2f;
+use {anyhow::*, rokol::gfx as rg, snow2d::gfx::geom2d::Vec2f};
 
 use crate::{
     app::Platform,
     fsm::*,
-    game::{Agents, Control, Data},
+    game::{agents::WorldRenderer, data::res::UiLayer, Agents, Control, Data},
 };
+
+/// Pass action that clears the screen with cornflower blue
+pub const PA_BLUE: rg::PassAction =
+    rg::PassAction::clear_const([100.0 / 255.0, 149.0 / 255.0, 237.0 / 255.0, 250.0 / 255.0]);
+
+/// Data to schedule rendering
+#[derive(Debug, Clone, Copy)]
+pub enum DrawStage {
+    UiLayer(crate::game::data::res::UiLayer),
+    MapDown,
+    MapUp,
+    Shadow,
+    Snow,
+    /// Clear screen with cornflower blue
+    ClearScreen,
+}
+
+pub fn run_scheduled_render(schedule: &[DrawStage], grue: &mut GrueRl) {
+    for stage in schedule {
+        stage.draw(grue);
+    }
+}
+
+pub fn run_scheduled_render_default(grue: &mut GrueRl) {
+    run_scheduled_render(DrawStage::DEFAULT_SCHEDULE, grue);
+}
+
+impl DrawStage {
+    pub const DEFAULT_SCHEDULE: &'static [Self] = &[
+        DrawStage::MapDown,
+        DrawStage::UiLayer(UiLayer::Actors),
+        DrawStage::UiLayer(UiLayer::OnActors),
+        DrawStage::MapUp,
+        DrawStage::Shadow,
+        DrawStage::UiLayer(UiLayer::OnShadow),
+        DrawStage::Snow,
+        DrawStage::UiLayer(UiLayer::Screen),
+    ];
+
+    pub fn draw(self, grue: &mut GrueRl) {
+        let (data, agents) = (&mut grue.data, &mut grue.agents);
+        let cam_mat = data.world.cam.to_mat4();
+
+        let (ice, res, world, cfg) = (&mut data.ice, &mut data.res, &mut data.world, &data.cfg);
+        let dt = ice.dt();
+
+        match self {
+            DrawStage::UiLayer(ui_layer) => {
+                if ui_layer == UiLayer::Actors {
+                    // NOTE: we're assuming `OnActors` is drawn actor `Actors`
+                    agents
+                        .world_render
+                        .setup_actor_nodes(world, &mut res.ui, dt);
+                }
+
+                res.ui.layer_mut(ui_layer).render(ice, cam_mat);
+            }
+            DrawStage::MapDown => {
+                let mut screen = ice
+                    .snow
+                    .screen()
+                    .pa(Some(&rg::PassAction::LOAD))
+                    .transform(Some(cam_mat))
+                    .build();
+                WorldRenderer::render_map(&mut screen, world, 0..100);
+            }
+            DrawStage::MapUp => {
+                let mut screen = ice
+                    .snow
+                    .screen()
+                    .pa(Some(&PA_BLUE))
+                    .transform(Some(cam_mat))
+                    .build();
+                WorldRenderer::render_map(&mut screen, world, 100..);
+            }
+            DrawStage::Shadow => {
+                agents
+                    .world_render
+                    .render_shadow(&mut ice.snow, world, &cfg.shadow_cfg);
+            }
+            DrawStage::Snow => {
+                agents
+                    .world_render
+                    .render_snow(&ice.snow.window, &ice.snow.clock, &cfg.snow_cfg);
+            }
+            DrawStage::ClearScreen => {
+                // TODO: is this inefficient
+                let _screen = ice.snow.screen().pa(Some(&PA_BLUE)).build();
+            }
+        }
+    }
+}
 
 /// TODO: Plugin-based game content?
 pub trait Plugin: std::fmt::Debug {}

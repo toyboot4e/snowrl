@@ -13,13 +13,7 @@ pub mod scenes;
 pub mod states;
 
 use {
-    grue2d::{
-        app::Platform,
-        game::{agents::WorldRenderer, data::res::UiLayer},
-        hot_crate, GrueRl,
-    },
-    rokol::gfx as rg,
-    snow2d::gfx::Color,
+    grue2d::{app::Platform, hot_crate, GrueRl},
     std::time::Duration,
 };
 
@@ -27,7 +21,6 @@ use {
 pub struct SnowRl {
     pub grue: GrueRl,
     pub plugin: hot_crate::HotLibrary,
-    pa_blue: rg::PassAction,
 }
 
 impl SnowRl {
@@ -41,11 +34,7 @@ impl SnowRl {
             .unwrap()
         };
 
-        Self {
-            grue,
-            plugin,
-            pa_blue: rg::PassAction::clear(Color::CORNFLOWER_BLUE.to_normalized_array()),
-        }
+        Self { grue, plugin }
     }
 }
 
@@ -58,55 +47,7 @@ impl SnowRl {
 
     #[inline]
     fn render(&mut self, _dt: Duration, _platform: &mut Platform) {
-        let (data, agents) = (&mut self.grue.data, &mut self.grue.agents);
-        let cam_mat = data.world.cam.to_mat4();
-
-        {
-            let (ice, res, world, cfg) = (&mut data.ice, &mut data.res, &mut data.world, &data.cfg);
-            let dt = ice.dt();
-
-            {
-                let mut screen = ice
-                    .snow
-                    .screen()
-                    .pa(Some(&self.pa_blue))
-                    .transform(Some(world.cam.to_mat4()))
-                    .build();
-                WorldRenderer::render_map(&mut screen, world, 0..100);
-            }
-
-            agents
-                .world_render
-                .setup_actor_nodes(world, &mut res.ui, dt);
-
-            res.ui.layer_mut(UiLayer::Actors).render(ice, cam_mat);
-            res.ui.layer_mut(UiLayer::OnActors).render(ice, cam_mat);
-
-            {
-                let mut screen = ice
-                    .snow
-                    .screen()
-                    .pa(None)
-                    .transform(Some(world.cam.to_mat4()))
-                    .build();
-                WorldRenderer::render_map(&mut screen, world, 100..);
-            }
-
-            agents
-                .world_render
-                .render_shadow(&mut ice.snow, world, &cfg.shadow_cfg);
-
-            res.ui.layer_mut(UiLayer::OnShadow).render(ice, cam_mat);
-
-            agents
-                .world_render
-                .render_snow(&ice.snow.window, &ice.snow.clock, &cfg.snow_cfg);
-        }
-
-        data.res
-            .ui
-            .layer_mut(UiLayer::Screen)
-            .render(&mut data.ice, cam_mat);
+        grue2d::run_scheduled_render_default(&mut self.grue);
     }
 }
 
