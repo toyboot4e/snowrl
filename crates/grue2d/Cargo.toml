@@ -6,6 +6,7 @@ edition = "2018"
 
 [features]
 default = ["sdl2"]
+use-imgui = ["imgui", "imgui-backends", "imgui-inspect", "imgui-inspect-derive"]
 
 [dependencies]
 rokol = { path = "../snow2d/rokol", features = ["impl-gfx", "glcore33"] }
@@ -33,6 +34,10 @@ ron = "0.6.4"
 glsp = "0.2.0"
 sdl2 = { version = "0.34.3", optional = true }
 
-# NOTE: should be patched in root directory
-imgui-backends = { git = "https://github.com/toyboot4e/imgui-backends-rs", branch = "main", features = ["sdl2-rokol-gl"] }
+# NOTE: `rokol` should be patched in root package
+imgui = { version = "0.7.0", optional = true }
+imgui-backends = { git = "https://github.com/toyboot4e/imgui-backends-rs", branch = "main", features = ["sdl2-rokol-gl"], optional = true }
+# imgui-inspect = { version = "0.8.0", optional = true }
+imgui-inspect = { git = "https://github.com/toyboot4e/imgui-inspect", branch = "derive-enum", optional = true }
+imgui-inspect-derive = { version = "0.8.0", optional = true }
 

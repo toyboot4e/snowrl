@@ -22,7 +22,7 @@ exclude = [
 ]
 
 [features]
-default = ["sdl2"]
+default = ["sdl2", "grue2d/use-imgui"]
 
 [dependencies]
 rokol = { path = "crates/snow2d/rokol", features = ["impl-gfx", "glcore33", "sdl2", "fontstash"] }
