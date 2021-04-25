@@ -12,6 +12,7 @@ pub extern crate rlbox;
 pub mod app;
 pub mod fsm;
 pub mod game;
+pub mod paths;
 
 #[cfg(debug_assertions)]
 pub mod debug;
@@ -121,6 +122,8 @@ pub struct GrueRl {
     #[cfg(debug_assertions)]
     /// (Debug-only) ImGUI
     pub imgui: debug::Backend,
+    /// (Debug-only) Debug state
+    pub debug_state: debug::DebugState,
 }
 
 impl GrueRl {
@@ -135,6 +138,7 @@ impl GrueRl {
             agents,
             fsm,
             imgui,
+            debug_state: Default::default(),
         })
     }
 }
@@ -179,7 +183,8 @@ impl GrueRl {
 
     fn debug_render(&mut self, platform: &mut Platform) {
         let mut ui = self.imgui.begin_frame(&platform.win);
-        crate::debug::debug_render(&mut self.data, &mut ui);
+        self.debug_state
+            .debug_render(&mut self.data, &mut self.ctrl, &mut ui);
         ui.end_frame(&mut platform.win, &mut ()).unwrap();
     }
 }

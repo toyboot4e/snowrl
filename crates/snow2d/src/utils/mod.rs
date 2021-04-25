@@ -5,6 +5,15 @@ Core utilities
 mod cheat;
 pub use cheat::{cheat, Cheat};
 
+#[cfg(feature = "use-imgui")]
+mod inspect;
+
+#[cfg(feature = "use-imgui")]
+pub use inspect::Inspect;
+
+#[cfg(feature = "use-imgui")]
+pub use snow2d_derive::Inspect;
+
 pub mod ez;
 pub mod pool;
 pub mod tyobj;
@@ -31,11 +40,6 @@ pub mod arena {
 ///
 /// ---
 pub use bytemuck;
-
-/// [`delegate::delegate`] re-exported
-///
-/// ---
-pub use delegate::delegate;
 
 /// [`derivative::Derivative`] re-exported
 ///

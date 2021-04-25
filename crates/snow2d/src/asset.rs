@@ -332,9 +332,9 @@ impl AssetCacheAny {
         boxed.downcast_mut::<AssetCacheT<T>>()
     }
 
-    pub fn load_sync<'a, T: AssetItem>(
+    pub fn load_sync<'a, T: AssetItem, K: Into<AssetKey<'a>>>(
         &mut self,
-        key: impl Into<AssetKey<'a>>,
+        key: K,
     ) -> Result<Asset<T>> {
         let key = key.into();
         self.cache_mut::<T>()
