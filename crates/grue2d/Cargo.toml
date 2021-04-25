@@ -9,7 +9,7 @@ default = ["sdl2"]
 use-imgui = ["imgui", "imgui-backends", "imgui-inspect", "imgui-inspect-derive"]
 
 [dependencies]
-rokol = { path = "../snow2d/rokol", features = ["impl-gfx", "glcore33"] }
+rokol = { path = "../snow2d/rokol/rokol", features = ["impl-gfx", "glcore33"] }
 snow2d = { path = "../snow2d" }
 rlbox = { path = "../rlbox" }
 hot_crate = { path = "hot_crate" }

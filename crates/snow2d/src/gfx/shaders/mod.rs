@@ -2,7 +2,7 @@
 
 #![allow(unused)]
 
-use rokol::gfx::{self as rg, BakedResource};
+use rokol::gfx::{self as rg, BakedResource, VertexLayout};
 
 use crate::{
     gfx::Shader,
@@ -98,7 +98,7 @@ fn gen(
 }
 
 /// Position, color and uv
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, VertexLayout)]
 #[repr(C)]
 pub struct DefaultVertex {
     pub pos: [f32; 2],
@@ -121,16 +121,6 @@ where
             color: data.1.into(),
             uv: data.2.into(),
         }
-    }
-}
-
-impl DefaultVertex {
-    pub fn layout_desc() -> rg::LayoutDesc {
-        let mut desc = rg::LayoutDesc::default();
-        desc.attrs[0].format = rg::VertexFormat::Float2 as u32;
-        desc.attrs[1].format = rg::VertexFormat::UByte4N as u32;
-        desc.attrs[2].format = rg::VertexFormat::Float2 as u32;
-        desc
     }
 }
 
@@ -208,7 +198,7 @@ pub fn gauss() -> Shader {
     )
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, VertexLayout)]
 #[repr(C)]
 pub struct PosUvVert {
     pub pos: [f32; 2],
@@ -217,15 +207,6 @@ pub struct PosUvVert {
 
 unsafe impl Zeroable for PosUvVert {}
 unsafe impl Pod for PosUvVert {}
-
-impl PosUvVert {
-    pub fn layout_desc() -> rg::LayoutDesc {
-        let mut desc = rg::LayoutDesc::default();
-        desc.attrs[0].format = rg::VertexFormat::Float2 as u32;
-        desc.attrs[1].format = rg::VertexFormat::Float2 as u32;
-        desc
-    }
-}
 
 pub fn snow() -> Shader {
     gen(
