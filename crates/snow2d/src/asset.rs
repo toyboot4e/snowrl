@@ -42,12 +42,12 @@ use crate::utils::Cheat;
 /// Generational index or identity of assets
 type Gen = u32;
 
-/// Get asset path relative to `assets` directory
+/// Get asset path relative to asset root directory
 pub fn path(path: impl AsRef<Path>) -> PathBuf {
-    // TODO: supply appropreate root path
-    let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    let assets = PathBuf::from(root).join("assets");
-    assets.join(path)
+    // TODO: runtime asset root detection
+    let proj_root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let asset_root = PathBuf::from(proj_root).join("assets");
+    asset_root.join(path)
 }
 
 pub fn deserialize_ron<'a, T: serde::de::DeserializeOwned>(
@@ -71,6 +71,31 @@ pub fn deserialize_ron<'a, T: serde::de::DeserializeOwned>(
         })
 }
 
+/// `"scheme:path"` or `"relative_path"`
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct StringWithScheme {
+    raw: String,
+    /// Byte offset of `:` character
+    scheme_offset: Option<usize>,
+}
+
+/// Maps [`SchemeString`] to relative path from asset root directory
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SchemeHolder {
+    schemes: Vec<(String, String)>,
+}
+
+impl StringWithScheme {
+    pub fn as_scheme(&self) -> Option<&str> {
+        self.scheme_offset.map(|offset| &self.raw[offset..])
+    }
+
+    pub fn as_body(&self) -> &str {
+        let offset = self.scheme_offset.map(|offset| offset + 1).unwrap_or(0);
+        &self.raw[offset..]
+    }
+}
+
 /// Asset data
 pub trait AssetItem: fmt::Debug + Sized + 'static {
     type Loader: AssetLoader<Item = Self>;
@@ -88,6 +113,19 @@ pub struct Asset<T: AssetItem> {
     item: Option<Arc<Mutex<T>>>,
     path: Rc<PathBuf>,
     identity: Gen,
+    /// If true, the asset won't be freed when there's no owner outside of `AssetCacheT`
+    preserve: bool,
+}
+
+impl<T: AssetItem> Clone for Asset<T> {
+    fn clone(&self) -> Self {
+        Self {
+            item: self.item.as_ref().map(|x| Arc::clone(x)),
+            path: Rc::clone(&self.path),
+            identity: self.identity,
+            preserve: false,
+        }
+    }
 }
 
 impl<T: AssetItem> std::cmp::PartialEq for Asset<T> {
@@ -96,21 +134,13 @@ impl<T: AssetItem> std::cmp::PartialEq for Asset<T> {
     }
 }
 
-// TODO: impl deref with dummy asset
-
-impl<T: AssetItem> Clone for Asset<T> {
-    fn clone(&self) -> Self {
-        Self {
-            item: self.item.as_ref().map(|x| Arc::clone(x)),
-            path: Rc::clone(&self.path),
-            identity: self.identity,
-        }
-    }
-}
-
 impl<T: AssetItem> Asset<T> {
     pub fn is_loaded(&self) -> bool {
         self.item.is_some()
+    }
+
+    pub fn set_preserved(&mut self, b: bool) {
+        self.preserve = b;
     }
 
     /// Tries to get `&T`, fails if the asset is not loaded or failed to load
@@ -141,8 +171,6 @@ impl<T: AssetItem> Asset<T> {
 #[serde(from = "PathBuf")]
 #[serde(into = "PathBuf")]
 pub struct AssetKey<'a>(Cow<'a, Path>);
-
-// TODO: interning on serde
 
 impl<'a> From<PathBuf> for AssetKey<'a> {
     fn from(p: PathBuf) -> Self {
@@ -215,6 +243,14 @@ pub struct AssetCacheT<T: AssetItem> {
     gen: Gen,
 }
 
+/// Cache of any [`AssetItem`] type, a bundle of [`AssetCacheT`]s
+#[derive(Debug)]
+pub struct AssetCacheAny {
+    caches: HashMap<TypeId, Box<dyn FreeUnused>>,
+}
+
+// TODO: interning on serde
+
 impl<T: AssetItem> AssetCacheT<T> {
     pub fn new(loader: T::Loader) -> Self {
         Self {
@@ -227,13 +263,13 @@ impl<T: AssetItem> AssetCacheT<T> {
     pub fn load_sync<'a>(&mut self, key: impl Into<AssetKey<'a>>) -> Result<Asset<T>> {
         let key = key.into();
         let id = AssetId::from_key(&key);
-        if let Some(a) = self.search_cache(&id) {
+        if let Some(entry) = self.entries.iter().find(|a| a.id == id) {
             log::trace!(
                 "(cache found for `{}` of type `{}`)",
                 key.display(),
                 std::any::type_name::<T>()
             );
-            Ok(a)
+            Ok(entry.asset.clone())
         } else {
             log::debug!(
                 "loading asset `{}` of type `{}`",
@@ -244,11 +280,12 @@ impl<T: AssetItem> AssetCacheT<T> {
         }
     }
 
-    fn search_cache(&mut self, id: &AssetId) -> Option<Asset<T>> {
-        self.entries
-            .iter()
-            .find(|a| a.id == *id)
-            .map(|a| a.asset.clone())
+    pub fn load_sync_preserve<'a>(&mut self, key: impl Into<AssetKey<'a>>) -> Result<Asset<T>> {
+        let mut res = self.load_sync(key);
+        if let Ok(asset) = res.as_mut() {
+            asset.set_preserved(true);
+        }
+        res
     }
 
     fn load_new_sync(&mut self, id: AssetId) -> Result<Asset<T>> {
@@ -261,6 +298,7 @@ impl<T: AssetItem> AssetCacheT<T> {
             },
             path: Rc::clone(&path),
             identity: self.gen,
+            preserve: false,
         };
         self.gen += 1;
 
@@ -273,41 +311,6 @@ impl<T: AssetItem> AssetCacheT<T> {
 
         Ok(asset)
     }
-}
-
-/// Upcast of [`AssetCacheT`]
-trait FreeUnused: fmt::Debug + Downcast {
-    fn free_unused(&mut self);
-}
-
-impl_downcast!(FreeUnused);
-
-impl<T: AssetItem> FreeUnused for AssetCacheT<T> {
-    fn free_unused(&mut self) {
-        let mut i = 0;
-        let mut len = self.entries.len();
-        while i < len {
-            if let Some(item) = &mut self.entries[i].asset.item {
-                if Arc::strong_count(item) == 1 {
-                    log::debug!(
-                        "free asset at `{}` in slot `{}` of cache for type `{}`",
-                        self.entries[i].path.display(),
-                        i,
-                        std::any::type_name::<T>(),
-                    );
-                    self.entries.remove(i);
-                    len -= 1;
-                }
-            }
-            i += 1;
-        }
-    }
-}
-
-/// Cache of any [`AssetItem`] type, a bundle of [`AssetCacheT`]s
-#[derive(Debug)]
-pub struct AssetCacheAny {
-    caches: HashMap<TypeId, Box<dyn FreeUnused>>,
 }
 
 impl AssetCacheAny {
@@ -348,6 +351,49 @@ impl AssetCacheAny {
                 )
             })?
             .load_sync(key)
+    }
+
+    pub fn load_sync_preserve<'a, T: AssetItem, K: Into<AssetKey<'a>>>(
+        &mut self,
+        key: K,
+    ) -> Result<Asset<T>> {
+        let mut res = self.load_sync(key);
+        if let Ok(asset) = res.as_mut() {
+            asset.set_preserved(true);
+        }
+        res
+    }
+}
+
+/// Upcast of [`AssetCacheT`]
+trait FreeUnused: fmt::Debug + Downcast {
+    fn free_unused(&mut self);
+}
+
+impl_downcast!(FreeUnused);
+
+impl<T: AssetItem> FreeUnused for AssetCacheT<T> {
+    fn free_unused(&mut self) {
+        let mut i = 0;
+        let mut len = self.entries.len();
+        while i < len {
+            let entry = &mut self.entries[i];
+            if let Some(item) = &entry.asset.item {
+                // if the asset entry is the only owner
+                // and it's not stated to be preserved
+                if Arc::strong_count(item) == 1 && !entry.asset.preserve {
+                    log::debug!(
+                        "free asset at `{}` in slot `{}` of cache for type `{}`",
+                        self.entries[i].path.display(),
+                        i,
+                        std::any::type_name::<T>(),
+                    );
+                    self.entries.remove(i);
+                    len -= 1;
+                }
+            }
+            i += 1;
+        }
     }
 }
 
@@ -416,9 +462,4 @@ impl<'de, T: AssetItem> Deserialize<'de> for Asset<T> {
 
         Ok(item)
     }
-}
-
-/// Serialize assets without making duplicates
-pub struct AssetSeState {
-    // cache: AssetCacheAny,
 }

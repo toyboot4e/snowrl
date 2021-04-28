@@ -118,6 +118,11 @@ impl Default for AnimPlayer {
 }
 
 impl AnimPlayer {
+    /// Inspect animations
+    pub fn anims(&self) -> &VecDeque<Box<dyn Anim>> {
+        &self.anims
+    }
+
     /// If we have queued animation that should be played immediately without batching
     pub fn any_anim_to_run_now(&self) -> bool {
         // more than one animation or the only animation never batches other animation

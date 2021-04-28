@@ -66,6 +66,15 @@ impl GenAnim for Hit {
         gen.node(&text).dt(ez::EasedDt::linear(1.0));
         on_actors.anims.insert(gen.alpha([0, 255]));
 
+        let se = data
+            .ice
+            .assets
+                // TODO: set preserved attribute to asstes
+            .load_sync_preserve::<snow2d::audio::src::Wav, _>(crate::paths::sound::se::ATTACK)
+            .unwrap();
+        // TODO: implement AudioExt for Asset<T> where T: AudioExt
+        data.ice.audio.play(&*se.get().unwrap());
+
         // TODO: wait for reserved duration (swing animation)
         // Some(Box::new(WaitForUiAnim::new(
         //     on_actors.anims.insert(gen.alpha([0, 255])),

@@ -2,6 +2,11 @@
 Debug-only module
 */
 
+// TODO: rokol ImGUI renderer
+
+// TODO: show game in ImGUI window
+// use a stack of `RenderTexture`s which can override backbuffer size.
+
 /// ImGUI backend
 pub type Backend = imgui_backends::Backend<ImGuiSdl2, ImGuiRokolGfx>;
 pub type BackendUi<'a> = imgui_backends::BackendUi<'a, ImGuiSdl2, ImGuiRokolGfx>;
@@ -67,7 +72,9 @@ pub fn create_backend(platform: &Platform) -> Result<Backend> {
 }
 
 impl DebugState {
-    pub fn debug_render(&mut self, data: &mut Data, ctrl: &mut Control, ui: &mut BackendUi) {
+    pub fn debug_render(&mut self, _data: &mut Data, _ctrl: &mut Control, ui: &mut BackendUi) {
+        ui.show_demo_window(&mut true);
+
         ig::Window::new(im_str!("Test"))
             .size([400.0, 100.], ig::Condition::FirstUseEver)
             .build(ui, || {
