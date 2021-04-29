@@ -32,16 +32,12 @@ fn inspect_struct(data: &DataStruct, ast: &syn::DeriveInput) -> TokenStream {
     self::generate_inspect_impl(
         ast,
         quote! {
-            if !imgui::CollapsingHeader::new(&imgui::im_str!("{}", label))
-                .default_open(true)
-                .build(ui)
+            imgui::TreeNode::new(&imgui::im_str!("{}", label))
+                .flags(imgui::TreeNodeFlags::OPEN_ON_ARROW)
+                .build(ui, ||
             {
-                return;
-            }
-
-            ui.indent();
-            #(#field_inspectors)*
-            ui.unindent();
+                #(#field_inspectors)*
+            })
         },
     )
 }
