@@ -3,10 +3,10 @@
 */
 
 use glam::{Mat4, Vec3};
-use snow2d::gfx::geom2d::*;
+use snow2d::{gfx::geom2d::*, utils::Inspect};
 
 /// TODO: use it? Transfrom of position, rotation and scale
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Inspect)]
 pub struct Transform2d {
     local: Mat2f,
     world: Mat2f,
@@ -14,7 +14,7 @@ pub struct Transform2d {
     world_dirty: bool,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Inspect)]
 pub struct TransformParams2d {
     pub pos: Vec2f,
     pub scale: Vec2f,
@@ -37,7 +37,7 @@ impl TransformParams2d {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Inspect)]
 pub struct Camera2d {
     pub params: TransformParams2d,
     pub size: Vec2f,
@@ -72,7 +72,7 @@ impl Camera2d {
 }
 
 /// All rectangles are in pixels
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Inspect)]
 pub struct FollowCamera2d {
     /// When the player is out of this rectangle, the camera starts to scroll
     pub sense_pads: Vec2f,

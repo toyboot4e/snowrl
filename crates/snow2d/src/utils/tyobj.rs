@@ -20,7 +20,7 @@ use derivative::Derivative;
 use once_cell::sync::OnceCell;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::asset::AssetKey;
+use crate::{self as snow2d, asset::AssetKey, utils::Inspect};
 
 /// Marker for data that define "type" of instances (type objects). Type objects are stored in
 /// static storage.
@@ -35,7 +35,7 @@ pub trait TypeObject: std::fmt::Debug + Sized {
 }
 
 /// Id of [`TypeObject`], which can be used to retrieve the [`TypeObject`] through global storage
-#[derive(Derivative)]
+#[derive(Derivative, Inspect)]
 #[derivative(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeObjectId<T: TypeObject> {
     key: String,

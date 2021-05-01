@@ -72,3 +72,18 @@ impl World {
         false
     }
 }
+
+#[cfg(feature = "use-imgui")]
+mod inspect {
+    use imgui::Ui;
+    use snow2d::utils::Inspect;
+
+    use super::*;
+
+    impl Inspect for World {
+        fn inspect(&mut self, ui: &Ui, _label: &str) {
+            self.cam.inspect(ui, "camera");
+            self.entities.inspect(ui, "entities");
+        }
+    }
+}

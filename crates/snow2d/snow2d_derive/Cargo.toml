@@ -6,6 +6,9 @@ edition = "2018"
 [lib]
 proc-macro = true
 
+[features]
+dummy = []
+
 [dependencies]
 proc-macro2 = "1.0.26"
 quote = "1.0.9"

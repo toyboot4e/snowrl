@@ -35,12 +35,14 @@ use std::{
 
 use derivative::Derivative;
 
+use crate::{self as snow2d, utils::Inspect};
+
 type Gen = std::num::NonZeroU32;
 type GenCounter = u32;
 type RefCount = u16;
 
 /// Newtype of `u32`
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Inspect)]
 pub struct Slot(u32);
 
 impl Slot {
@@ -59,7 +61,7 @@ enum Message {
 /// Owing index to an item in a [`Pool`]
 ///
 /// It can't identify the belonging [`Pool`].
-#[derive(Debug)]
+#[derive(Debug, Inspect)]
 pub struct Handle<T> {
     slot: Slot,
     gen: Gen,

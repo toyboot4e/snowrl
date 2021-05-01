@@ -15,7 +15,7 @@ use snow2d::gfx::WindowState;
 use grue2d::{
     app::Platform,
     game::{
-        cfg::GameConfig,
+        cfg::*,
         data::res::{Resources, Ui, VInput},
         Control,
     },
@@ -76,7 +76,11 @@ fn new_game(init: &grue2d::app::Init, platform: &Platform) -> Result<GrueRl> {
                 vi: VInput::new(),
                 ui,
             },
-            cfg: GameConfig::default(),
+            cfg: GameConfig {
+                vol: 1.0,
+                shadow_cfg: ShadowConfig::Blur,
+                snow_cfg: SnowConfig::Blizzard,
+            },
         }
     };
 

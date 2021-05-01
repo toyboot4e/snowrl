@@ -12,7 +12,7 @@ use std::{
     time::Duration,
 };
 
-use crate::input::Dir8;
+use crate::{self as snow2d, input::Dir8, utils::Inspect};
 
 /// Linearly interpolatable; can be [`Tweened`]
 pub trait Lerp {
@@ -165,7 +165,7 @@ impl Into<EasedDt> for EasedDtDesc {
 }
 
 /// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` with easing on `get`
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Inspect)]
 pub struct EasedDt {
     pub target: f32,
     pub ease: Ease,
@@ -306,7 +306,7 @@ impl LinearDt {
 }
 
 /// Easing function dispatched dynamically
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Inspect)]
 pub enum Ease {
     Linear,
     //

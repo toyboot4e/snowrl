@@ -26,30 +26,14 @@ use crate::{
 const W: usize = 1280;
 const H: usize = 720;
 
-#[derive(Debug, Clone, Default, Inspect)]
-pub struct TestStruct {
-    pub f: f32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Inspect)]
-pub enum TestEnum {
-    A,
-    B,
-    C,
-}
-
-#[derive(Debug, Clone, Inspect)]
+#[derive(Debug, Clone)]
 pub struct DebugState {
-    pub s: TestStruct,
-    pub e: TestEnum,
+    //
 }
 
 impl Default for DebugState {
     fn default() -> Self {
-        Self {
-            e: TestEnum::B,
-            s: Default::default(),
-        }
+        Self {}
     }
 }
 
@@ -72,13 +56,21 @@ pub fn create_backend(platform: &Platform) -> Result<Backend> {
 }
 
 impl DebugState {
-    pub fn debug_render(&mut self, _data: &mut Data, _ctrl: &mut Control, ui: &mut BackendUi) {
-        ui.show_demo_window(&mut true);
+    pub fn debug_render(&mut self, data: &mut Data, _ctrl: &mut Control, ui: &mut BackendUi) {
+        // ui.show_demo_window(&mut true);
 
         ig::Window::new(im_str!("Test"))
             .size([400.0, 100.], ig::Condition::FirstUseEver)
+            // semi-transparent
+            .bg_alpha(0.5)
             .build(ui, || {
-                self.inspect(ui, "debug-state");
+                let cfg = data.cfg.clone();
+                data.cfg.inspect(ui, "configuration");
+                if data.cfg.vol != cfg.vol {
+                    data.ice.audio.set_global_volume(data.cfg.vol);
+                }
+
+                data.world.inspect(ui, "world");
             });
 
         // self::show_anim_queue(data, ctrl, ui);

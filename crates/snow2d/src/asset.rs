@@ -37,7 +37,10 @@ use downcast_rs::{impl_downcast, Downcast};
 use once_cell::sync::OnceCell;
 use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
 
-use crate::utils::Cheat;
+use crate::{
+    self as snow2d,
+    utils::{Cheat, Inspect},
+};
 
 /// Generational index or identity of assets
 type Gen = u32;
@@ -72,7 +75,7 @@ pub fn deserialize_ron<'a, T: serde::de::DeserializeOwned>(
 }
 
 /// `"scheme:path"` or `"relative_path"`
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Inspect)]
 pub struct StringWithScheme {
     raw: String,
     /// Byte offset of `:` character
