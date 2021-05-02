@@ -53,23 +53,36 @@ fn inspect_struct(args: &args::StructArgs) -> TokenStream2 {
             .as_ref()
             .take_struct()
             .unwrap_or_else(|| unreachable!());
-        let field_inspectors = self::collect_field_inspectors(&fields);
 
-        self::generate_inspect_impl(
-            &args.ident,
-            &args.generics,
-            quote! {
-                imgui::TreeNode::new(&imgui::im_str!("{}", label))
-                    .flags(
-                        imgui::TreeNodeFlags::OPEN_ON_ARROW |
-                        imgui::TreeNodeFlags::OPEN_ON_DOUBLE_CLICK
-                    )
-                    .build(ui, ||
-                {
-                    #(#field_inspectors)*
-                })
-            },
-        )
+        let is_newtype = fields.style == ast::Style::Tuple && fields.len() == 1;
+        if is_newtype {
+            // delgate the inspection to the only field
+            self::generate_inspect_impl(
+                &args.ident,
+                &args.generics,
+                quote! {
+                    self.0.inspect(ui, label);
+                },
+            )
+        } else {
+            let field_inspectors = self::collect_field_inspectors(&fields);
+
+            self::generate_inspect_impl(
+                &args.ident,
+                &args.generics,
+                quote! {
+                    imgui::TreeNode::new(&imgui::im_str!("{}", label))
+                        .flags(
+                            imgui::TreeNodeFlags::OPEN_ON_ARROW |
+                            imgui::TreeNodeFlags::OPEN_ON_DOUBLE_CLICK
+                        )
+                        .build(ui, ||
+                    {
+                        #(#field_inspectors)*
+                    })
+                },
+            )
+        }
     }
 }
 

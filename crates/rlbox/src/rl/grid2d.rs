@@ -74,6 +74,7 @@ impl Rect2i {
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Inspect)]
+#[inspect(as = "[i32; 2]")]
 #[serde(from = "[i32; 2]")]
 #[serde(into = "[i32; 2]")]
 pub struct Vec2i {

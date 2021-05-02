@@ -60,7 +60,7 @@ impl DebugState {
         // ui.show_demo_window(&mut true);
 
         ig::Window::new(im_str!("Test"))
-            .size([400.0, 100.], ig::Condition::FirstUseEver)
+            .size([200.0, 400.0], ig::Condition::FirstUseEver)
             // semi-transparent
             .bg_alpha(0.5)
             .build(ui, || {

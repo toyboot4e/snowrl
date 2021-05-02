@@ -49,7 +49,8 @@ macro_rules! im_input_array {
             fn inspect(&mut self, ui: &Ui, label: &str) {
                 use arraytools::ArrayTools;
                 let mut xs = self.map(|x| x as $as);
-                if ui.$method(&im_str!("{}", label), &mut xs).build() {
+                let label = &im_str!("{}", label);
+                if ui.$method(label, &mut xs).build() {
                     *self = xs.map(|x| x as $ty);
                 }
             }
@@ -57,30 +58,38 @@ macro_rules! im_input_array {
     };
 }
 
-im_input!(f32, f32, input_float);
-im_input_array!(f32, 2, f32, input_float2);
-im_input_array!(f32, 3, f32, input_float3);
-im_input_array!(f32, 4, f32, input_float4);
+macro_rules! im_drag {
+    ($ty:ty, $N:expr, $as:ty) => {
+        impl Inspect for [$ty; $N] {
+            #[allow(warnings)]
+            fn inspect(&mut self, ui: &Ui, label: &str) {
+                use arraytools::ArrayTools;
+                let mut xs = self.map(|x| x as $as);
+                let label = &im_str!("{}", label);
+                if imgui::Drag::new(label).build_array(ui, &mut xs) {
+                    *self = xs.map(|x| x as $ty);
+                }
+            }
+        }
+    };
+}
 
-im_input!(i32, i32, input_int);
-im_input_array!(i32, 2, i32, input_int2);
-im_input_array!(i32, 3, i32, input_int3);
-im_input_array!(i32, 4, i32, input_int4);
+// `paste::paste!` concats identifiers in declarative macro with `[< .. >]` syntax
+macro_rules! impl_array {
+    ($ty:ty, $as:ty, $method:ident) => {
+        paste::paste! {
+            im_input!($ty, $as, $method);
+            im_input_array!($ty, 2, $as, [<$method 2>]);
+            im_input_array!($ty, 3, $as, [<$method 3>]);
+            im_input_array!($ty, 4, $as, [<$method 4>]);
+        }
+    };
+}
 
-im_input!(isize, i32, input_int);
-im_input_array!(isize, 2, i32, input_int2);
-im_input_array!(isize, 3, i32, input_int3);
-im_input_array!(isize, 4, i32, input_int4);
-
-im_input!(u32, i32, input_int);
-im_input_array!(u32, 2, i32, input_int2);
-im_input_array!(u32, 3, i32, input_int3);
-im_input_array!(u32, 4, i32, input_int4);
-
-im_input!(usize, i32, input_int);
-im_input_array!(usize, 2, i32, input_int2);
-im_input_array!(usize, 3, i32, input_int3);
-im_input_array!(usize, 4, i32, input_int4);
+impl_array!(f32, f32, input_float);
+impl_array!(i32, i32, input_int);
+impl_array!(u32, i32, input_int);
+impl_array!(usize, i32, input_int);
 
 impl<T> Inspect for [T; 0] {
     fn inspect(&mut self, _ui: &Ui, _label: &str) {}
