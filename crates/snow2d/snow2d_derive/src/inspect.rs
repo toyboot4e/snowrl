@@ -1,13 +1,13 @@
-use {darling::*, proc_macro2::TokenStream as TokenStream2, quote::*, syn::*};
-
 mod args;
+
+use {darling::*, proc_macro2::TokenStream as TokenStream2, quote::*, syn::*};
 
 /// Implements `Inspect`
 pub fn impl_inspect(ast: syn::DeriveInput) -> TokenStream2 {
     match ast.data {
-        Data::Struct(ref data) => {
+        Data::Struct(ref _data) => {
             let args = args::StructArgs::from_derive_input(&ast).unwrap();
-            self::inspect_struct(data, &args)
+            self::inspect_struct(&args)
         }
         Data::Enum(ref data) => self::inspec_unit_enum(data, &ast),
         _ => panic!("`#[derive(VertexLayout)]` is for structs or enums"),
@@ -34,8 +34,13 @@ fn generate_inspect_impl(
     }
 }
 
-fn inspect_struct(data: &DataStruct, args: &args::StructArgs) -> TokenStream2 {
-    let field_inspectors = self::collect_field_inspectors(&data.fields);
+fn inspect_struct(args: &args::StructArgs) -> TokenStream2 {
+    let fields = args
+        .data
+        .as_ref()
+        .take_struct()
+        .unwrap_or_else(|| unreachable!());
+    let field_inspectors = self::collect_field_inspectors(&fields);
 
     self::generate_inspect_impl(
         &args.ident,
@@ -54,45 +59,43 @@ fn inspect_struct(data: &DataStruct, args: &args::StructArgs) -> TokenStream2 {
     )
 }
 
-/// Call `inspect` for every field
-fn collect_field_inspectors(fields: &Fields) -> Vec<TokenStream2> {
-    // TODO: skip attribute for fields
-    match fields {
+/// `self.field.inspect(ui, label);`
+fn collect_field_inspectors(field_args: &ast::Fields<&args::FieldArgs>) -> Vec<TokenStream2> {
+    match field_args.style {
         // `A { a: f32 }`
-        Fields::Named(ref fields) => fields
-            .named
+        ast::Style::Struct => field_args
+            .fields
             .iter()
+            .filter(|field| !field.skip)
             .map(|field| {
-                // let field_ty = &field.ty;
-                let field_name = field
+                let field_ident = field
                     .ident
                     .as_ref()
                     // TODO: print `name: Type in Type`
                     .unwrap_or_else(|| panic!("field name is required to derivie Inspect"));
 
                 quote! {
-                    self.#field_name.inspect(ui, stringify!(#field_name));
+                    self.#field_ident.inspect(ui, stringify!(#field_ident));
                 }
             })
             .collect::<Vec<_>>(),
-        // `A(f32);`
-        Fields::Unnamed(ref fields) => fields
-            .unnamed
+        // `A(f32);`: each field is named as the field index
+        ast::Style::Tuple => field_args
+            .fields
             .iter()
             .enumerate()
             .map(|(i, _field)| {
-                // FIXME: is this correct name
                 let i_name = format!("{}", i);
-                // use `0` not `0usize` for example
+                // use `0`, not `0usize`
                 let i = Index::from(i);
                 quote! {
                     self.#i.inspect(ui, #i_name);
                 }
             })
             .collect::<Vec<_>>(),
-        // `A,`
-        Fields::Unit => {
-            todo!("support unit structs");
+        // `A`
+        ast::Style::Unit => {
+            todo!("support unit fields");
         }
     }
 }

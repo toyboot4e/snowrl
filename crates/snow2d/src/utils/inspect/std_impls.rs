@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    // ffi::{CStr, CString},
-    num::NonZeroU32,
-};
+use std::{collections::HashMap, num::NonZeroU32};
 
 use arraytools::ArrayTools;
 use imgui::{im_str, Ui};
@@ -31,6 +27,7 @@ macro_rules! im_im {
 
 macro_rules! impl_array_as {
     ($ty:ty, $as:ty, $method:ident) => {
+        #[allow(warnings)]
         impl Inspect for $ty {
             fn inspect(&mut self, ui: &Ui, label: &str) {
                 let mut xs = self.map(|x| x as $as);
@@ -156,9 +153,3 @@ impl<K: Inspect, V: Inspect> Inspect for HashMap<K, V> {
 }
 
 // more std types
-
-impl<T> Inspect for std::sync::mpsc::Sender<T> {
-    fn inspect(&mut self, _ui: &Ui, _label: &str) {
-        //
-    }
-}

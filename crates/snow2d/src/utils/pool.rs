@@ -65,6 +65,7 @@ enum Message {
 pub struct Handle<T> {
     slot: Slot,
     gen: Gen,
+    #[inspect(skip)]
     sender: Sender<Message>,
     _phantom: PhantomData<fn() -> T>,
 }
