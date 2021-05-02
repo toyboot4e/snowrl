@@ -8,10 +8,10 @@ use {
 };
 
 #[cfg(not(feature = "dummy"))]
-#[proc_macro_derive(Inspect)]
+#[proc_macro_derive(Inspect, attributes(inspect))]
 pub fn inspect(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
-    inspect::impl_inspect(ast)
+    TokenStream::from(inspect::impl_inspect(ast))
 }
 
 #[cfg(feature = "dummy")]

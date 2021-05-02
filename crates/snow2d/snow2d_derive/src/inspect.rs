@@ -1,34 +1,45 @@
-use {proc_macro::TokenStream, proc_macro2::TokenStream as TokenStream2, quote::*, syn::*};
+use {darling::*, proc_macro2::TokenStream as TokenStream2, quote::*, syn::*};
+
+mod args;
 
 /// Implements `Inspect`
-pub fn impl_inspect(ast: syn::DeriveInput) -> TokenStream {
+pub fn impl_inspect(ast: syn::DeriveInput) -> TokenStream2 {
     match ast.data {
-        Data::Struct(ref data) => self::inspect_struct(data, &ast),
+        Data::Struct(ref data) => {
+            let args = args::StructArgs::from_derive_input(&ast).unwrap();
+            self::inspect_struct(data, &args)
+        }
         Data::Enum(ref data) => self::inspec_unit_enum(data, &ast),
         _ => panic!("`#[derive(VertexLayout)]` is for structs or enums"),
     }
 }
 
 /// Fill the `inspect` function body to derive `Inspect`
-fn generate_inspect_impl(ast: &DeriveInput, inspect_body: TokenStream2) -> TokenStream {
-    let ty_name = &ast.ident;
-    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+fn generate_inspect_impl(
+    ty_name: &Ident,
+    generics: &Generics,
+    inspect_body: TokenStream2,
+) -> TokenStream2 {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
-    TokenStream::from(quote! {
+    // TODO: add where clause
+
+    quote! {
         impl #impl_generics snow2d::utils::Inspect for #ty_name #ty_generics #where_clause
         {
             fn inspect(&mut self, ui: &imgui::Ui, label: &str) {
                 #inspect_body
             }
         }
-    })
+    }
 }
 
-fn inspect_struct(data: &DataStruct, ast: &syn::DeriveInput) -> TokenStream {
+fn inspect_struct(data: &DataStruct, args: &args::StructArgs) -> TokenStream2 {
     let field_inspectors = self::collect_field_inspectors(&data.fields);
 
     self::generate_inspect_impl(
-        ast,
+        &args.ident,
+        &args.generics,
         quote! {
             imgui::TreeNode::new(&imgui::im_str!("{}", label))
                 .flags(
@@ -86,7 +97,7 @@ fn collect_field_inspectors(fields: &Fields) -> Vec<TokenStream2> {
     }
 }
 
-fn inspec_unit_enum(data: &DataEnum, ast: &syn::DeriveInput) -> TokenStream {
+fn inspec_unit_enum(data: &DataEnum, ast: &syn::DeriveInput) -> TokenStream2 {
     for v in &data.variants {
         assert!(
             v.fields.is_empty(),
@@ -107,7 +118,8 @@ fn inspec_unit_enum(data: &DataEnum, ast: &syn::DeriveInput) -> TokenStream {
     let variant_names = data.variants.iter().map(|v| format!("{}", v.ident));
 
     self::generate_inspect_impl(
-        ast,
+        &ast.ident,
+        &ast.generics,
         quote! {{
             const VARIANTS: &[#ty_name] = &[#(#ty_name::#variant_idents,)*];
 

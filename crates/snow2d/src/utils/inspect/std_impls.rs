@@ -131,7 +131,7 @@ impl Inspect for NonZeroU32 {
     }
 }
 
-// generics
+// idiomatic types
 
 impl<T> Inspect for std::marker::PhantomData<T> {
     fn inspect(&mut self, _ui: &Ui, _label: &str) {}
