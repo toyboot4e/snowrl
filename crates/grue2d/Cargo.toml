@@ -6,7 +6,7 @@ edition = "2018"
 
 [features]
 default = ["sdl2"]
-use-imgui = ["snow2d/use-imgui", "imgui", "imgui-backends"]
+use-imgui = ["snow2d/use-imgui", "rlbox/use-imgui", "imgui", "imgui-backends"]
 
 [dependencies]
 rokol = { path = "../snow2d/rokol/rokol", features = ["impl-gfx", "glcore33"] }
