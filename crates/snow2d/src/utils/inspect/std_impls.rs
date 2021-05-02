@@ -1,6 +1,5 @@
 use std::{collections::HashMap, num::NonZeroU32};
 
-use arraytools::ArrayTools;
 use imgui::{im_str, Ui};
 
 use super::Inspect;
@@ -25,99 +24,66 @@ macro_rules! im_im {
     };
 }
 
-macro_rules! impl_array_as {
-    ($ty:ty, $as:ty, $method:ident) => {
-        #[allow(warnings)]
-        impl Inspect for $ty {
-            fn inspect(&mut self, ui: &Ui, label: &str) {
-                let mut xs = self.map(|x| x as $as);
-                let _changed = ui.$method(&im_str!("{}", label), &mut xs).build();
-                *self = xs;
-            }
-        }
-    };
-}
-
 im_self!(bool, checkbox);
 
 im_im!(str, label_text);
 im_im!(String, label_text);
 
-im_self!(f32, input_float);
-impl_array_as!([f32; 2], f32, input_float2);
-impl_array_as!([f32; 3], f32, input_float3);
-impl_array_as!([f32; 4], f32, input_float4);
+macro_rules! im_input {
+    ($ty:ident, $as:ty, $method:ident) => {
+        impl Inspect for $ty {
+            fn inspect(&mut self, ui: &Ui, label: &str) {
+                let mut x = *self as $as;
+                if ui.$method(&im_str!("{}", label), &mut x).build() {
+                    *self = x as $ty;
+                }
+            }
+        }
+    };
+}
 
-// TODO: support [f32; 32]
+macro_rules! im_input_array {
+    ($ty:ty, $N:expr, $as:ty, $method:ident) => {
+        impl Inspect for [$ty; $N] {
+            #[allow(warnings)]
+            fn inspect(&mut self, ui: &Ui, label: &str) {
+                use arraytools::ArrayTools;
+                let mut xs = self.map(|x| x as $as);
+                if ui.$method(&im_str!("{}", label), &mut xs).build() {
+                    *self = xs.map(|x| x as $ty);
+                }
+            }
+        }
+    };
+}
 
-// im_self!(f64, input_float);
+im_input!(f32, f32, input_float);
+im_input_array!(f32, 2, f32, input_float2);
+im_input_array!(f32, 3, f32, input_float3);
+im_input_array!(f32, 4, f32, input_float4);
 
-im_self!(i32, input_int);
-impl_array_as!([i32; 2], i32, input_int2);
-impl_array_as!([i32; 3], i32, input_int3);
-impl_array_as!([i32; 4], i32, input_int4);
+im_input!(i32, i32, input_int);
+im_input_array!(i32, 2, i32, input_int2);
+im_input_array!(i32, 3, i32, input_int3);
+im_input_array!(i32, 4, i32, input_int4);
 
-// im_self!(i64, label_int);
+im_input!(isize, i32, input_int);
+im_input_array!(isize, 2, i32, input_int2);
+im_input_array!(isize, 3, i32, input_int3);
+im_input_array!(isize, 4, i32, input_int4);
+
+im_input!(u32, i32, input_int);
+im_input_array!(u32, 2, i32, input_int2);
+im_input_array!(u32, 3, i32, input_int3);
+im_input_array!(u32, 4, i32, input_int4);
+
+im_input!(usize, i32, input_int);
+im_input_array!(usize, 2, i32, input_int2);
+im_input_array!(usize, 3, i32, input_int3);
+im_input_array!(usize, 4, i32, input_int4);
 
 impl<T> Inspect for [T; 0] {
     fn inspect(&mut self, _ui: &Ui, _label: &str) {}
-}
-
-// TODO:
-impl Inspect for usize {
-    fn inspect(&mut self, ui: &Ui, label: &str) {
-        let mut i = *self as i32;
-        if ui.input_int(&im_str!("{}", label), &mut i).build() {
-            *self = i as usize;
-        }
-    }
-}
-
-impl Inspect for u32 {
-    fn inspect(&mut self, ui: &Ui, label: &str) {
-        let mut i = *self as i32;
-        if ui.input_int(&im_str!("{}", label), &mut i).build() {
-            *self = i as u32;
-        }
-    }
-}
-
-impl Inspect for [u32; 2] {
-    fn inspect(&mut self, ui: &Ui, label: &str) {
-        let mut i = [self[0] as i32, self[1] as i32];
-        if ui.input_int2(&im_str!("{}", label), &mut i).build() {
-            self[0] = i[0] as u32;
-            self[1] = i[1] as u32;
-        }
-    }
-}
-
-impl Inspect for [u32; 3] {
-    fn inspect(&mut self, ui: &Ui, label: &str) {
-        let mut i = [self[0] as i32, self[1] as i32, self[2] as i32];
-        if ui.input_int3(&im_str!("{}", label), &mut i).build() {
-            self[0] = i[0] as u32;
-            self[1] = i[1] as u32;
-            self[2] = i[2] as u32;
-        }
-    }
-}
-
-impl Inspect for [u32; 4] {
-    fn inspect(&mut self, ui: &Ui, label: &str) {
-        let mut i = [
-            self[0] as i32,
-            self[1] as i32,
-            self[2] as i32,
-            self[3] as i32,
-        ];
-        if ui.input_int4(&im_str!("{}", label), &mut i).build() {
-            self[0] = i[0] as u32;
-            self[1] = i[1] as u32;
-            self[2] = i[2] as u32;
-            self[3] = i[3] as u32;
-        }
-    }
 }
 
 // non-zero types
