@@ -35,28 +35,42 @@ fn generate_inspect_impl(
 }
 
 fn inspect_struct(args: &args::StructArgs) -> TokenStream2 {
-    let fields = args
-        .data
-        .as_ref()
-        .take_struct()
-        .unwrap_or_else(|| unreachable!());
-    let field_inspectors = self::collect_field_inspectors(&fields);
+    if let Some(as_) = args.as_.as_ref() {
+        let as_: Type = parse_str(as_).unwrap();
 
-    self::generate_inspect_impl(
-        &args.ident,
-        &args.generics,
-        quote! {
-            imgui::TreeNode::new(&imgui::im_str!("{}", label))
-                .flags(
-                    imgui::TreeNodeFlags::OPEN_ON_ARROW |
-                    imgui::TreeNodeFlags::OPEN_ON_DOUBLE_CLICK
-                )
-                .build(ui, ||
-            {
-                #(#field_inspectors)*
-            })
-        },
-    )
+        self::generate_inspect_impl(
+            &args.ident,
+            &args.generics,
+            quote! {
+                let mut x: #as_ = (*self).into();
+                x.inspect(ui, label);
+                *self = x.into();
+            },
+        )
+    } else {
+        let fields = args
+            .data
+            .as_ref()
+            .take_struct()
+            .unwrap_or_else(|| unreachable!());
+        let field_inspectors = self::collect_field_inspectors(&fields);
+
+        self::generate_inspect_impl(
+            &args.ident,
+            &args.generics,
+            quote! {
+                imgui::TreeNode::new(&imgui::im_str!("{}", label))
+                    .flags(
+                        imgui::TreeNodeFlags::OPEN_ON_ARROW |
+                        imgui::TreeNodeFlags::OPEN_ON_DOUBLE_CLICK
+                    )
+                    .build(ui, ||
+                {
+                    #(#field_inspectors)*
+                })
+            },
+        )
+    }
 }
 
 /// `self.field.inspect(ui, label);`
@@ -89,7 +103,7 @@ fn collect_field_inspectors<'a>(
                     {
                         let mut as_: #as_ = self.into();
                         as_.#field_ident.inspect(ui, #label);
-                        *self = $field_ty::from(as_);
+                        *self = as_.into();
                     }
                 }
             } else {
