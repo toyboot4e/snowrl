@@ -60,44 +60,44 @@ fn inspect_struct(args: &args::StructArgs) -> TokenStream2 {
 }
 
 /// `self.field.inspect(ui, label);`
-fn collect_field_inspectors(field_args: &ast::Fields<&args::FieldArgs>) -> Vec<TokenStream2> {
-    match field_args.style {
-        // `A { a: f32 }`
-        ast::Style::Struct => field_args
-            .fields
-            .iter()
-            .filter(|field| !field.skip)
-            .map(|field| {
-                let field_ident = field
-                    .ident
-                    .as_ref()
-                    // TODO: print `name: Type in Type`
-                    .unwrap_or_else(|| panic!("field name is required to derivie Inspect"));
+fn collect_field_inspectors<'a>(
+    field_args: &'a ast::Fields<&'a args::FieldArgs>,
+) -> impl Iterator<Item = TokenStream2> + 'a {
+    field_args
+        .fields
+        .iter()
+        .filter(|field| !field.skip)
+        .enumerate()
+        .map(move |(i, field)| {
+            let (field_ident, label) = match field_args.style {
+                ast::Style::Struct => {
+                    let field_ident = field.ident.as_ref().unwrap_or_else(|| unreachable!());
+                    (quote!(#field_ident), format!("{}", field_ident))
+                }
+                ast::Style::Tuple => {
+                    let index = Index::from(i);
+                    (quote!(#index), format!("{}", i))
+                }
+                ast::Style::Unit => {
+                    todo!("support unit fields");
+                }
+            };
 
+            if let Some(as_) = field.as_.as_ref() {
+                let as_: Type = parse_str(as_).unwrap();
                 quote! {
-                    self.#field_ident.inspect(ui, stringify!(#field_ident));
+                    {
+                        let mut as_: #as_ = self.into();
+                        as_.#field_ident.inspect(ui, #label);
+                        *self = $field_ty::from(as_);
+                    }
                 }
-            })
-            .collect::<Vec<_>>(),
-        // `A(f32);`: each field is named as the field index
-        ast::Style::Tuple => field_args
-            .fields
-            .iter()
-            .enumerate()
-            .map(|(i, _field)| {
-                let i_name = format!("{}", i);
-                // use `0`, not `0usize`
-                let i = Index::from(i);
+            } else {
                 quote! {
-                    self.#i.inspect(ui, #i_name);
+                    self.#field_ident.inspect(ui, #label);
                 }
-            })
-            .collect::<Vec<_>>(),
-        // `A`
-        ast::Style::Unit => {
-            todo!("support unit fields");
-        }
-    }
+            }
+        })
 }
 
 fn inspec_unit_enum(data: &DataEnum, ast: &syn::DeriveInput) -> TokenStream2 {

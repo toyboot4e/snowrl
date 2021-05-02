@@ -1,8 +1,8 @@
 //! 2D geometry types. TODO: remove this
 
+use crate::{self as snow2d, utils::Inspect};
 use auto_ops::*;
 use serde::{Deserialize, Serialize};
-use crate::{utils::Inspect, self as snow2d};
 
 bitflags::bitflags! {
     #[derive(Default, Deserialize, Serialize)]
@@ -96,6 +96,7 @@ impl Rot2f {
 
 /// 2D vector, intended for both positions and sizes
 #[derive(Debug, Clone, Copy, PartialEq, Default, Deserialize, Serialize, Inspect)]
+#[inspect(as = "[f32; 2]")]
 pub struct Vec2f {
     pub x: f32,
     pub y: f32,
