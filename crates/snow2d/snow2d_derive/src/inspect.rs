@@ -4,13 +4,11 @@ use {darling::*, proc_macro2::TokenStream as TokenStream2, quote::*, syn::*};
 
 /// Implements `Inspect`
 pub fn impl_inspect(ast: syn::DeriveInput) -> TokenStream2 {
-    match ast.data {
-        Data::Struct(ref _data) => {
-            let args = args::StructArgs::from_derive_input(&ast).unwrap();
-            self::inspect_struct(&args)
-        }
-        Data::Enum(ref data) => self::inspec_unit_enum(data, &ast),
-        _ => panic!("`#[derive(VertexLayout)]` is for structs or enums"),
+    let args = args::TypeArgs::from_derive_input(&ast).unwrap();
+
+    match args.data {
+        ast::Data::Struct(ref fields) => self::inspect_struct(&args, fields),
+        ast::Data::Enum(ref fields) => self::inspec_unit_enum(&args, fields),
     }
 }
 
@@ -34,7 +32,7 @@ fn generate_inspect_impl(
     }
 }
 
-fn inspect_struct(args: &args::StructArgs) -> TokenStream2 {
+fn inspect_struct(args: &args::TypeArgs, fields: &ast::Fields<args::FieldArgs>) -> TokenStream2 {
     if let Some(as_) = args.as_.as_ref() {
         let as_: Type = parse_str(as_).unwrap();
 
@@ -48,15 +46,9 @@ fn inspect_struct(args: &args::StructArgs) -> TokenStream2 {
             },
         )
     } else {
-        let fields = args
-            .data
-            .as_ref()
-            .take_struct()
-            .unwrap_or_else(|| unreachable!());
-
         let is_newtype = fields.style == ast::Style::Tuple && fields.len() == 1;
         if is_newtype {
-            // delgate the inspection to the only field
+            // delegate the inspection to the only field
             self::generate_inspect_impl(
                 &args.ident,
                 &args.generics,
@@ -65,6 +57,7 @@ fn inspect_struct(args: &args::StructArgs) -> TokenStream2 {
                 },
             )
         } else {
+            // inspect each field
             let field_inspectors = self::collect_field_inspectors(&fields);
 
             self::generate_inspect_impl(
@@ -88,26 +81,25 @@ fn inspect_struct(args: &args::StructArgs) -> TokenStream2 {
 
 /// `self.field.inspect(ui, label);`
 fn collect_field_inspectors<'a>(
-    field_args: &'a ast::Fields<&'a args::FieldArgs>,
+    field_args: &'a ast::Fields<args::FieldArgs>,
 ) -> impl Iterator<Item = TokenStream2> + 'a {
     field_args
         .fields
         .iter()
         .filter(|field| !field.skip)
         .enumerate()
-        .map(move |(i, field)| {
+        .map(move |(field_index, field)| {
             let (field_ident, label) = match field_args.style {
                 ast::Style::Struct => {
                     let field_ident = field.ident.as_ref().unwrap_or_else(|| unreachable!());
                     (quote!(#field_ident), format!("{}", field_ident))
                 }
                 ast::Style::Tuple => {
-                    let index = Index::from(i);
-                    (quote!(#index), format!("{}", i))
+                    // `self.0`, not `self.0usize` for example
+                    let field_ident = Index::from(field_index);
+                    (quote!(#field_ident), format!("{}", field_index))
                 }
-                ast::Style::Unit => {
-                    todo!("support unit fields");
-                }
+                ast::Style::Unit => unreachable!(),
             };
 
             if let Some(as_) = field.as_.as_ref() {
@@ -127,29 +119,28 @@ fn collect_field_inspectors<'a>(
         })
 }
 
-fn inspec_unit_enum(data: &DataEnum, ast: &syn::DeriveInput) -> TokenStream2 {
-    for v in &data.variants {
+fn inspec_unit_enum(args: &args::TypeArgs, variants: &[args::VariantArgs]) -> TokenStream2 {
+    for v in variants {
         assert!(
             v.fields.is_empty(),
             "Only plain enum variants are supported by `#[derive(Inspect)]`"
         );
     }
 
-    let ty_name = &ast.ident;
+    let ty_name = &args.ident;
 
     // create `[TypeName::A, TypeName::B]
-    let variant_idents = data
-        .variants
+    let variant_idents = variants
         .iter()
         .map(|v| format_ident!("{}", v.ident))
         .collect::<Vec<_>>();
 
     // create `[im_str!("A"), im_str!("B")]
-    let variant_names = data.variants.iter().map(|v| format!("{}", v.ident));
+    let variant_names = variants.iter().map(|v| format!("{}", v.ident));
 
     self::generate_inspect_impl(
-        &ast.ident,
-        &ast.generics,
+        &args.ident,
+        &args.generics,
         quote! {{
             const VARIANTS: &[#ty_name] = &[#(#ty_name::#variant_idents,)*];
 
