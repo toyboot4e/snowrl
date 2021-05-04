@@ -5,7 +5,10 @@ mod std_impls;
 
 use imgui::{im_str, Ui};
 
+use crate::ui::anim::Anim;
+
 /// Derive ImGUI runtime inspector
+#[enum_dispatch::enum_dispatch]
 pub trait Inspect {
     fn inspect(&mut self, ui: &Ui, label: &str);
 }
@@ -16,14 +19,10 @@ pub fn nest(ui: &Ui, label: &str, closure: impl FnOnce()) {
         .build(ui, closure)
 }
 
-pub fn inspect_seq<'a, T: Inspect + 'static>(
-    xs: impl Iterator<Item = &'a mut T>,
-    ui: &Ui,
-    label: &str,
-) {
+pub fn inspect_seq<'a, T: Inspect + 'a>(xs: impl Iterator<Item = &'a mut T>, ui: &Ui, label: &str) {
     self::nest(ui, label, || {
         for (i, x) in xs.enumerate() {
             x.inspect(ui, im_str!("{}", i).to_str());
         }
-    })
+    });
 }

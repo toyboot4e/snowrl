@@ -2,7 +2,7 @@
 `paste::paste!` concats identifiers in declarative macro with `[< .. >]` syntax
 */
 
-use std::num::NonZeroU32;
+use std::{collections::VecDeque, num::NonZeroU32};
 
 use imgui::{im_str, Ui};
 
@@ -95,8 +95,16 @@ macro_rules! impl_array {
 }
 
 impl_array!(f32, f32, input_float);
+impl_array!(f64, f32, input_float);
+
+impl_array!(i8, i32, input_int);
 impl_array!(i32, i32, input_int);
+
+impl_array!(u8, i32, input_int);
 impl_array!(u32, i32, input_int);
+impl_array!(u64, i32, input_int);
+
+impl_array!(isize, i32, input_int);
 impl_array!(usize, i32, input_int);
 
 /// impl Inspect for `(T0, T1, ..)`
@@ -154,6 +162,12 @@ impl<T: Inspect + 'static> Inspect for Vec<T> {
     }
 }
 
+impl<T: Inspect + 'static> Inspect for VecDeque<T> {
+    fn inspect(&mut self, ui: &Ui, label: &str) {
+        inspect::inspect_seq(self.iter_mut(), ui, label)
+    }
+}
+
 // impl<K: Inspect, V: Inspect> Inspect for HashMap<K, V> {
 //     fn inspect(&mut self, ui: &Ui, _label: &str) {
 //         ui.text(&im_str!("TODO: HashMap"));
@@ -161,3 +175,10 @@ impl<T: Inspect + 'static> Inspect for Vec<T> {
 // }
 
 // more std types
+
+impl Inspect for std::time::Duration {
+    fn inspect(&mut self, ui: &Ui, label: &str) {
+        let time = self.as_secs_f32();
+        ui.label_text(&im_str!("{}", label), &im_str!("{}", time));
+    }
+}

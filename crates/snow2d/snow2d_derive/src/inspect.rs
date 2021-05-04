@@ -93,26 +93,36 @@ fn inspect_struct(args: &args::TypeArgs, fields: &ast::Fields<args::FieldArgs>) 
             *self = x.into();
         }
     } else {
-        let is_newtype = fields.style == ast::Style::Tuple && fields.len() == 1;
+        let is_newtype =
+            fields.style == ast::Style::Tuple && fields.iter().filter(|x| !x.skip).count() == 1;
         if is_newtype {
             // delegate the inspection to the only field
             quote! {
                 self.0.inspect(ui, label);
             }
-        } else {
+        } else if args.in_place {
             // inspect each field
             let field_inspectors = self::collect_field_inspectors(&fields);
 
+            quote! {
+                #(#field_inspectors)*
+            }
+        } else {
+            // insert tree and inspect each field
+            let field_inspectors = self::collect_field_inspectors(&fields);
+
+            let open = args.open;
             quote! {
                 imgui::TreeNode::new(&imgui::im_str!("{}", label))
                     .flags(
                         imgui::TreeNodeFlags::OPEN_ON_ARROW |
                         imgui::TreeNodeFlags::OPEN_ON_DOUBLE_CLICK
                     )
+                    .default_open(#open)
                     .build(ui, ||
-                {
-                    #(#field_inspectors)*
-                })
+                           {
+                               #(#field_inspectors)*
+                           })
             }
         }
     };

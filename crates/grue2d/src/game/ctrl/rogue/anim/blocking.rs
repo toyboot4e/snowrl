@@ -4,6 +4,8 @@ Animations for the builtin events
 They're created referencing rogulike events and then we forget about original events.
 */
 
+use std::time::Duration;
+
 use {
     rlbox::rl::grid2d::{Dir8, Vec2i},
     snow2d::{
@@ -12,9 +14,8 @@ use {
             anim::{Anim as UiAnim, AnimImpl, AnimIndex},
             anim_builder::AnimSeq,
         },
-        utils::arena::Index,
+        utils::{arena::Index, Inspect},
     },
-    std::time::Duration,
 };
 
 use crate::game::data::{res::UiLayer, world::actor::Actor};
@@ -27,7 +28,7 @@ const WALK_SECS: f32 = 8.0 / 60.0;
 /// TODO: don't hard code player detection
 const PLAYER: u32 = 0;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct WaitFrames {
     pub frames: usize,
 }
@@ -43,7 +44,7 @@ impl Anim for WaitFrames {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct WaitSecs {
     timer: Timer,
 }
@@ -63,7 +64,7 @@ impl Anim for WaitSecs {
 }
 
 /// Walk animation is currently run automatically, so we just wait for it to finish
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct WalkAnim {
     /// Batch walk animations
     pub actors: Vec<Index<Actor>>,
@@ -105,7 +106,7 @@ impl Anim for WalkAnim {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct WaitForUiAnim {
     anim: Index<UiAnim>,
     layer: UiLayer,
@@ -134,7 +135,7 @@ impl Anim for WaitForUiAnim {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct SwingAnim {
     pub actor: Index<Actor>,
     pub dir: Dir8,

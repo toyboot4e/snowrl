@@ -14,10 +14,13 @@ use {
     std::{collections::VecDeque, fmt, time::Duration},
 };
 
+use imgui::{im_str, Ui};
+use snow2d::utils::{inspect, Inspect};
+
 use crate::Data;
 
 /// Utility for implementing animations
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Inspect)]
 pub struct Timer {
     /// Do not tick on first frame
     is_started: bool,
@@ -92,7 +95,7 @@ pub enum AnimResult {
 }
 
 /// Roguelike animation object
-pub trait Anim: fmt::Debug + Downcast {
+pub trait Anim: fmt::Debug + Inspect + Downcast {
     fn on_start(&mut self, _ucx: &mut Data) {}
     fn update(&mut self, ucx: &mut Data) -> AnimResult;
 }
@@ -106,6 +109,17 @@ pub struct AnimPlayer {
     /// Queue of animations
     anims: VecDeque<Box<dyn Anim>>,
     is_top_walk: bool,
+}
+
+/// FIXME: <DerefMut> makes it difficult
+impl Inspect for AnimPlayer {
+    fn inspect(&mut self, ui: &Ui, label: &str) {
+        inspect::nest(ui, label, || {
+            for (i, x) in self.anims.iter_mut().enumerate() {
+                x.inspect(ui, im_str!("{}", i).to_str());
+            }
+        })
+    }
 }
 
 impl Default for AnimPlayer {

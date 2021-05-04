@@ -10,7 +10,7 @@ use snow2d::{
     gfx::text::font::FontSetHandle,
     input::{vi::*, Input, Key},
     ui::{CoordSystem, Layer},
-    utils::arena::Index,
+    utils::{arena::Index, Inspect},
 };
 
 /// TODO: rm
@@ -19,7 +19,7 @@ const REPEAT_FIRST_FRAMES: u64 = 10;
 const REPEAT_MULTI_FRAMES: u64 = 6;
 
 /// SnowRL UI layer collection
-#[derive(Debug)]
+#[derive(Debug, Inspect)]
 pub struct Ui {
     actors: Layer,
     on_actors: Layer,
@@ -27,7 +27,7 @@ pub struct Ui {
     screen: Layer,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Inspect)]
 pub enum UiLayer {
     Actors,
     OnActors,

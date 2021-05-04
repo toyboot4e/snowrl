@@ -9,11 +9,12 @@ pub mod node;
 use {glam::Mat4, std::time::Duration};
 
 use crate::{
+    self as snow2d,
     utils::{
         arena::Arena,
-        ez,
+        ez, inspect,
         pool::{Handle, Pool, Slot},
-        Cheat,
+        Cheat, Inspect,
     },
     Ice,
 };
@@ -63,11 +64,13 @@ impl<'a> Iterator for SortedNodesMut<'a> {
 }
 
 /// Nodes and animations
-#[derive(Debug)]
+#[derive(Debug, Inspect)]
 pub struct Layer {
     pub nodes: NodePool,
     pub anims: AnimStorage,
+    #[inspect(skip)]
     pub coord: CoordSystem,
+    #[inspect(skip)]
     ord_buf: Vec<OrderEntry>,
 }
 
@@ -171,7 +174,8 @@ impl Layer {
 }
 
 /// Extended [`Pool`] for handling tree of nodes
-#[derive(Debug)]
+#[derive(Debug, Inspect)]
+#[inspect(in_place)]
 pub struct NodePool {
     pool: Pool<Node>,
 }
@@ -206,10 +210,11 @@ impl NodePool {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub(crate) struct DelayedAnim {
     delay: ez::LinearDt,
     is_first_tick: bool,
+    #[inspect(skip)]
     anim: Anim,
 }
 
@@ -230,6 +235,20 @@ impl DelayedAnim {
 pub struct AnimStorage {
     running: Arena<Anim>,
     delayed: Arena<DelayedAnim>,
+}
+
+impl Inspect for AnimStorage {
+    fn inspect(&mut self, ui: &imgui::Ui, label: &str) {
+        inspect::nest(ui, label, || {
+            inspect::nest(ui, "running", || {
+                for (i, (_index, x)) in self.running.iter_mut().enumerate() {
+                    x.inspect(ui, imgui::im_str!("{}", i).to_str());
+                }
+            });
+
+            inspect::inspect_seq(self.delayed.iter_mut().map(|(_i, x)| x), ui, "delayed");
+        });
+    }
 }
 
 impl AnimStorage {

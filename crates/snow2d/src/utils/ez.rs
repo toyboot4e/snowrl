@@ -94,7 +94,7 @@ pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
 }
 
 /// Generates tweened values
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Inspect)]
 pub struct Tweened<T: Lerp + Clone> {
     pub a: T,
     pub b: T,
@@ -152,7 +152,7 @@ impl<T: Lerp + Clone> Tweened<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Inspect)]
 pub struct EasedDtDesc {
     pub target: f32,
     pub ease: Ease,
@@ -262,7 +262,7 @@ impl EasedDt {
 }
 
 /// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` on `get`
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Inspect)]
 pub struct LinearDt {
     target: f32,
     accum: f32,

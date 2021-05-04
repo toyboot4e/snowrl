@@ -6,7 +6,7 @@ mod cheat;
 pub use cheat::{cheat, Cheat};
 
 #[cfg(feature = "use-imgui")]
-mod inspect;
+pub mod inspect;
 
 #[cfg(feature = "use-imgui")]
 pub use inspect::Inspect;

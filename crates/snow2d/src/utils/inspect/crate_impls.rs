@@ -1,11 +1,10 @@
+/*!
+[`Inspect`] implementations for external crates that `snow2d` is dependent on
+*/
+
 use imgui::{im_str, Ui};
 
-use crate::{
-    asset::Asset,
-    gfx::tex::*,
-    input::Dir8,
-    utils::arena::{Arena, Index},
-};
+use crate::{asset::Asset, gfx::tex::*, input::Dir8, utils::arena};
 
 use super::Inspect;
 
@@ -15,7 +14,7 @@ impl Inspect for Dir8 {
     }
 }
 
-impl<T: Inspect> Inspect for Arena<T> {
+impl<T: Inspect> Inspect for arena::Arena<T> {
     fn inspect(&mut self, ui: &Ui, label: &str) {
         imgui::TreeNode::new(&imgui::im_str!("{}", label))
             .flags(imgui::TreeNodeFlags::OPEN_ON_ARROW | imgui::TreeNodeFlags::OPEN_ON_DOUBLE_CLICK)
@@ -29,7 +28,7 @@ impl<T: Inspect> Inspect for Arena<T> {
     }
 }
 
-impl<T> Inspect for Index<T> {
+impl<T> Inspect for arena::Index<T> {
     fn inspect(&mut self, ui: &Ui, _label: &str) {
         ui.text("TODO: Index<T>");
     }

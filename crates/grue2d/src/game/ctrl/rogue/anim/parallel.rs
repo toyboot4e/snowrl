@@ -4,13 +4,13 @@ Non-blocking animations
 
 use std::time::Duration;
 
-use snow2d::utils::arena::Index;
+use snow2d::utils::{arena::Index, Inspect};
 
 use crate::game::data::world::actor::Actor;
 
 use super::{Anim, AnimResult, Data, Timer};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct DamageText {
     pub actor: Index<Actor>,
     pub amount: u32,
