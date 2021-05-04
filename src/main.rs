@@ -42,12 +42,10 @@ fn main() -> Result<()> {
         })
         .map_err(Error::msg)?;
 
-    let app = {
-        let game = self::new_game(&init, &platform)?;
+    grue2d::app::run(platform, |platform| {
+        let game = self::new_game(&init, platform).unwrap();
         SnowRl::new(game)
-    };
-
-    grue2d::app::run(platform, app)
+    })
 }
 
 fn new_game(init: &grue2d::app::Init, platform: &Platform) -> Result<GrueRl> {

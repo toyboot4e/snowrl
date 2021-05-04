@@ -23,9 +23,10 @@ pub trait Lifecycle {
 }
 
 /// Run an application that implements [`Lifecycle`]
-pub fn run<A>(mut platform: Platform, mut app: A) -> Result<()>
+pub fn run<A, Gen>(mut platform: Platform, app_gen: Gen) -> Result<()>
 where
     A: Lifecycle<Event = ::sdl2::event::Event>,
+    Gen: FnOnce(&mut Platform) -> A,
 {
     let mut pump = platform.sdl.event_pump().map_err(Error::msg)?;
 
@@ -37,63 +38,65 @@ where
     // new, previous
     let mut focus = [false, false];
 
+    let mut app = app_gen(&mut platform);
+
     'running: loop {
         for ev in pump.poll_iter() {
             match ev {
                 Event::Quit { .. } => break 'running,
                 Event::Window {
                     // main `window_id` is `1`
-                    window_id,
+                    // window_id,
                     win_event,
                     ..
                 } => match win_event {
                     // keyborad focus
                     WindowEvent::FocusLost => {
-                        log::trace!("focus lost: {:?}", window_id);
+                        // log::trace!("focus lost: {:?}", window_id);
                         focus[1] = false;
                     }
                     WindowEvent::FocusGained => {
-                        log::trace!("gain: {:?}", window_id);
+                        // log::trace!("gain: {:?}", window_id);
                         focus[1] = true;
                     }
                     // window focus (take only)
                     WindowEvent::TakeFocus => {
-                        log::trace!("take: {:?}", window_id);
+                        // log::trace!("take: {:?}", window_id);
                     }
                     // window status
                     WindowEvent::Shown => {
-                        log::trace!("shown: {:?}", window_id);
+                        // log::trace!("shown: {:?}", window_id);
                     }
                     WindowEvent::Hidden => {
-                        log::trace!("hidden: {:?}", window_id);
+                        // log::trace!("hidden: {:?}", window_id);
                     }
                     WindowEvent::Exposed => {
-                        log::trace!("exposed: {:?}", window_id);
+                        // log::trace!("exposed: {:?}", window_id);
                     }
                     WindowEvent::Close => {
-                        log::trace!("closed: {:?}", window_id);
+                        // log::trace!("closed: {:?}", window_id);
                     }
                     WindowEvent::HitTest => {
-                        log::trace!("hit-test: {:?}", window_id);
+                        // log::trace!("hit-test: {:?}", window_id);
                     }
                     // window placement
                     WindowEvent::Moved(x, y) => {
-                        log::trace!("moved: {:?} ({:?}, {:?})", window_id, x, y);
+                        // log::trace!("moved: {:?} ({:?}, {:?})", window_id, x, y);
                     }
                     WindowEvent::Resized(w, h) => {
-                        log::trace!("resized: {:?} ({:?}, {:?})", window_id, w, h);
+                        // log::trace!("resized: {:?} ({:?}, {:?})", window_id, w, h);
                     }
                     WindowEvent::SizeChanged(w, h) => {
-                        log::trace!("size changed: {:?} ({:?}, {:?})", window_id, w, h);
+                        // log::trace!("size changed: {:?} ({:?}, {:?})", window_id, w, h);
                     }
                     WindowEvent::Minimized => {
-                        log::trace!("minimized: {:?}", window_id);
+                        // log::trace!("minimized: {:?}", window_id);
                     }
                     WindowEvent::Maximized => {
-                        log::trace!("maximized: {:?}", window_id);
+                        // log::trace!("maximized: {:?}", window_id);
                     }
                     WindowEvent::Restored => {
-                        log::trace!("restored: {:?}", window_id);
+                        // log::trace!("restored: {:?}", window_id);
                     }
                     // mouse cursor (enter/leave window area)
                     WindowEvent::Enter => {
