@@ -2,14 +2,7 @@
 High level commands
 */
 
-use snow2d::{
-    gfx::geom2d::Vec2f,
-    ui::{
-        anim_builder::AnimGen,
-        node::{self, Node},
-    },
-    utils::{arena::Index, ez},
-};
+use snow2d::utils::arena::Index;
 
 use rlbox::rl::grid2d::*;
 
@@ -18,7 +11,7 @@ use crate::game::{
         anim::{self as rl_anim, *},
         tick::{Event, EventResult, GenAnim},
     },
-    data::{res::UiLayer, world::actor::Actor},
+    data::world::actor::Actor,
     Data,
 };
 
@@ -49,7 +42,7 @@ impl Event for Hit {
 }
 
 impl GenAnim for Hit {
-    fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         None
     }
 }
@@ -75,9 +68,7 @@ impl GenAnim for JustSwing {
             .unwrap();
 
         let se = se.get_mut().unwrap();
-        // se.set_volume(5.0);
         data.ice.audio.play(&*se);
-        log::trace!("swing SE");
 
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,

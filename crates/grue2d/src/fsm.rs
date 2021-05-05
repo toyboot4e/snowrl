@@ -101,7 +101,7 @@ impl Fsm {
                 self.push_id(typeid, data, ctrl);
             }
             StateCommand::PopAndRemove => {
-                let typeid = self.stack.pop().unwrap();
+                let typeid = self.pop(data, ctrl);
                 self.states.remove(&typeid).unwrap();
             }
         }
@@ -138,11 +138,15 @@ impl Fsm {
         self.stack.push(id);
     }
 
-    pub fn pop(&mut self, data: &mut Data, ctrl: &mut Control) {
-        let last_id = self.stack.last().unwrap();
+    pub fn pop(&mut self, data: &mut Data, ctrl: &mut Control) -> TypeId {
+        let last_id = self
+            .stack
+            .last()
+            .expect("Tried to pop state but there's none!");
+
         let last = self.states.get_mut(last_id).unwrap();
         last.on_exit(data, ctrl);
 
-        self.stack.pop();
+        self.stack.pop().unwrap()
     }
 }

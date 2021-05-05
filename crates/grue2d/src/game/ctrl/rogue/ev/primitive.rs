@@ -203,7 +203,16 @@ pub struct Death {
 }
 
 impl GenAnim for Death {
-    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
+    fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
+        let mut se = data
+            .ice
+            .assets
+            .load_sync_preserve::<snow2d::audio::src::Wav, _>(crate::paths::sound::se::DEATH)
+            .unwrap();
+
+        let se = se.get_mut().unwrap();
+        data.ice.audio.play(&*se);
+
         None
     }
 }

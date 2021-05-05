@@ -255,6 +255,28 @@ impl PlayTalkState {
 }
 
 impl GameState for PlayTalkState {
+    fn on_enter(&mut self, data: &mut Data, ctrl: &mut Control) {
+        let mut se = data
+            .ice
+            .assets
+            .load_sync_preserve::<snow2d::audio::src::Wav, _>(paths::sound::se::TALK_ENTER)
+            .unwrap();
+
+        let se = se.get_mut().unwrap();
+        data.ice.audio.play(&*se);
+    }
+
+    fn on_exit(&mut self, _data: &mut Data, _ctrl: &mut Control) {
+        // let mut se = data
+        //     .ice
+        //     .assets
+        //     .load_sync_preserve::<snow2d::audio::src::Wav, _>(paths::sound::se::TALK_LEAVE)
+        //     .unwrap();
+
+        // let se = se.get_mut().unwrap();
+        // data.ice.audio.play(&*se);
+    }
+
     fn update(&mut self, data: &mut Data, _ctrl: &mut Control) -> StateReturn {
         if data.res.vi.select.is_pressed() {
             // Exit on enter
