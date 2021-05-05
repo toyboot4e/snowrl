@@ -103,8 +103,8 @@ fn game_loop() -> Gen {
         let mut actor_slot = 0;
 
         loop {
-            let (actor_index, _) = match tcx.world.entities.get_by_slot(actor_slot) {
-                Some(index) => index,
+            let actor_index = match tcx.world.entities.get_by_slot(actor_slot) {
+                Some((index, _actor)) => index,
                 None => continue,
             };
 

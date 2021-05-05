@@ -8,7 +8,7 @@ use snow2d::{
         anim_builder::AnimGen,
         node::{self, Node},
     },
-    utils::{arena::Index, ez, tweak::*},
+    utils::{arena::Index, ez},
 };
 
 use rlbox::rl::grid2d::*;
@@ -42,7 +42,7 @@ pub struct Hit {
 impl Event for Hit {
     fn run(&self, _data: &mut Data) -> EventResult {
         EventResult::chain(GiveDamage {
-            actor: self.target,
+            target: self.target,
             amount: 10,
         })
     }
@@ -50,37 +50,6 @@ impl Event for Hit {
 
 impl GenAnim for Hit {
     fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
-        let actor = &data.world.entities[self.target];
-
-        let [actors, on_actors] = data.res.ui.layers_mut([UiLayer::Actors, UiLayer::OnActors]);
-        let base_pos = actors.nodes[&actor.nodes.base].params.pos;
-
-        let text = on_actors.nodes.add({
-            let mut text = Node::from(node::Text::new("HIT"));
-            // FIXME: set font texture size and align
-            text.params.pos = base_pos - Vec2f::new(20.0, 20.0);
-            text
-        });
-
-        let mut gen = AnimGen::default();
-        gen.node(&text).dt(ez::EasedDt::linear(1.0));
-        on_actors.anims.insert(gen.alpha([0, 255]));
-
-        let se = data
-            .ice
-            .assets
-                // TODO: set preserved attribute to asstes
-            .load_sync_preserve::<snow2d::audio::src::Wav, _>(crate::paths::sound::se::ATTACK)
-            .unwrap();
-        // TODO: implement AudioExt for Asset<T> where T: AudioExt
-        data.ice.audio.play(&*se.get().unwrap());
-
-        // TODO: wait for reserved duration (swing animation)
-        // Some(Box::new(WaitForUiAnim::new(
-        //     on_actors.anims.insert(gen.alpha([0, 255])),
-        //     UiLayer::OnActors,
-        // )))
-
         None
     }
 }
@@ -99,12 +68,22 @@ impl Event for JustSwing {
 
 impl GenAnim for JustSwing {
     fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
+        let mut se = data
+            .ice
+            .assets
+            .load_sync_preserve::<snow2d::audio::src::Wav, _>(crate::paths::sound::se::SWING)
+            .unwrap();
+
+        let se = se.get_mut().unwrap();
+        // se.set_volume(5.0);
+        data.ice.audio.play(&*se);
+        log::trace!("swing SE");
+
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,
             self.dir
                 .unwrap_or_else(|| data.world.entities[self.actor].dir),
-            // FIXME: magic number
-            tweak!(8.0 / 60.0),
+            SWING_SECS,
         )))
     }
 }
@@ -147,6 +126,15 @@ impl Event for MeleeAttack {
 
 impl GenAnim for MeleeAttack {
     fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
+        let mut se = data
+            .ice
+            .assets
+            .load_sync_preserve::<snow2d::audio::src::Wav, _>(crate::paths::sound::se::SWING)
+            .unwrap();
+
+        let se = se.get_mut().unwrap();
+        data.ice.audio.play(&*se);
+
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,
             self.dir

@@ -124,10 +124,8 @@ pub struct Text {
 }
 
 impl Text {
-    pub fn new(txt: &str) -> Self {
-        Self {
-            txt: txt.to_string(),
-        }
+    pub fn new(txt: String) -> Self {
+        Self { txt }
     }
 }
 

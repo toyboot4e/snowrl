@@ -3,14 +3,21 @@
 mod crate_impls;
 mod std_impls;
 
+use std::ops::DerefMut;
+
 use imgui::{im_str, Ui};
 
-use crate::ui::anim::Anim;
-
 /// Derive ImGUI runtime inspector
-#[enum_dispatch::enum_dispatch]
 pub trait Inspect {
     fn inspect(&mut self, ui: &Ui, label: &str);
+}
+
+// FIXME: `#[inspect(in_place)]` is not a good idea. need `#[inspect(delegate = "self.field")]`
+
+impl<T: Inspect + ?Sized> Inspect for Box<T> {
+    fn inspect(&mut self, ui: &Ui, label: &str) {
+        self.deref_mut().inspect(ui, label);
+    }
 }
 
 pub fn nest(ui: &Ui, label: &str, closure: impl FnOnce()) {

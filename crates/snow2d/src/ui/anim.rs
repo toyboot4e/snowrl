@@ -163,7 +163,7 @@ def_tween_anim!(RotTween, f32, |me: &Self, nodes: &mut Pool<Node>| {
 });
 
 /// One of [`AnimImpl`] impls
-#[enum_dispatch(AnimImpl, Inspect)]
+#[enum_dispatch(AnimImpl)]
 #[derive(Debug, Clone)]
 pub enum Anim {
     DynAnim,
@@ -176,6 +176,21 @@ pub enum Anim {
     AlphaTween,
     RotTween,
     // ParamsTween,
+}
+
+impl Inspect for Anim {
+    fn inspect(&mut self, ui: &imgui::Ui, label: &str) {
+        match self {
+            Self::DynAnim(x) => x.inspect(ui, label),
+            Self::PosTween(x) => x.inspect(ui, label),
+            Self::XTween(x) => x.inspect(ui, label),
+            Self::YTween(x) => x.inspect(ui, label),
+            Self::SizeTween(x) => x.inspect(ui, label),
+            Self::ColorTween(x) => x.inspect(ui, label),
+            Self::AlphaTween(x) => x.inspect(ui, label),
+            Self::RotTween(x) => x.inspect(ui, label),
+        }
+    }
 }
 
 /// Index of [`Anim`] in expected collection (i.e., generational arena)

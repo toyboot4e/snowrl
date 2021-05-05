@@ -14,8 +14,7 @@ use {
     std::{collections::VecDeque, fmt, time::Duration},
 };
 
-use imgui::{im_str, Ui};
-use snow2d::utils::{inspect, Inspect};
+use snow2d::utils::Inspect;
 
 use crate::Data;
 
@@ -43,8 +42,7 @@ impl Timer {
     }
 
     pub fn from_secs_f32(secs: f32) -> Self {
-        let ns = 1_000_000_000.0 * secs;
-        Self::from_duration(Duration::from_nanos(ns as u64))
+        Self::from_duration(Duration::from_secs_f32(secs ))
     }
 
     pub fn from_frames(frames: u64) -> Self {
@@ -75,7 +73,7 @@ impl Timer {
         } else {
             self.dt += dt;
         }
-        self.dt > self.target_duration
+        self.dt >= self.target_duration
     }
 
     pub fn tick_as_result(&mut self, dt: Duration) -> AnimResult {
@@ -104,22 +102,11 @@ pub trait Anim: fmt::Debug + Inspect + Downcast {
 impl_downcast!(Anim);
 
 /// State to play roguelike animations
-#[derive(Debug)]
+#[derive(Debug, Inspect)]
 pub struct AnimPlayer {
     /// Queue of animations
     anims: VecDeque<Box<dyn Anim>>,
     is_top_walk: bool,
-}
-
-/// FIXME: <DerefMut> makes it difficult
-impl Inspect for AnimPlayer {
-    fn inspect(&mut self, ui: &Ui, label: &str) {
-        inspect::nest(ui, label, || {
-            for (i, x) in self.anims.iter_mut().enumerate() {
-                x.inspect(ui, im_str!("{}", i).to_str());
-            }
-        })
-    }
 }
 
 impl Default for AnimPlayer {

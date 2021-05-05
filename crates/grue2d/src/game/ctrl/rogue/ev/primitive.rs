@@ -3,7 +3,14 @@ Every change to the roguelike game should happen as a primitive event. These add
 also good foor both visualization and separation.
 */
 
-use snow2d::utils::arena::Index;
+use snow2d::{
+    gfx::geom2d::Vec2f,
+    ui::{
+        anim_builder::AnimGen,
+        node::{self, Node},
+    },
+    utils::{arena::Index, ez},
+};
 
 use rlbox::rl::grid2d::*;
 
@@ -12,7 +19,7 @@ use crate::game::{
         anim::{self, Anim},
         tick::{Event, EventResult, GenAnim},
     },
-    data::world::actor::Actor,
+    data::{res::UiLayer, world::actor::Actor},
     Data,
 };
 
@@ -138,26 +145,53 @@ impl Event for Move {
 /// (Primitive) Change actor's HP
 #[derive(Debug)]
 pub struct GiveDamage {
-    pub actor: Index<Actor>,
+    pub target: Index<Actor>,
     pub amount: u32,
 }
 
 impl GenAnim for GiveDamage {
-    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
-        Some(Box::new(anim::DamageText::new(self.actor, self.amount)))
+    fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
+        let actor = &data.world.entities[self.target];
+
+        let [actors, on_actors] = data.res.ui.layers_mut([UiLayer::Actors, UiLayer::OnActors]);
+        let base_pos = actors.nodes[&actor.nodes.base].params.pos;
+
+        let text = on_actors.nodes.add({
+            let text = format!("{}", self.amount);
+            let mut text = Node::from(node::Text::new(text));
+            // FIXME: set font texture size and align
+            text.params.pos = base_pos - Vec2f::new(20.0, 20.0);
+            text
+        });
+
+        let mut gen = AnimGen::default();
+        gen.node(&text).dt(ez::EasedDt::linear(1.0));
+        on_actors.anims.insert(gen.alpha([0, 255]));
+
+        // FIXME: the delay should be decided externally. delay the hit anim creation itself
+        let se = data
+            .ice
+            .assets
+            .load_sync_preserve::<snow2d::audio::src::Wav, _>(crate::paths::sound::se::ATTACK)
+            .unwrap();
+        data.ice.audio.play_clocked(4.0 / 60.0, &*se.get().unwrap());
+
+        // TODO: wait for reserved duration (swing animation)
+
+        None
     }
 }
 
 impl Event for GiveDamage {
     fn run(&self, data: &mut Data) -> EventResult {
-        let actor = &mut data.world.entities[self.actor];
+        let actor = &mut data.world.entities[self.target];
 
         if actor.stats.hp > self.amount {
             actor.stats.hp -= self.amount;
             EventResult::Finish
         } else {
             actor.stats.hp = 0;
-            EventResult::Chain(Box::new(Death { actor: self.actor }))
+            EventResult::Chain(Box::new(Death { actor: self.target }))
         }
     }
 }
