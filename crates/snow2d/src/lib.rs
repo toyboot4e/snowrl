@@ -11,6 +11,7 @@ pub mod audio;
 pub mod gfx;
 pub mod input;
 
+pub mod prelude;
 pub mod ui;
 pub mod utils;
 
