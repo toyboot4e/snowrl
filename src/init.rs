@@ -138,7 +138,7 @@ fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
 
     // player
     ActorSpawn::new("ika-chan")
-        .pos([12, 26])
+        .pos([12, 16])
         .dir(Dir8::S)
         .spawn(world, layer)?;
 

@@ -114,17 +114,18 @@ pub mod asset {
         }
     }
 
-    /// Music playback
+    /// Playback handle for [`MusicPlayer`]
     #[derive(Debug)]
     pub struct Playback {
         pub handle: Handle,
         pub song: Asset<src::WavStream>,
     }
 
-    /// Storage to play one music
+    /// Background music player
     #[derive(Debug)]
     pub struct MusicPlayer {
         pub audio: Audio,
+        /// [`PlayBack`] of current music
         pub current: Option<Playback>,
     }
 
@@ -136,15 +137,19 @@ pub mod asset {
             }
         }
 
-        pub fn play_song(&mut self, song: Asset<src::WavStream>) {
+        pub fn play_song(&mut self, mut song: Asset<src::WavStream>) {
             if let Some(_playback) = self.current.as_mut() {
                 // TODO: fade out
             }
 
             // TODO: fade in
-            // let handle = self.audio.play(&*song.get_mut().unwrap());
-            // let handle = self.audio.play_background(&*song.get_mut().unwrap());
-            let handle = Handle::PRIMARY;
+            let handle = self.audio.play_background_ex(
+                &*song.get_mut().unwrap(),
+                1.0,
+                false,
+                Handle::PRIMARY,
+            );
+
             self.current = Some(Playback { handle, song })
         }
     }

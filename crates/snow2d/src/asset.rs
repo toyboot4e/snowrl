@@ -110,7 +110,7 @@ pub trait AssetLoader: fmt::Debug + Sized + 'static {
     fn load(&mut self, path: &Path) -> Result<Self::Item>;
 }
 
-/// Shared ownership of an [`AssetData`]
+/// Shared ownership of an asset
 #[derive(Debug)]
 pub struct Asset<T: AssetItem> {
     item: Option<Arc<Mutex<T>>>,

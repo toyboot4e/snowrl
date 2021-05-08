@@ -1,5 +1,5 @@
 /*!
-Graphics module built
+Graphics
 
 # Coordinate system
 
@@ -233,7 +233,7 @@ impl WindowState {
     }
 }
 
-/// Game time progress
+/// Game time progress (stops while pausing)
 #[derive(Debug, Clone)]
 pub struct GameClock {
     past: Duration,

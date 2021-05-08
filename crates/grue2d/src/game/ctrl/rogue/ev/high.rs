@@ -67,7 +67,11 @@ impl GenAnim for JustSwing {
             .load_sync_preserve::<snow2d::audio::src::Wav, _>(crate::paths::sound::se::SWING)
             .unwrap();
 
-        let se = se.get_mut().unwrap();
+        use snow2d::audio::prelude::*;
+        use std::ops::DerefMut;
+        let mut se = se.get_mut().unwrap();
+        // TODO: set volume in asset list
+        se.deref_mut().set_volume(4.0);
         data.ice.audio.play(&*se);
 
         Some(Box::new(rl_anim::SwingAnim::new(

@@ -255,7 +255,7 @@ impl PlayTalkState {
 }
 
 impl GameState for PlayTalkState {
-    fn on_enter(&mut self, data: &mut Data, ctrl: &mut Control) {
+    fn on_enter(&mut self, data: &mut Data, _ctrl: &mut Control) {
         let mut se = data
             .ice
             .assets

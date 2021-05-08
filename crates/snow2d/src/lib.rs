@@ -35,6 +35,7 @@ pub struct Ice {
     pub snow: Snow2d,
     /// Audio context
     pub audio: Audio,
+    /// Background music player
     pub music_player: MusicPlayer,
     /// Asset cache for any type
     pub assets: AssetCacheAny,

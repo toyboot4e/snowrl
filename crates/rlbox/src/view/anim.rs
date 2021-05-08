@@ -30,14 +30,14 @@ pub enum LoopState {
 
 /// Frame-based animation pattern
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FrameAnimPattern<T> {
-    frames: Vec<T>,
+pub struct AnimPattern<F> {
+    frames: Vec<F>,
     fps: f32,
     loop_mode: LoopMode,
 }
 
-impl<T> FrameAnimPattern<T> {
-    pub fn new(frames: Vec<T>, fps: f32, loop_mode: LoopMode) -> Self {
+impl<F> AnimPattern<F> {
+    pub fn new(frames: Vec<F>, fps: f32, loop_mode: LoopMode) -> Self {
         Self {
             frames,
             fps,
@@ -63,12 +63,8 @@ impl<T> FrameAnimPattern<T> {
         }
     }
 
-    /// Current animation frame
-    pub fn frame(&self, dt: Duration) -> &T {
-        &self.frames[self.frame_ix(dt)]
-    }
-
-    fn frame_ix(&self, dt: Duration) -> usize {
+    /// Index of current animation
+    pub fn frame_ix(&self, dt: Duration) -> usize {
         let ms_per_frame = 1000.0 * 1.0 / self.fps;
         let ms_dt = dt.as_millis();
         let frame = (ms_dt / ms_per_frame as u128) as usize;
@@ -87,6 +83,11 @@ impl<T> FrameAnimPattern<T> {
         }
     }
 
+    /// Current animation frame
+    pub fn frame(&self, dt: Duration) -> &F {
+        &self.frames[self.frame_ix(dt)]
+    }
+
     fn loop_duration(&self) -> Duration {
         let sec = 1.0 / self.fps * self.n_loop_frames() as f32;
         let ms = (1000.0 * sec) as u64;
@@ -103,27 +104,64 @@ impl<T> FrameAnimPattern<T> {
     }
 }
 
-/// Frame-based animation state, composed of paterns
-///
-/// Animation patterns are selected by keys, which is often `enum`s.
+/// Animation state for a single pattern
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FrameAnimState<K, T>
+pub struct AnimState<F> {
+    pattern: AnimPattern<F>,
+    // states
+    accum: Duration,
+    state: LoopState,
+}
+
+impl<F> AnimState<F> {
+    pub fn new(pattern: AnimPattern<F>) -> Self {
+        Self {
+            pattern,
+            accum: Duration::new(0, 0),
+            state: LoopState::Running,
+        }
+    }
+
+    /// Lifecycle
+    pub fn tick(&mut self, dt: Duration) {
+        if matches!(self.state, LoopState::Stopped) {
+            return;
+        }
+
+        self.accum += dt;
+        let (next_duration, next_state) = self.pattern.on_tick(self.accum);
+        self.accum = next_duration;
+        self.state = next_state;
+    }
+
+    pub fn pattern(&self) -> &AnimPattern<F> {
+        &self.pattern
+    }
+
+    pub fn current_frame(&self) -> &F {
+        self.pattern.frame(self.accum)
+    }
+}
+
+/// Animation state that can switch among registored patterns
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MultiPatternAnimState<K, F>
 where
     K: Eq + std::hash::Hash,
 {
     // pattern settings
-    patterns: HashMap<K, FrameAnimPattern<T>>,
+    patterns: HashMap<K, AnimPattern<F>>,
     // states
     cur_key: K,
     accum: Duration,
     state: LoopState,
 }
 
-impl<K, T> FrameAnimState<K, T>
+impl<K, F> MultiPatternAnimState<K, F>
 where
     K: Eq + std::hash::Hash,
 {
-    pub fn new(patterns: HashMap<K, FrameAnimPattern<T>>, initial_key: K) -> Self {
+    pub fn new(patterns: HashMap<K, AnimPattern<F>>, initial_key: K) -> Self {
         Self {
             patterns,
             cur_key: initial_key,
@@ -146,13 +184,13 @@ where
         self.state = next_state;
     }
 
-    pub fn current_frame(&self) -> &T {
-        let pattern = self.patterns.get(&self.cur_key).unwrap();
-        pattern.frame(self.accum)
+    /// Current animation pattern, i.e., current animation frames
+    pub fn current_pattern(&self) -> Option<&AnimPattern<F>> {
+        self.patterns.get(&self.cur_key)
     }
 
-    pub fn current_pattern(&mut self) -> Option<&FrameAnimPattern<T>> {
-        self.patterns.get(&self.cur_key)
+    pub fn current_frame(&self) -> Option<&F> {
+        self.current_pattern().map(|p| p.frame(self.accum))
     }
 
     pub fn set_pattern(&mut self, key: K, reset_accum: bool) {
@@ -163,7 +201,7 @@ where
         self.cur_key = key;
     }
 
-    pub fn frames_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut T> {
+    pub fn patterns_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut F> {
         self.patterns.values_mut().flat_map(|p| p.frames.iter_mut())
     }
 }
