@@ -243,36 +243,47 @@ impl<T: TypeObject> SerdeRepr<T> {
 
 pub use snow2d_derive::SerdeViaTyObj;
 
-/// [`SerdeRepr`] <=> Target conversion
+/// Internal utility to implement `From` and `Into` between [`SerdeRepr`] and target data type
 pub trait SerdeViaTyObj {
-    fn _from_tyobj(obj: &Self::TypeObject) -> Self;
     type TypeObject: TypeObject + 'static;
-    fn from_tyobj_with_id(obj: &Self::TypeObject, _id: &TypeObjectId<Self::TypeObject>) -> Self
+
+    fn _repr_mut(&mut self) -> Option<&mut SerdeRepr<Self::TypeObject>> {
+        None
+    }
+
+    fn _from_tyobj(obj: &Self::TypeObject) -> Self;
+
+    fn _from_tyobj_with_id(obj: &Self::TypeObject, id: &TypeObjectId<Self::TypeObject>) -> Self
     where
         Self: Sized,
     {
-        Self::_from_tyobj(obj)
+        let mut target = Self::_from_tyobj(&obj);
+        if let Some(repr) = target._repr_mut() {
+            *repr = SerdeRepr::Reference(id.clone());
+        }
+        target
     }
-    fn into_tyobj_repr(target: Self) -> SerdeRepr<Self::TypeObject>;
+
+    /// `Into<SerdeRepr<TargetType>` implementation
+    fn into_tyobj_repr(self) -> Option<SerdeRepr<Self::TypeObject>>
+    where
+        Self: Sized,
+    {
+        None
+    }
+
+    /// `From<SerdeRepr<TargetType>>` implementation
     fn from_tyobj_repr(repr: SerdeRepr<Self::TypeObject>) -> Self
     where
         Self: Sized,
     {
         match repr {
-            SerdeRepr::Embedded(type_obj) => Self::_from_tyobj(&type_obj),
+            // no ID
+            SerdeRepr::Embedded(tyobj) => Self::_from_tyobj(&tyobj),
+            // some ID
             SerdeRepr::Reference(id) => {
-                Self::from_tyobj_with_id(id.try_retrieve().unwrap().as_ref(), &id)
+                Self::_from_tyobj_with_id(id.try_retrieve().unwrap().as_ref(), &id)
             }
         }
     }
 }
-
-// TODO: programming pattern
-// pub trait DefaultFromTyObj {
-//     type TypeObject: TypeObject;
-//     fn default_from_type(ty: &TypeObjectId) -> Self;
-// }
-
-// TODO: watch (static asset?)
-
-pub use snow2d_macros::connect_repr_target;

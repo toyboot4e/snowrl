@@ -18,12 +18,37 @@ fn via_tyobj_struct(args: &args::TypeArgs, _fields: &ast::Fields<args::FieldArgs
 
     let tyobj = &args.tyobj;
     let from_tyobj = &args.from_tyobj;
-    let repr_field = args
-        .repr_field
-        .clone()
-        .unwrap_or_else(|| parse_quote!(serde_repr));
 
     let root = quote!(snow2d::utils::tyobj);
+
+    let repr_fns = args.repr_field.as_ref().map(|repr| {
+        quote! {
+            fn _repr_mut(&mut self) -> Option<&mut #root::SerdeRepr<Self::TypeObject>> {
+                Some(&mut self.#repr)
+            }
+
+            fn into_tyobj_repr(self) -> Option<#root::SerdeRepr<Self::TypeObject>>
+            where
+                Self: Sized,
+            {
+                Some(self.#repr)
+            }
+        }
+    });
+
+    let into_impl = args.repr_field.as_ref().map(|repr| {
+        quote! {
+            // Target -> SerdeRepr<TypeObject>
+            impl #impl_generics Into<#root::SerdeRepr<#tyobj>> for #ty_ident #ty_generics
+                #where_clause
+            {
+                fn into(self: #ty_ident #ty_generics) -> #root::SerdeRepr<#tyobj> {
+                    <#ty_ident as #root::SerdeViaTyObj>::into_tyobj_repr(self)
+                        .unwrap_or_else(|| unreachable!())
+                }
+            }
+        }
+    });
 
     quote! {
         impl #impl_generics SerdeViaTyObj for #ty_ident #ty_generics
@@ -32,39 +57,21 @@ fn via_tyobj_struct(args: &args::TypeArgs, _fields: &ast::Fields<args::FieldArgs
             type TypeObject = #tyobj;
 
             fn _from_tyobj(obj: &Self::TypeObject) -> Self {
-                #from_tyobj(obj)
+                SerdeViaTyObj::_from_tyobj(obj)
             }
 
-            fn into_tyobj_repr(target: Self) -> #root::SerdeRepr<Self::TypeObject> {
-                target.#repr_field
-            }
-
-            fn from_tyobj_with_id(
-                obj: &Self::TypeObject,
-                id: &#root::TypeObjectId<Self::TypeObject>,
-            ) -> Self {
-                let mut target = Self::_from_tyobj(&obj);
-                target.#repr_field = #root::SerdeRepr::Reference(id.clone());
-                target
-            }
+            #repr_fns
         }
 
         // SerdeRepr<TypeObject> -> Target
         impl #impl_generics From<#root::SerdeRepr<#tyobj>> for #ty_ident #ty_generics
             #where_clause
         {
-            fn from(repr: #root::SerdeRepr<#tyobj>) -> #ty_ident {
-                <#ty_ident as #root::SerdeViaTyObj>::from_tyobj_repr(repr)
+            fn from(repr: #root::SerdeRepr<#tyobj>) -> #ty_ident #ty_generics {
+                SerdeViaTyObj::from_tyobj_repr(repr)
             }
         }
 
-        // Target -> SerdeRepr<TypeObject>
-        impl #impl_generics Into<#root::SerdeRepr<#tyobj>> for #ty_ident #ty_generics
-            #where_clause
-        {
-            fn into(self: #ty_ident) -> #root::SerdeRepr<#tyobj> {
-                <#ty_ident as #root::SerdeViaTyObj>::into_tyobj_repr(self)
-            }
-        }
+        #into_impl
     }
 }

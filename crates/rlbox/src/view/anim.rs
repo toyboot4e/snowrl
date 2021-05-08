@@ -2,8 +2,14 @@
 Frame-based animation states
 */
 
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
+
+use serde::{Deserialize, Serialize};
+use snow2d::{
+    asset::Asset,
+    gfx::tex::{SpriteData, Texture2dDrop},
+    utils::tyobj::*,
+};
 
 /// Option for playing frame-based animation patterns
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -104,13 +110,50 @@ impl<F> AnimPattern<F> {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, TypeObject)]
+pub struct AnimType {
+    tex: Asset<Texture2dDrop>,
+    fps: f32,
+    div: [usize; 2],
+    frames: Vec<usize>,
+}
+
+impl AnimType {
+    pub fn to_pattern(&self) -> AnimPattern<SpriteData> {
+        let mut s = SpriteData::builder(self.tex.clone());
+        let w = 1.0 / self.div[0] as f32;
+        let h = 1.0 / self.div[1] as f32;
+
+        let frames = (0..(self.div[0] * self.div[1]))
+            .map(|i| {
+                let x = (i % self.div[0]) as f32 * w;
+                let y = (i / self.div[0]) as f32 * h;
+                s.uv_rect([x, y, w, h]).build()
+            })
+            .collect::<Vec<_>>();
+
+        AnimPattern {
+            frames,
+            fps: self.fps,
+            loop_mode: LoopMode::ClampForever,
+        }
+    }
+}
+
 /// Animation state for a single pattern
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SerdeViaTyObj)]
+#[via_tyobj(tyobj = "AnimType", from_tyobj = "Self::from_type")]
 pub struct AnimState<F> {
     pattern: AnimPattern<F>,
     // states
     accum: Duration,
     state: LoopState,
+}
+
+impl AnimState<SpriteData> {
+    pub fn from_type(desc: &AnimType) -> Self {
+        Self::new(desc.to_pattern())
+    }
 }
 
 impl<F> AnimState<F> {
