@@ -143,26 +143,24 @@ impl AnimType {
 /// Animation state for a single pattern
 #[derive(Debug, Clone, Serialize, Deserialize, SerdeViaTyObj)]
 #[via_tyobj(tyobj = "AnimType", from_tyobj = "Self::from_type")]
-pub struct AnimState<F> {
-    pattern: AnimPattern<F>,
+pub struct AnimState {
+    pattern: AnimPattern<SpriteData>,
     // states
     accum: Duration,
     state: LoopState,
 }
 
-impl AnimState<SpriteData> {
-    pub fn from_type(desc: &AnimType) -> Self {
-        Self::new(desc.to_pattern())
-    }
-}
-
-impl<F> AnimState<F> {
-    pub fn new(pattern: AnimPattern<F>) -> Self {
+impl AnimState {
+    pub fn new(pattern: AnimPattern<SpriteData>) -> Self {
         Self {
             pattern,
             accum: Duration::new(0, 0),
             state: LoopState::Running,
         }
+    }
+
+    pub fn from_type(desc: &AnimType) -> Self {
+        Self::new(desc.to_pattern())
     }
 
     /// Lifecycle
@@ -177,11 +175,11 @@ impl<F> AnimState<F> {
         self.state = next_state;
     }
 
-    pub fn pattern(&self) -> &AnimPattern<F> {
+    pub fn pattern(&self) -> &AnimPattern<SpriteData> {
         &self.pattern
     }
 
-    pub fn current_frame(&self) -> &F {
+    pub fn current_frame(&self) -> &SpriteData {
         self.pattern.frame(self.accum)
     }
 }

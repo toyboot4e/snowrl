@@ -125,7 +125,7 @@ pub mod asset {
     #[derive(Debug)]
     pub struct MusicPlayer {
         pub audio: Audio,
-        /// [`PlayBack`] of current music
+        /// [`Playback`] of current music
         pub current: Option<Playback>,
     }
 

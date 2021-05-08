@@ -36,7 +36,7 @@ fn via_tyobj_struct(args: &args::TypeArgs, _fields: &ast::Fields<args::FieldArgs
         }
     });
 
-    let into_impl = args.repr_field.as_ref().map(|repr| {
+    let into_impl = args.repr_field.as_ref().map(|_repr| {
         quote! {
             // Target -> SerdeRepr<TypeObject>
             impl #impl_generics Into<#root::SerdeRepr<#tyobj>> for #ty_ident #ty_generics
@@ -57,7 +57,7 @@ fn via_tyobj_struct(args: &args::TypeArgs, _fields: &ast::Fields<args::FieldArgs
             type TypeObject = #tyobj;
 
             fn _from_tyobj(obj: &Self::TypeObject) -> Self {
-                SerdeViaTyObj::_from_tyobj(obj)
+                #from_tyobj(obj)
             }
 
             #repr_fns
