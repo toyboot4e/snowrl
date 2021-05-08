@@ -9,7 +9,6 @@ pub mod node;
 use {glam::Mat4, std::time::Duration};
 
 use crate::{
-    self as snow2d,
     utils::{
         arena::Arena,
         ez, inspect,

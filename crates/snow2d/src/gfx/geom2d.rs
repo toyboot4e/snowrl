@@ -1,6 +1,6 @@
 //! 2D geometry types. TODO: remove this
 
-use crate::{self as snow2d, utils::Inspect};
+use crate::utils::Inspect;
 use auto_ops::*;
 use serde::{Deserialize, Serialize};
 

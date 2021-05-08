@@ -20,7 +20,9 @@ use derivative::Derivative;
 use once_cell::sync::OnceCell;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{self as snow2d, asset::AssetKey, utils::Inspect};
+pub use snow2d_derive::TypeObject;
+
+use crate::{asset::AssetKey, utils::Inspect};
 
 /// Marker for data that define "type" of instances (type objects). Type objects are stored in
 /// static storage.
@@ -239,28 +241,27 @@ impl<T: TypeObject> SerdeRepr<T> {
     }
 }
 
-/// Utility for [`SerdeRepr`] <=> Target. Use macro for implementing conversion traits.
-pub trait SerdeViaTypeObject {
+pub use snow2d_derive::SerdeViaTyObj;
+
+/// [`SerdeRepr`] <=> Target conversion
+pub trait SerdeViaTyObj {
+    fn _from_tyobj(obj: &Self::TypeObject) -> Self;
     type TypeObject: TypeObject + 'static;
-    fn from_type_object(obj: &Self::TypeObject) -> Self;
-    fn from_type_object_with_id(
-        obj: &Self::TypeObject,
-        _id: &TypeObjectId<Self::TypeObject>,
-    ) -> Self
+    fn from_tyobj_with_id(obj: &Self::TypeObject, _id: &TypeObjectId<Self::TypeObject>) -> Self
     where
         Self: Sized,
     {
-        Self::from_type_object(obj)
+        Self::_from_tyobj(obj)
     }
-    fn into_type_object_repr(target: Self) -> SerdeRepr<Self::TypeObject>;
-    fn from_type_object_repr(repr: SerdeRepr<Self::TypeObject>) -> Self
+    fn into_tyobj_repr(target: Self) -> SerdeRepr<Self::TypeObject>;
+    fn from_tyobj_repr(repr: SerdeRepr<Self::TypeObject>) -> Self
     where
         Self: Sized,
     {
         match repr {
-            SerdeRepr::Embedded(type_obj) => Self::from_type_object(&type_obj),
+            SerdeRepr::Embedded(type_obj) => Self::_from_tyobj(&type_obj),
             SerdeRepr::Reference(id) => {
-                Self::from_type_object_with_id(id.try_retrieve().unwrap().as_ref(), &id)
+                Self::from_tyobj_with_id(id.try_retrieve().unwrap().as_ref(), &id)
             }
         }
     }

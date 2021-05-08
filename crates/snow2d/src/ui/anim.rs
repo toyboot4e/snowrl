@@ -9,7 +9,6 @@ use dyn_clone::{clone_trait_object, DynClone};
 use std::time::Duration;
 
 use crate::{
-    self as snow2d,
     gfx::{geom2d::Vec2f, Color},
     ui::node::Node,
     utils::{

@@ -23,7 +23,7 @@ use snow2d::{
     utils::{
         ez,
         pool::Handle,
-        tyobj::{self, SerdeRepr, SerdeViaTypeObject, TypeObject, TypeObjectId},
+        tyobj::{SerdeRepr, SerdeViaTyObj, TypeObject, TypeObjectId},
         Inspect,
     },
 };
@@ -176,15 +176,13 @@ impl DirAnimKind {
 ///
 /// 1. Call [`ActorImage::warp`]
 /// 2. Set speed properties of [`ActorImage`]
-#[derive(Debug, Clone, Serialize, Deserialize, Inspect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Inspect, TypeObject)]
 pub struct ActorImageType {
     pub tex: Asset<Texture2dDrop>,
     pub kind: DirAnimKind,
     // TODO: scales
     // TODO: offset
 }
-
-impl TypeObject for ActorImageType {}
 
 impl ActorImageType {
     pub fn gen_anim_patterns(&self) -> HashMap<Dir8, AnimPattern<SpriteData>> {
@@ -204,7 +202,12 @@ struct ActorState {
 }
 
 /// An animatable actor image
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SerdeViaTyObj)]
+#[via_tyobj(
+    tyobj = "ActorImageType",
+    from_tyobj = "Self::from_desc_default",
+    repr_field = "serde_repr"
+)]
 #[serde(from = "SerdeRepr<ActorImageType>")]
 #[serde(into = "SerdeRepr<ActorImageType>")]
 pub struct ActorImage {
@@ -260,29 +263,6 @@ impl ActorImage {
         )
     }
 }
-
-impl SerdeViaTypeObject for ActorImage {
-    type TypeObject = ActorImageType;
-
-    fn from_type_object(obj: &Self::TypeObject) -> Self {
-        Self::from_desc_default(obj)
-    }
-
-    fn from_type_object_with_id(
-        obj: &Self::TypeObject,
-        id: &TypeObjectId<Self::TypeObject>,
-    ) -> Self {
-        let mut img = Self::from_type_object(&obj);
-        img.serde_repr = SerdeRepr::Reference(id.clone());
-        img
-    }
-
-    fn into_type_object_repr(target: Self) -> SerdeRepr<Self::TypeObject> {
-        target.serde_repr
-    }
-}
-
-tyobj::connect_repr_target!(ActorImageType, ActorImage);
 
 /// Lifecycle
 impl ActorImage {

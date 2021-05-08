@@ -37,10 +37,7 @@ use downcast_rs::{impl_downcast, Downcast};
 use once_cell::sync::OnceCell;
 use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
 
-use crate::{
-    self as snow2d,
-    utils::{Cheat, Inspect},
-};
+use crate::utils::{Cheat, Inspect};
 
 /// Generational index or identity of assets
 type Gen = u32;
@@ -82,7 +79,7 @@ pub struct StringWithScheme {
     scheme_offset: Option<usize>,
 }
 
-/// Maps [`SchemeString`] to relative path from asset root directory
+/// Maps scheme to relative path from asset root directory
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SchemeHolder {
     schemes: Vec<(String, String)>,

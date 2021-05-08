@@ -16,7 +16,6 @@ use {
 };
 
 use crate::{
-    self as snow2d,
     asset::{self, Asset, AssetItem, AssetLoader},
     gfx::{
         draw::{DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d},

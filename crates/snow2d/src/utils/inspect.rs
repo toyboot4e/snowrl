@@ -7,6 +7,8 @@ use std::ops::DerefMut;
 
 use imgui::{im_str, Ui};
 
+pub use snow2d_derive::Inspect;
+
 /// Derive ImGUI runtime inspector
 pub trait Inspect {
     fn inspect(&mut self, ui: &Ui, label: &str);

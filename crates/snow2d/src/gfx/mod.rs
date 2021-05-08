@@ -1,6 +1,8 @@
 /*!
 Graphics
 
+[`Snow2d`] is the context and the primary API.
+
 # Coordinate system
 
 Same as OpenGL or school math (right-handed and column-major).
@@ -29,7 +31,7 @@ use rokol::{
     gfx::{self as rg, BakedResource},
 };
 
-use crate::{self as snow2d, utils::Inspect};
+use crate::utils::Inspect;
 
 use self::{
     batch::{Batch, BatchData, QuadData},
