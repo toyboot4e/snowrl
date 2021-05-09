@@ -23,7 +23,7 @@ use snow2d::{
     utils::{
         ez,
         pool::Handle,
-        tyobj::{SerdeRepr, SerdeViaTyObj, TypeObject, TypeObjectId},
+        tyobj::{SerdeRepr, SerdeViaTyObj, TypeObject},
         Inspect,
     },
 };
@@ -213,7 +213,7 @@ struct ActorState {
 pub struct ActorImage {
     dir_anim_state: MultiPatternAnimState<Dir8, SpriteData>,
     state_diff: DoubleSwap<ActorState>,
-    dir_tweem: ez::Tweened<Dir8>,
+    dir_tween: ez::Tweened<Dir8>,
     /// Interpolation value for walk animation
     walk_dt: ez::EasedDt,
     /// For deserialization
@@ -242,7 +242,7 @@ impl ActorImage {
             dir_anim_state: desc.gen_anim_state(dir),
             state_diff: DoubleSwap::new(data, data),
             walk_dt: walk_dt.into(),
-            dir_tweem: ez::Tweened {
+            dir_tween: ez::Tweened {
                 a: dir,
                 b: dir,
                 dt: ez::EasedDt::completed(),
@@ -266,7 +266,7 @@ impl ActorImage {
 
 /// Lifecycle
 impl ActorImage {
-    /// Updates the image with (new) actor position and direction
+    /// Moves/animates/tweens the image
     pub fn update(&mut self, dt: Duration, pos: Vec2i, dir: Dir8) {
         let (dir_diff, pos_diff) = (
             dir != self.state_diff.a().dir,
@@ -276,21 +276,21 @@ impl ActorImage {
         if dir_diff {
             if pos_diff {
                 // rotate instantly
-                self.dir_tweem = ez::Tweened {
-                    a: self.dir_tweem.a,
+                self.dir_tween = ez::Tweened {
+                    a: self.dir_tween.a,
                     b: dir,
                     dt: ez::EasedDt::completed(),
                 };
             } else {
-                // NOTE: it always animate with rotation
-                self.dir_tweem =
+                // NOTE: it always animates with rotation
+                self.dir_tween =
                     ez::tween_dirs(self.state_diff.a().dir, dir, self::CHANGE_DIR_TIME);
             }
         }
 
         // update direction of the animation
-        self.dir_tweem.tick(dt);
-        self.dir_anim_state.set_pattern(self.dir_tweem.get(), false);
+        self.dir_tween.tick(dt);
+        self.dir_anim_state.set_pattern(self.dir_tween.get(), false);
 
         // update interpolation value for walk animation
         if pos_diff {

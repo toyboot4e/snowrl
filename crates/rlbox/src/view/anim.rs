@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use snow2d::{
     asset::Asset,
     gfx::tex::{SpriteData, Texture2dDrop},
+    input::Dir8,
     utils::tyobj::*,
 };
 
@@ -110,80 +111,6 @@ impl<F> AnimPattern<F> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TypeObject)]
-pub struct AnimType {
-    tex: Asset<Texture2dDrop>,
-    fps: f32,
-    div: [usize; 2],
-    frames: Vec<usize>,
-}
-
-impl AnimType {
-    pub fn to_pattern(&self) -> AnimPattern<SpriteData> {
-        let mut s = SpriteData::builder(self.tex.clone());
-        let w = 1.0 / self.div[0] as f32;
-        let h = 1.0 / self.div[1] as f32;
-
-        let frames = (0..(self.div[0] * self.div[1]))
-            .map(|i| {
-                let x = (i % self.div[0]) as f32 * w;
-                let y = (i / self.div[0]) as f32 * h;
-                s.uv_rect([x, y, w, h]).build()
-            })
-            .collect::<Vec<_>>();
-
-        AnimPattern {
-            frames,
-            fps: self.fps,
-            loop_mode: LoopMode::ClampForever,
-        }
-    }
-}
-
-/// Animation state for a single pattern
-#[derive(Debug, Clone, Serialize, Deserialize, SerdeViaTyObj)]
-#[via_tyobj(tyobj = "AnimType", from_tyobj = "Self::from_type")]
-pub struct AnimState {
-    pattern: AnimPattern<SpriteData>,
-    // states
-    accum: Duration,
-    state: LoopState,
-}
-
-impl AnimState {
-    pub fn new(pattern: AnimPattern<SpriteData>) -> Self {
-        Self {
-            pattern,
-            accum: Duration::new(0, 0),
-            state: LoopState::Running,
-        }
-    }
-
-    pub fn from_type(desc: &AnimType) -> Self {
-        Self::new(desc.to_pattern())
-    }
-
-    /// Lifecycle
-    pub fn tick(&mut self, dt: Duration) {
-        if matches!(self.state, LoopState::Stopped) {
-            return;
-        }
-
-        self.accum += dt;
-        let (next_duration, next_state) = self.pattern.on_tick(self.accum);
-        self.accum = next_duration;
-        self.state = next_state;
-    }
-
-    pub fn pattern(&self) -> &AnimPattern<SpriteData> {
-        &self.pattern
-    }
-
-    pub fn current_frame(&self) -> &SpriteData {
-        self.pattern.frame(self.accum)
-    }
-}
-
 /// Animation state that can switch among registored patterns
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MultiPatternAnimState<K, F>
@@ -244,5 +171,107 @@ where
 
     pub fn patterns_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut F> {
         self.patterns.values_mut().flat_map(|p| p.frames.iter_mut())
+    }
+}
+
+/// Type object of directional animation performed by entity
+#[derive(Debug, Clone, Serialize, Deserialize, TypeObject)]
+pub struct DirAnimType {
+    tex: Asset<Texture2dDrop>,
+    dir: AnimDir,
+    /// Frames to wait per div
+    wait: u32,
+    div: [usize; 2],
+    /// TODO: allow range repr
+    frames: Vec<usize>,
+    #[serde(default = "DirAnimType::default_anim_scale")]
+    scale: [f32; 2],
+}
+
+/// If the animation should change angle depending on the actor
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum AnimDir {
+    Fixed(f32),
+    Offset(f32),
+}
+
+impl DirAnimType {
+    fn default_anim_scale() -> [f32; 2] {
+        [1.0, 1.0]
+    }
+
+    pub fn to_pattern(&self) -> AnimPattern<SpriteData> {
+        let mut s = SpriteData::builder(self.tex.clone());
+        let w = 1.0 / self.div[0] as f32;
+        let h = 1.0 / self.div[1] as f32;
+
+        let frames = (0..(self.div[0] * self.div[1]))
+            .map(|i| {
+                let x = (i % self.div[0]) as f32 * w;
+                let y = (i / self.div[0]) as f32 * h;
+                s.uv_rect([x, y, w, h]).scales(self.scale).build()
+            })
+            .collect::<Vec<_>>();
+
+        AnimPattern {
+            frames,
+            fps: 60.0 / self.wait as f32,
+            loop_mode: LoopMode::ClampForever,
+        }
+    }
+}
+
+/// State  of directional animation performed by an entity
+#[derive(Debug, Clone, Serialize, Deserialize, SerdeViaTyObj)]
+#[via_tyobj(tyobj = "DirAnimType", from_tyobj = "Self::from_type")]
+pub struct DirAnimState {
+    pattern: AnimPattern<SpriteData>,
+    dir: AnimDir,
+    // states
+    accum: Duration,
+    state: LoopState,
+}
+
+impl DirAnimState {
+    pub fn from_patterns(pattern: AnimPattern<SpriteData>, dir: AnimDir) -> Self {
+        Self {
+            pattern,
+            dir,
+            accum: Duration::new(0, 0),
+            state: LoopState::Running,
+        }
+    }
+
+    pub fn from_type(desc: &DirAnimType) -> Self {
+        Self::from_patterns(desc.to_pattern(), desc.dir)
+    }
+
+    /// Lifecycle
+    pub fn tick(&mut self, dt: Duration) {
+        if matches!(self.state, LoopState::Stopped) {
+            return;
+        }
+
+        self.accum += dt;
+        let (next_duration, next_state) = self.pattern.on_tick(self.accum);
+        self.accum = next_duration;
+        self.state = next_state;
+    }
+
+    pub fn pattern(&self) -> &AnimPattern<SpriteData> {
+        &self.pattern
+    }
+
+    pub fn current_frame(&self) -> &SpriteData {
+        self.pattern.frame(self.accum)
+    }
+
+    /// TODO: change angle depending on the actor's direction
+    pub fn current_frame_with_dir(&self, _dir: Dir8) -> SpriteData {
+        match self.dir {
+            AnimDir::Fixed(offset) if offset == 0.0 => self.pattern.frame(self.accum).clone(),
+            AnimDir::Fixed(_offset) => self.pattern.frame(self.accum).clone(),
+            AnimDir::Offset(_offset) => self.pattern.frame(self.accum).clone(),
+        }
     }
 }

@@ -194,3 +194,5 @@ impl Inspect for Anim {
 
 /// Index of [`Anim`] in expected collection (i.e., generational arena)
 pub type AnimIndex = crate::utils::arena::Index<Anim>;
+
+// TODO: frame-based sprite animation?

@@ -2,9 +2,9 @@
 High level commands
 */
 
-use snow2d::utils::arena::Index;
+use snow2d::utils::{arena::Index, tyobj::*};
 
-use rlbox::rl::grid2d::*;
+use rlbox::{rl::grid2d::*, view::anim::DirAnimType};
 
 use crate::game::{
     ctrl::rogue::{
@@ -129,6 +129,10 @@ impl GenAnim for MeleeAttack {
 
         let se = se.get_mut().unwrap();
         data.ice.audio.play(&*se);
+
+        let anim = TypeObjectId::<DirAnimType>::from_raw("attack".to_string())
+            .try_retrieve()
+            .unwrap();
 
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,

@@ -1,6 +1,6 @@
 mod args;
 
-use {darling::*, proc_macro2::TokenStream as TokenStream2, quote::*, syn::*};
+use {darling::*, proc_macro2::TokenStream as TokenStream2, quote::*};
 
 /// Implements `TypeObject`
 pub fn impl_tyobj(ast: syn::DeriveInput) -> TokenStream2 {

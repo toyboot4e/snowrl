@@ -115,7 +115,7 @@ pub struct GrueRl {
     pub data: Data,
     /// States to control the game
     pub ctrl: Control,
-    /// Objects for the state machine
+    /// Objects with exclusive data
     pub agents: Agents,
     /// Controls the game
     pub fsm: Fsm,

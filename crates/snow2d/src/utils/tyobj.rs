@@ -40,6 +40,7 @@ pub trait TypeObject: std::fmt::Debug + Sized {
 #[derive(Derivative, Inspect)]
 #[derivative(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeObjectId<T: TypeObject> {
+    /// TODO: use `Cow` and add lifetime?
     key: String,
     _marker: PhantomData<fn() -> T>,
 }
@@ -82,6 +83,7 @@ impl<T: TypeObject> serde::ser::Serialize for TypeObjectId<T> {
 }
 
 impl<T: TypeObject> TypeObjectId<T> {
+    /// Creates type object from raw ID
     pub fn from_raw(s: String) -> Self {
         Self {
             key: s,
@@ -93,6 +95,7 @@ impl<T: TypeObject> TypeObjectId<T> {
         &self.key
     }
 
+    /// Tries to retrieve the target type object from global storage
     pub fn try_retrieve(&self) -> Option<Rc<T>>
     where
         T: 'static,
