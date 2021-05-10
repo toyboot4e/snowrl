@@ -2,6 +2,9 @@
 UI or scene graph: container of sprites and animations
 */
 
+// TODO: Consider whether animation arena should be handled equally as user data
+// The difference is that `ui::anim` doesn't need to refer to user data type to make changes
+
 pub mod anim;
 pub mod anim_builder;
 pub mod node;
@@ -199,7 +202,7 @@ impl NodePool {
         }
     }
 
-    pub fn attach_child(&mut self, parent_handle: &Handle<Node>, mut child: Node) -> Handle<Node> {
+    pub fn add_as_child(&mut self, parent_handle: &Handle<Node>, mut child: Node) -> Handle<Node> {
         child.parent = Some(parent_handle.clone());
         let child_handle = self.pool.add(child);
         self.pool[parent_handle]

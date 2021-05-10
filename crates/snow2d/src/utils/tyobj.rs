@@ -254,13 +254,13 @@ pub trait SerdeViaTyObj {
         None
     }
 
-    fn _from_tyobj(obj: &Self::TypeObject) -> Self;
+    fn from_tyobj(obj: &Self::TypeObject) -> Self;
 
     fn _from_tyobj_with_id(obj: &Self::TypeObject, id: &TypeObjectId<Self::TypeObject>) -> Self
     where
         Self: Sized,
     {
-        let mut target = Self::_from_tyobj(&obj);
+        let mut target = Self::from_tyobj(&obj);
         if let Some(repr) = target._repr_mut() {
             *repr = SerdeRepr::Reference(id.clone());
         }
@@ -282,7 +282,7 @@ pub trait SerdeViaTyObj {
     {
         match repr {
             // no ID
-            SerdeRepr::Embedded(tyobj) => Self::_from_tyobj(&tyobj),
+            SerdeRepr::Embedded(tyobj) => Self::from_tyobj(&tyobj),
             // some ID
             SerdeRepr::Reference(id) => {
                 Self::_from_tyobj_with_id(id.try_retrieve().unwrap().as_ref(), &id)

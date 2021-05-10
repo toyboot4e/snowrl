@@ -396,12 +396,12 @@ impl ActorNodes {
         let mut img = Node::from(img_sprite);
         img.params.pos = Vec2f::new(0.0, -h / 2.0);
 
-        let img = layer.nodes.attach_child(&base, img);
+        let img = layer.nodes.add_as_child(&base, img);
 
         // TODO: show HP?
         let hp = layer
             .nodes
-            .attach_child(&base, node::Text::new(format!("")).into());
+            .add_as_child(&base, node::Text::new(format!("")).into());
 
         Self { base, img, hp }
     }

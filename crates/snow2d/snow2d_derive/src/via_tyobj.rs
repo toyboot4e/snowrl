@@ -56,7 +56,7 @@ fn via_tyobj_struct(args: &args::TypeArgs, _fields: &ast::Fields<args::FieldArgs
         {
             type TypeObject = #tyobj;
 
-            fn _from_tyobj(obj: &Self::TypeObject) -> Self {
+            fn from_tyobj(obj: &Self::TypeObject) -> Self {
                 #from_tyobj(obj)
             }
 
