@@ -2,16 +2,22 @@
 High level commands
 */
 
-use snow2d::utils::{arena::Index, tyobj::*};
+use snow2d::{
+    ui::node::Node,
+    utils::{arena::Index, tyobj::*},
+};
 
-use rlbox::{rl::grid2d::*, view::anim::DirAnimType};
+use rlbox::{
+    rl::grid2d::*,
+    view::anim::{DirAnimState, DirAnimType},
+};
 
 use crate::game::{
     ctrl::rogue::{
         anim::{self as rl_anim, *},
         tick::{Event, EventResult, GenAnim},
     },
-    data::world::actor::Actor,
+    data::{res::*, world::actor::Actor},
     Data,
 };
 
@@ -121,6 +127,9 @@ impl Event for MeleeAttack {
 
 impl GenAnim for MeleeAttack {
     fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
+        // TODO: declartive effects?
+
+        // play sound
         let mut se = data
             .ice
             .assets
@@ -130,9 +139,40 @@ impl GenAnim for MeleeAttack {
         let se = se.get_mut().unwrap();
         data.ice.audio.play(&*se);
 
-        let anim = TypeObjectId::<DirAnimType>::from_raw("attack".to_string())
-            .try_retrieve()
-            .unwrap();
+        // play animation
+        let attacker = &data.world.entities[self.actor];
+        let attacker_dir = self.dir.clone().unwrap_or(attacker.dir);
+        let target_pos = attacker.pos.offset(attacker_dir);
+
+        if let Some((_ix, target)) = data
+            .world
+            .entities
+            .iter()
+            .find(|(_i, e)| e.pos == target_pos)
+        {
+            data.res.dir_anims.add({
+                let anim_type = TypeObjectId::<DirAnimType>::from_raw("attack".to_string())
+                    .try_retrieve()
+                    .unwrap();
+                let state = DirAnimState::from_tyobj(&*anim_type);
+
+                let layer = UiLayer::OnActors;
+                let anim_layer = data.res.ui.layer_mut(layer);
+
+                let node = anim_layer.nodes.add({
+                    let mut node = Node::from(state.current_frame());
+                    node.params.pos = target.view.img_pos_world(&data.world.map.tiled);
+                    node
+                });
+
+                DirAnimEntry {
+                    node,
+                    layer,
+                    state,
+                    dir: target.dir,
+                }
+            });
+        }
 
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,

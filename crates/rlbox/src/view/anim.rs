@@ -39,6 +39,7 @@ pub enum LoopState {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnimPattern<F> {
     frames: Vec<F>,
+    /// TODO: use sec per frame?
     fps: f32,
     loop_mode: LoopMode,
 }
@@ -52,11 +53,12 @@ impl<F> AnimPattern<F> {
         }
     }
 
-    /// Returns (duration, state) after completion handling
-    fn on_tick(&mut self, dt: Duration) -> (Duration, LoopState) {
+    /// Returns (acccumulated_duration, state) after completion handling
+    fn on_tick(&mut self, accum: Duration) -> (Duration, LoopState) {
         let loop_duration = self.loop_duration();
-        if dt < loop_duration {
-            return (dt, LoopState::Running);
+
+        if accum < loop_duration {
+            return (accum, LoopState::Running);
         }
 
         // on end
@@ -65,18 +67,21 @@ impl<F> AnimPattern<F> {
             LoopMode::Once | LoopMode::ClampForever => (loop_duration, LoopState::Stopped),
             // loop
             LoopMode::Loop | LoopMode::PingPong | LoopMode::PingPongOnce => {
-                (dt - loop_duration, LoopState::Running)
+                (accum - loop_duration, LoopState::Running)
             }
         }
     }
 
     /// Index of current animation
     pub fn frame_ix(&self, dt: Duration) -> usize {
-        let ms_per_frame = 1000.0 * 1.0 / self.fps;
-        let ms_dt = dt.as_millis();
-        let frame = (ms_dt / ms_per_frame as u128) as usize;
+        let frame = {
+            let ms_per_frame = 1000.0 * 1.0 / self.fps;
+            let ms_dt = dt.as_millis();
+            (ms_dt / ms_per_frame as u128) as usize
+        };
 
         let len = self.frames.len();
+
         match self.loop_mode {
             // ping pong loop
             //
@@ -85,8 +90,9 @@ impl<F> AnimPattern<F> {
             //  0  1  2  3  2  1  0 :: 2 * (len - 1) - frame
             //  where the last frame should be omitted so that it's not duplicated
             LoopMode::PingPong | LoopMode::PingPongOnce if frame >= len => 2 * (len - 1) - frame,
-            // not ping pong
-            _ => frame,
+            // not ping pong (clamp)
+            // FIXME: we should not need the min bounds
+            _ => usize::min(frame, len - 1),
         }
     }
 
@@ -96,9 +102,8 @@ impl<F> AnimPattern<F> {
     }
 
     fn loop_duration(&self) -> Duration {
-        let sec = 1.0 / self.fps * self.n_loop_frames() as f32;
-        let ms = (1000.0 * sec) as u64;
-        Duration::from_millis(ms)
+        let secs = 1.0 / self.fps * self.n_loop_frames() as f32;
+        Duration::from_secs_f32(secs)
     }
 
     fn n_loop_frames(&self) -> usize {
@@ -181,11 +186,15 @@ pub struct DirAnimType {
     dir: AnimDir,
     /// Frames to wait per div
     wait: u32,
+    /// Numbers of \[vertical, horizontal\] division
     div: [usize; 2],
     /// TODO: allow range repr
     frames: Vec<usize>,
     #[serde(default = "DirAnimType::default_anim_scale")]
     scale: [f32; 2],
+    #[serde(default = "DirAnimType::default_origin")]
+    origin: [f32; 2],
+    // TODO: add offset
 }
 
 /// If the animation should change angle depending on the actor
@@ -200,6 +209,10 @@ impl DirAnimType {
         [1.0, 1.0]
     }
 
+    fn default_origin() -> [f32; 2] {
+        [0.5, 0.5]
+    }
+
     pub fn to_pattern(&self) -> AnimPattern<SpriteData> {
         let mut s = SpriteData::builder(self.tex.clone());
         let w = 1.0 / self.div[0] as f32;
@@ -207,9 +220,13 @@ impl DirAnimType {
 
         let frames = (0..(self.div[0] * self.div[1]))
             .map(|i| {
-                let x = (i % self.div[0]) as f32 * w;
-                let y = (i / self.div[0]) as f32 * h;
-                s.uv_rect([x, y, w, h]).scales(self.scale).build()
+                let u = (i % self.div[0]) as f32 * w;
+                let v = (i / self.div[0]) as f32 * h;
+
+                s.uv_rect([u, v, w, h])
+                    .scales(self.scale)
+                    .origin(self.origin)
+                    .build()
             })
             .collect::<Vec<_>>();
 
@@ -252,9 +269,8 @@ impl DirAnimState {
             return;
         }
 
-        self.accum += dt;
-        let (next_duration, next_state) = self.pattern.on_tick(self.accum);
-        self.accum = next_duration;
+        let (accum, next_state) = self.pattern.on_tick(self.accum + dt);
+        self.accum = accum;
         self.state = next_state;
     }
 
@@ -273,5 +289,13 @@ impl DirAnimState {
             AnimDir::Fixed(_offset) => self.pattern.frame(self.accum).clone(),
             AnimDir::Offset(_offset) => self.pattern.frame(self.accum).clone(),
         }
+    }
+
+    pub fn is_stopped(&self) -> bool {
+        self.state == LoopState::Stopped
+    }
+
+    pub fn state(&self) -> LoopState {
+        self.state
     }
 }

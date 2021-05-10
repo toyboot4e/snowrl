@@ -4,7 +4,7 @@ Framework for SnowRL
 Based on [`rlbox`] (roguelike toolbox) and [`snow2d`] (2D framework)
 */
 
-#![feature(generators, generator_trait, array_map)]
+#![feature(generators, generator_trait, array_map, drain_filter)]
 
 pub extern crate hot_crate;
 pub extern crate rlbox;
@@ -178,7 +178,9 @@ impl GrueRl {
         );
 
         agents.world_render.post_update(&data.world, dt);
+
         data.res.ui.update(dt);
+        data.res.dir_anims.update(dt, &mut data.res.ui);
     }
 
     #[cfg(debug_assertions)]
