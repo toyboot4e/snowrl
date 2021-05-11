@@ -10,10 +10,7 @@ use {
     rlbox::rl::grid2d::{Dir8, Vec2i},
     snow2d::{
         gfx::geom2d::Vec2f,
-        ui::{
-            anim::{Anim as UiAnim, AnimImpl, AnimIndex},
-            anim_builder::AnimSeq,
-        },
+        ui::{anim::AnimImpl, anim_builder::AnimSeq, Anim as UiAnim, AnimIndex},
         utils::{arena::Index, Inspect},
     },
 };

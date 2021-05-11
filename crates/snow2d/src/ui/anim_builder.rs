@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use crate::{
     gfx::{geom2d::Vec2f, Color},
-    ui::{anim::*, node::Node, DelayedAnim},
+    ui::{anim::*, Anim, DelayedAnim, Node},
     utils::{
         arena::{Arena, Index},
         ez,

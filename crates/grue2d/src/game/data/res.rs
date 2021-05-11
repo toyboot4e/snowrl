@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use snow2d::{
     gfx::text::font::FontSetHandle,
     input::{vi::*, Dir8, Input, Key},
-    ui::{node::Node, CoordSystem, Layer},
+    ui::{CoordSystem, Layer, Node},
     utils::{arena::Index, pool::Handle, Inspect},
 };
 

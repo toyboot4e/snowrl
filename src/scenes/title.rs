@@ -5,10 +5,10 @@ Scenes
 use snow2d::{
     audio::src::Wav,
     ui::{
-        anim::{Anim, AnimImpl},
+        anim::AnimImpl,
         anim_builder::{AnimGen, AnimInsertLog},
-        node::{Draw, Node},
-        AnimStorage, Layer,
+        node::Draw,
+        Anim, AnimStorage, Layer, Node,
     },
 };
 

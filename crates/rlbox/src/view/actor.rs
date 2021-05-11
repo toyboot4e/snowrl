@@ -16,10 +16,7 @@ use snow2d::{
         tex::{SpriteData, Texture2dDrop},
         Color,
     },
-    ui::{
-        node::{self, Node},
-        Layer,
-    },
+    ui::{node, Layer, Node},
     utils::{
         ez,
         pool::Handle,

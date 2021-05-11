@@ -7,7 +7,7 @@ pub use snow2d::{
     audio,
     gfx::{draw::*, geom2d::*, tex::*, Color, Snow2d},
     input::{Dir8, Key, Sign},
-    ui::{node::Node, Layer},
+    ui::{Layer, Node},
     utils::{
         arena::{Arena, Index},
         ez::{self, Ease, EasedDt, LinearDt, Tweened},

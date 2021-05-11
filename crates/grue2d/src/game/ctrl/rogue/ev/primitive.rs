@@ -5,10 +5,7 @@ also good foor both visualization and separation.
 
 use snow2d::{
     gfx::geom2d::Vec2f,
-    ui::{
-        anim_builder::AnimGen,
-        node::{self, Node},
-    },
+    ui::{anim_builder::AnimGen, node, Node},
     utils::{arena::Index, ez},
 };
 

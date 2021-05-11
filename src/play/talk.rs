@@ -11,7 +11,7 @@ use snow2d::{
         tex::{NineSliceSprite, SpriteData},
         text::style::FontStyle,
     },
-    ui::{anim_builder::AnimGen, node::*},
+    ui::{anim_builder::AnimGen, node::*, Node},
     utils::{arena::Index, ez, pool::Handle, tweak::*},
 };
 

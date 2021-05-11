@@ -24,7 +24,7 @@ pub use self::player::*;
 use snow2d::{
     asset::AssetKey,
     input::Dir8,
-    ui::node::Node,
+    ui::Node,
     utils::{arena::Index, tyobj::*},
 };
 
