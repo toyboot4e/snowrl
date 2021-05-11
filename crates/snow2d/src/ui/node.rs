@@ -9,11 +9,9 @@ UI nodes (renderables)
 */
 
 use crate::{
-    gfx::{draw::*, geom2d::*, Color, RenderPass},
-    utils::{
-        pool::{Handle, WeakHandle},
-        Inspect,
-    },
+    gfx::{draw::*, geom2d::*, Color},
+    ui::Node,
+    utils::Inspect,
 };
 
 use imgui::{im_str, Ui};
@@ -127,72 +125,3 @@ impl Text {
         Self { txt }
     }
 }
-
-/// Visible object in a UI layer
-#[derive(Debug, Clone, PartialEq, Inspect)]
-pub struct Node {
-    pub draw: Draw,
-    /// Common geometry data
-    pub params: DrawParams,
-    /// Draw parameter calculated befre rendering
-    pub(super) cache: DrawParams,
-    /// Rendering order [0, 1] (the higher, the latter)
-    pub order: Order,
-    /// NOTE: Parents are alive if any children is alive
-    pub(super) parent: Option<Handle<Node>>,
-    pub(super) children: Vec<WeakHandle<Node>>,
-    // TODO: dirty flag,
-}
-
-impl From<Draw> for Node {
-    fn from(draw: Draw) -> Self {
-        let params = DrawParams {
-            size: match draw {
-                // FIXME: parent box size. Node builder?
-                Draw::None => [1.0, 1.0].into(),
-                Draw::Sprite(ref x) => x.sub_tex_size_scaled().into(),
-                Draw::NineSlice(ref x) => x.sub_tex_size_scaled().into(),
-                // FIXME: measure text size?
-                Draw::Text(ref _x) => [1.0, 1.0].into(),
-            },
-            ..Default::default()
-        };
-
-        Node {
-            draw,
-            params: params.clone(),
-            cache: params.clone(),
-            order: 1.0,
-            children: vec![],
-            parent: None,
-        }
-    }
-}
-
-impl Node {
-    pub fn render(&mut self, pass: &mut RenderPass<'_>) {
-        let params = &self.cache;
-        match self.draw {
-            Draw::Sprite(ref x) => {
-                params.setup_quad(&mut pass.sprite(x));
-            }
-            Draw::NineSlice(ref x) => {
-                params.setup_quad(&mut pass.sprite(x));
-            }
-            Draw::Text(ref x) => {
-                // TODO: custom position
-                pass.text(params.pos, &x.txt);
-            }
-            Draw::None => {}
-        }
-    }
-}
-
-// pub struct NodeBuilder {
-//     draw: Draw,
-//     params: DrawParams,
-//     children:Vec<Node>,
-// }
-
-// impl NodeBuilder {
-// }

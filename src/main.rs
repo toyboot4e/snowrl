@@ -13,13 +13,13 @@ SnowRL
 
 use anyhow::{Error, Result};
 
-use snow2d::gfx::WindowState;
+use snow2d::{gfx::WindowState, ui::Ui};
 
 use grue2d::{
     app::Platform,
     game::{
         cfg::*,
-        data::res::{Resources, Ui, VInput},
+        data::res::{Resources, VInput},
         Control,
     },
 };

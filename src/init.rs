@@ -2,7 +2,7 @@
 SnowRL initialization module
 */
 
-use snow2d::{asset::StaticAssetKey, utils::tyobj::TypeObjectStorageBuilder, Ice};
+use snow2d::{asset::StaticAssetKey, ui::Ui, utils::tyobj::TypeObjectStorageBuilder, Ice};
 
 use rlbox::{
     rl::grid2d::*,
@@ -15,10 +15,7 @@ use rlbox::{
     },
 };
 
-use grue2d::game::data::{
-    res::Ui,
-    world::{actor::*, World},
-};
+use grue2d::game::data::world::{actor::*, World};
 
 use crate::prelude::*;
 
@@ -135,14 +132,12 @@ pub fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::
 }
 
 fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
-    // TODO: use RON
-    let layer = ui.layer_mut(UiLayer::Actors);
-
     // player
-    ActorSpawn::new("ika-chan")
+    // ActorSpawn::new("ika-chan")
+    ActorSpawn::new("mokusei-san")
         .pos([12, 16])
         .dir(Dir8::S)
-        .spawn(world, layer)?;
+        .spawn(world, ui)?;
 
     // non-player characters
     let mut spawn = ActorSpawn::new("mokusei-san");
@@ -151,13 +146,13 @@ fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
         .pos([14, 12])
         .dir(Dir8::W)
         .friendly()
-        .spawn(world, layer)?;
+        .spawn(world, ui)?;
 
     spawn
         .pos([25, 18])
         .dir(Dir8::E)
         .hostile()
-        .spawn(world, layer)?;
+        .spawn(world, ui)?;
 
     Ok(())
 }

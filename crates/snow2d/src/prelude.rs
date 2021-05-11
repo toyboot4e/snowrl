@@ -5,11 +5,7 @@ pub use crate::{
     audio::{self, prelude::*, Audio},
     gfx::{draw::*, tex::*, Color, Snow2d},
     input::{vi, Dir4, Dir8, Input, Key, Keyboard, Sign},
-    ui::{
-        anim::{Anim, AnimImpl, AnimIndex},
-        node::*,
-        Layer,
-    },
+    ui::{node::*, Anim, AnimIndex, Layer},
     utils::{
         bytemuck, ez, once_cell,
         tweak::*,

@@ -24,7 +24,7 @@ pub use self::player::*;
 use snow2d::{
     asset::AssetKey,
     input::Dir8,
-    ui::node::Node,
+    ui::Node,
     utils::{arena::Index, tyobj::*},
 };
 
@@ -62,21 +62,14 @@ pub fn run_dir_anim(id: impl Into<String>, pos: Vec2i, dir: Dir8, data: &mut Dat
             .unwrap();
         let state = DirAnimState::from_tyobj(&*anim_type);
 
-        let layer = UiLayer::OnActors;
-        let anim_layer = data.res.ui.layer_mut(layer);
-
-        let node = anim_layer.nodes.add({
+        let node = data.res.ui.nodes.add({
             let mut node = Node::from(state.current_frame());
+            node.layer = UiLayer::OnActors.to_layer();
             node.params.pos = pos;
             node
         });
 
-        DirAnimEntry {
-            node,
-            layer,
-            state,
-            dir,
-        }
+        DirAnimEntry { node, state, dir }
     });
 }
 

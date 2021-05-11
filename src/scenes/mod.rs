@@ -4,11 +4,11 @@ UI scenes
 
 pub mod title;
 
-use snow2d::Ice;
+use snow2d::{ui::Ui, Ice};
 
 use rlbox::rl::grid2d::*;
 
-use grue2d::game::data::res::{Resources, Ui, UiLayer};
+use grue2d::game::data::res::Resources;
 
 #[derive(Debug, PartialEq)]
 pub struct Title {
@@ -27,11 +27,9 @@ impl Title {
         let state = title::TitleState { cursor: 0 };
         let mut assets = title::TitleAssets::new(assets);
 
-        let layer = ui.layer_mut(UiLayer::Screen);
-
-        let nodes = title::TitleNodes::new(&cfg, &mut layer.nodes, &mut assets);
+        let nodes = title::TitleNodes::new(&cfg, &mut ui.nodes, &mut assets);
         let cursor = 0;
-        let anims = title::TitleAnims::init(&cfg, &mut layer.anims, &nodes, cursor);
+        let anims = title::TitleAnims::init(&cfg, &mut ui.anims, &nodes, cursor);
 
         Self {
             cfg,
@@ -43,8 +41,6 @@ impl Title {
     }
 
     pub fn handle_input(&mut self, ice: &mut Ice, res: &mut Resources) -> Option<title::Choice> {
-        let layer = res.ui.layer_mut(UiLayer::Screen);
-
         if let Some(dir) = res.vi.dir.dir4_pressed() {
             let y_sign = dir.y_sign();
 
@@ -67,7 +63,7 @@ impl Title {
 
             if pos != self.state.cursor {
                 self.anims
-                    .select(&self.cfg, &self.nodes, layer, self.state.cursor, pos);
+                    .select(&self.cfg, &self.nodes, &mut res.ui, self.state.cursor, pos);
                 self.state.cursor = pos;
             }
 
@@ -77,7 +73,7 @@ impl Title {
         if res.vi.select.is_pressed() {
             ice.audio.play(&*self.assets.se_select.get_mut().unwrap());
 
-            self.anims.on_exit(&mut layer.anims, &self.nodes);
+            self.anims.on_exit(&mut res.ui.anims, &self.nodes);
             return Some(title::Choice::from_usize(self.state.cursor).unwrap());
         }
 

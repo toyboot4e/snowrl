@@ -9,32 +9,145 @@ pub mod anim;
 pub mod anim_builder;
 pub mod node;
 
-use {glam::Mat4, std::time::Duration};
+use std::time::Duration;
 
 use crate::{
+    gfx::{draw::*, RenderPass},
     utils::{
         arena::Arena,
-        ez, inspect,
-        pool::{Handle, Pool, Slot},
+        enum_dispatch, ez, inspect,
+        pool::{Handle, Pool, Slot, WeakHandle},
         Cheat, Inspect,
     },
-    Ice,
 };
 
 use self::{
-    anim::{Anim, AnimImpl},
+    anim::*,
     anim_builder::AnimSeq,
-    node::{Node, Order},
+    node::{Draw, DrawParams, Order},
 };
 
-/// Coordinate used in a [`Layer`] (`Screen` | `World`)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Inspect)]
 pub enum CoordSystem {
     /// Use fixed position to the screen
     Screen,
     /// Used world coordinates to render nodes. Follow camera automatically
     World,
 }
+
+/// Specifies coordinate system and z ordering
+// TODO: maybe use `Rc`?
+#[derive(Debug, Clone, Copy, PartialEq, Inspect)]
+pub struct Layer {
+    pub coord: CoordSystem,
+    /// 0 to 1
+    pub z_order: f32,
+}
+
+/// Visible object in a UI layer
+#[derive(Debug, Clone, PartialEq, Inspect)]
+pub struct Node {
+    pub draw: Draw,
+    /// Common geometry data
+    pub params: DrawParams,
+    /// Draw parameter calculated befre rendering
+    pub(super) cache: DrawParams,
+    /// Render layer: z ordering and coordinate system
+    pub layer: Layer,
+    /// Local rendering order in range [0, 1] (the higher, the latter drawn)
+    pub z_order: Order,
+    /// NOTE: Parents are alive if any children is alive
+    pub(super) parent: Option<Handle<Node>>,
+    pub(super) children: Vec<WeakHandle<Node>>,
+    // TODO: dirty flag,
+}
+
+impl From<Draw> for Node {
+    fn from(draw: Draw) -> Self {
+        let params = DrawParams {
+            size: match draw {
+                // FIXME: parent box size. Node builder?
+                Draw::None => [1.0, 1.0].into(),
+                Draw::Sprite(ref x) => x.sub_tex_size_scaled().into(),
+                Draw::NineSlice(ref x) => x.sub_tex_size_scaled().into(),
+                // FIXME: measure text size?
+                Draw::Text(ref _x) => [1.0, 1.0].into(),
+            },
+            ..Default::default()
+        };
+
+        Node {
+            draw,
+            params: params.clone(),
+            cache: params.clone(),
+            layer: Layer {
+                coord: CoordSystem::Screen,
+                z_order: 1.0,
+            },
+            z_order: 1.0,
+            children: vec![],
+            parent: None,
+        }
+    }
+}
+
+impl Node {
+    pub fn global_z_order(&self) -> f32 {
+        // FIXME:
+        self.layer.z_order + self.z_order / 10.0
+    }
+
+    pub fn render(&mut self, pass: &mut RenderPass<'_>) {
+        let params = &self.cache;
+        match self.draw {
+            Draw::Sprite(ref x) => {
+                params.setup_quad(&mut pass.sprite(x));
+            }
+            Draw::NineSlice(ref x) => {
+                params.setup_quad(&mut pass.sprite(x));
+            }
+            Draw::Text(ref x) => {
+                // TODO: custom position
+                pass.text(params.pos, &x.txt);
+            }
+            Draw::None => {}
+        }
+    }
+}
+
+/// One of [`AnimImpl`] impls
+#[enum_dispatch(AnimImpl)]
+#[derive(Debug, Clone)]
+pub enum Anim {
+    DynAnim,
+    // tweens
+    PosTween,
+    XTween,
+    YTween,
+    SizeTween,
+    ColorTween,
+    AlphaTween,
+    RotTween,
+    // ParamsTween,
+}
+
+impl Inspect for Anim {
+    fn inspect(&mut self, ui: &imgui::Ui, label: &str) {
+        match self {
+            Self::DynAnim(x) => x.inspect(ui, label),
+            Self::PosTween(x) => x.inspect(ui, label),
+            Self::XTween(x) => x.inspect(ui, label),
+            Self::YTween(x) => x.inspect(ui, label),
+            Self::SizeTween(x) => x.inspect(ui, label),
+            Self::ColorTween(x) => x.inspect(ui, label),
+            Self::AlphaTween(x) => x.inspect(ui, label),
+            Self::RotTween(x) => x.inspect(ui, label),
+        }
+    }
+}
+
+/// Index of [`Anim`] in expected collection (i.e., generational arena)
+pub type AnimIndex = crate::utils::arena::Index<Anim>;
 
 /// Used for sorting nodes
 #[derive(Debug)]
@@ -43,19 +156,20 @@ struct OrderEntry {
     slot: Slot,
     /// Used to sort entries
     order: Order,
+    coord: CoordSystem,
 }
 
 pub struct SortedNodesMut<'a> {
     nodes: &'a mut Pool<Node>,
     orders: &'a [OrderEntry],
-    order_pos: usize,
+    pos: usize,
 }
 
 impl<'a> Iterator for SortedNodesMut<'a> {
     type Item = &'a mut Node;
     fn next(&mut self) -> Option<Self::Item> {
-        let slot = self.orders.get(self.order_pos)?.slot;
-        self.order_pos += 1;
+        let slot = self.orders.get(self.pos)?.slot;
+        self.pos += 1;
 
         let ptr = self
             .nodes
@@ -67,21 +181,18 @@ impl<'a> Iterator for SortedNodesMut<'a> {
 
 /// Nodes and animations
 #[derive(Debug, Inspect)]
-pub struct Layer {
+pub struct Ui {
     pub nodes: NodePool,
     pub anims: AnimStorage,
-    #[inspect(skip)]
-    pub coord: CoordSystem,
     #[inspect(skip)]
     ord_buf: Vec<OrderEntry>,
 }
 
-impl Layer {
-    pub fn new(coord: CoordSystem) -> Self {
+impl Ui {
+    pub fn new() -> Self {
         Self {
             nodes: NodePool::new(),
             anims: AnimStorage::new(),
-            coord,
             ord_buf: Vec::with_capacity(16),
         }
     }
@@ -138,7 +249,8 @@ impl Layer {
         for (slot, node) in self.nodes.enumerate_items() {
             self.ord_buf.push(OrderEntry {
                 slot,
-                order: node.order,
+                order: node.global_z_order(),
+                coord: node.layer.coord,
             });
         }
 
@@ -154,23 +266,22 @@ impl Layer {
         SortedNodesMut {
             nodes: &mut self.nodes.pool,
             orders: &self.ord_buf,
-            order_pos: 0,
+            pos: 0,
         }
     }
 
-    pub fn render(&mut self, ice: &mut Ice, cam_mat: Mat4) {
-        let mut screen = ice
-            .snow
-            .screen()
-            .transform(match self.coord {
-                CoordSystem::Screen => None,
-                CoordSystem::World => Some(cam_mat),
-            })
-            .build();
-
-        // render
-        for node in self.nodes_mut_sorted() {
-            node.render(&mut screen);
+    /// FIXME: It basically ignores `node.layer.coord`.
+    pub fn render_range(
+        &mut self,
+        range: impl std::ops::RangeBounds<f32>,
+        pass: &mut RenderPass<'_>,
+    ) {
+        // TODO: more efficient rendering
+        for node in &mut self
+            .nodes_mut_sorted()
+            .filter(|n| range.contains(&n.global_z_order()))
+        {
+            node.render(pass);
         }
     }
 }

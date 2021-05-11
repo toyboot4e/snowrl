@@ -11,7 +11,7 @@ use snow2d::{
         tex::{NineSliceSprite, SpriteData},
         text::style::FontStyle,
     },
-    ui::{anim_builder::AnimGen, node::*},
+    ui::{anim_builder::AnimGen, node::*, Node},
     utils::{arena::Index, ez, pool::Handle, tweak::*},
 };
 
@@ -198,22 +198,25 @@ impl PlayTalk {
         let layout = talk.layout(&talk.cfg, &data.ice.snow.fontbook.tex, &fstyle, &data.world);
         let view = TalkView::new(layout, &mut data.ice.assets);
 
-        let layer = &mut data.res.ui.layer_mut(UiLayer::OnShadow);
+        let ui = &mut data.res.ui;
         let nodes = TalkNodes {
-            win: layer.nodes.add({
+            win: ui.nodes.add({
                 let mut win = Node::from(view.win());
+                win.layer = UiLayer::OnShadow.to_layer();
                 win.params.pos = view.layout.win.left_up().into();
                 win
             }),
-            txt: layer.nodes.add({
+            txt: ui.nodes.add({
                 let mut txt = Node::from(Text {
                     txt: talk.txt.into_owned(),
                 });
+                txt.layer = UiLayer::OnShadow.to_layer();
                 txt.params.pos = view.layout.txt.into();
                 txt
             }),
-            baloon: layer.nodes.add({
+            baloon: ui.nodes.add({
                 let mut baloon = Node::from(view.baloon(&talk.cfg));
+                baloon.layer = UiLayer::OnShadow.to_layer();
                 baloon.params.pos = view.layout.baloon.into();
                 baloon
             }),
@@ -224,11 +227,10 @@ impl PlayTalk {
         let rect = &view.layout.win;
         let mut gen = AnimGen::default();
         gen.dt(dt).node(&nodes.win);
-        layer
-            .anims
+        ui.anims
             .insert(gen.pos([(rect.x + rect.w / 2.0, rect.y), (rect.x, rect.y)]));
-        layer.anims.insert(gen.size(([0.0, rect.h], rect.size())));
-        layer.anims.insert(gen.node(&nodes.baloon).alpha([0, 255]));
+        ui.anims.insert(gen.size(([0.0, rect.h], rect.size())));
+        ui.anims.insert(gen.node(&nodes.baloon).alpha([0, 255]));
 
         Self {
             cfg: talk.cfg,

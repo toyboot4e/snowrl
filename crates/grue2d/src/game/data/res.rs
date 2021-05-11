@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use snow2d::{
     gfx::text::font::FontSetHandle,
     input::{vi::*, Dir8, Input, Key},
-    ui::{node::Node, CoordSystem, Layer},
+    ui::{CoordSystem, Layer, Node, Ui},
     utils::{arena::Index, pool::Handle, Inspect},
 };
 
@@ -20,15 +20,6 @@ const REPEAT_FIRST_FRAMES: u64 = 10;
 /// TODO: rm
 const REPEAT_MULTI_FRAMES: u64 = 6;
 
-/// SnowRL UI layer collection
-#[derive(Debug, Inspect)]
-pub struct Ui {
-    actors: Layer,
-    on_actors: Layer,
-    on_shadow: Layer,
-    screen: Layer,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Inspect)]
 pub enum UiLayer {
     Actors,
@@ -37,47 +28,33 @@ pub enum UiLayer {
     Screen,
 }
 
-impl Ui {
-    pub fn new() -> Self {
-        Self {
-            actors: Layer::new(CoordSystem::World),
-            on_actors: Layer::new(CoordSystem::World),
-            on_shadow: Layer::new(CoordSystem::World),
-            screen: Layer::new(CoordSystem::Screen),
+impl UiLayer {
+    pub fn to_layer(&self) -> Layer {
+        match self {
+            Self::Actors => Layer {
+                coord: CoordSystem::World,
+                z_order: 0.20,
+            },
+            Self::OnActors => Layer {
+                coord: CoordSystem::World,
+                z_order: 0.50,
+            },
+            Self::OnShadow => Layer {
+                coord: CoordSystem::World,
+                z_order: 0.75,
+            },
+            Self::Screen => Layer {
+                coord: CoordSystem::Screen,
+                z_order: 0.90,
+            },
         }
     }
 
-    pub fn layer(&self, layer: UiLayer) -> &Layer {
-        match layer {
-            UiLayer::Actors => &self.actors,
-            UiLayer::OnActors => &self.on_actors,
-            UiLayer::OnShadow => &self.on_shadow,
-            UiLayer::Screen => &self.screen,
-        }
-    }
-
-    pub fn layer_mut(&mut self, layer: UiLayer) -> &mut Layer {
-        match layer {
-            UiLayer::Actors => &mut self.actors,
-            UiLayer::OnActors => &mut self.on_actors,
-            UiLayer::OnShadow => &mut self.on_shadow,
-            UiLayer::Screen => &mut self.screen,
-        }
-    }
-
-    pub fn layers<const N: usize>(&self, layers: [UiLayer; N]) -> [&Layer; N] {
-        layers.map(|l| self.layer(l))
-    }
-
-    pub fn layers_mut<const N: usize>(&mut self, layers: [UiLayer; N]) -> [&mut Layer; N] {
-        layers.map(|l| unsafe { (&mut *(self as *mut Self)).layer_mut(l) })
-    }
-
-    pub fn update(&mut self, dt: Duration) {
-        self.actors.update(dt);
-        self.on_actors.update(dt);
-        self.on_shadow.update(dt);
-        self.screen.update(dt);
+    /// Returns inclusive range of z orders of nodes to draw
+    pub fn to_draw_range(&self) -> std::ops::RangeInclusive<f32> {
+        let low = self.to_layer().z_order;
+        let hi = low + 0.1;
+        low..=hi
     }
 }
 
@@ -168,8 +145,6 @@ impl VInput {
 pub struct DirAnimEntry {
     /// Animation node
     pub node: Handle<Node>,
-    /// Layer the node belongs to
-    pub layer: UiLayer,
     pub dir: Dir8,
     pub state: DirAnimState,
 }
@@ -191,8 +166,7 @@ impl DirAnimRunner {
         // update
         for e in &mut self.entries {
             log::trace!("update");
-            let layer = ui.layer_mut(e.layer);
-            let node = &mut layer.nodes[&e.node];
+            let node = &mut ui.nodes[&e.node];
             node.draw = e.state.current_frame_with_dir(e.dir).into();
 
             // NOTE: we don't tick in the first frame

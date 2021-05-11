@@ -10,10 +10,7 @@ use {
     rlbox::rl::grid2d::{Dir8, Vec2i},
     snow2d::{
         gfx::geom2d::Vec2f,
-        ui::{
-            anim::{Anim as UiAnim, AnimImpl, AnimIndex},
-            anim_builder::AnimSeq,
-        },
+        ui::{anim::AnimImpl, anim_builder::AnimSeq, Anim as UiAnim, AnimIndex},
         utils::{arena::Index, Inspect},
     },
 };
@@ -122,7 +119,7 @@ impl Anim for WaitForUiAnim {
     fn on_start(&mut self, _data: &mut Data) {}
 
     fn update(&mut self, data: &mut Data) -> AnimResult {
-        let anim = match data.res.ui.layer(self.layer).anims.get(self.anim) {
+        let anim = match data.res.ui.anims.get(self.anim) {
             Some(node) => node,
             None => return AnimResult::Finish,
         };
@@ -157,7 +154,6 @@ impl SwingAnim {
 impl Anim for SwingAnim {
     fn on_start(&mut self, data: &mut Data) {
         let actor = &data.world.entities[self.actor];
-        let actor_layer = data.res.ui.layer_mut(UiLayer::Actors);
 
         // parameters
         let dpos = {
@@ -170,7 +166,7 @@ impl Anim for SwingAnim {
         let img_offset = actor.view.img_offset();
 
         // sequence of animations
-        actor_layer.anims.insert_seq({
+        data.res.ui.anims.insert_seq({
             let (mut seq, mut gen) = AnimSeq::begin();
             gen.node(&actor.nodes.img)
                 .secs(self.timer.target().as_secs_f32() / 2.0);
