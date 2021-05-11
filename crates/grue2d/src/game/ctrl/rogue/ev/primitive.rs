@@ -148,14 +148,15 @@ pub struct GiveDamage {
 
 impl GenAnim for GiveDamage {
     fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
+        let ui = &mut data.res.ui;
         let actor = &data.world.entities[self.target];
 
-        let [actors, on_actors] = data.res.ui.layers_mut([UiLayer::Actors, UiLayer::OnActors]);
-        let base_pos = actors.nodes[&actor.nodes.base].params.pos;
+        let base_pos = ui.nodes[&actor.nodes.base].params.pos;
 
-        let text = on_actors.nodes.add({
+        let text = ui.nodes.add({
             let text = format!("{}", self.amount);
             let mut text = Node::from(node::Text::new(text));
+            text.layer = UiLayer::OnShadow.to_layer();
             // FIXME: set font texture size and align
             text.params.pos = base_pos - Vec2f::new(20.0, 20.0);
             text
@@ -163,7 +164,7 @@ impl GenAnim for GiveDamage {
 
         let mut gen = AnimGen::default();
         gen.node(&text).dt(ez::EasedDt::linear(1.0));
-        on_actors.anims.insert(gen.alpha([0, 255]));
+        ui.anims.insert(gen.alpha([0, 255]));
 
         // FIXME: the delay should be decided externally. delay the hit anim creation itself
         let se = data

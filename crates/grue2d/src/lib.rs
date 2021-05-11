@@ -18,7 +18,11 @@ pub mod paths;
 pub mod debug;
 
 use std::time::Duration;
-use {anyhow::*, rokol::gfx as rg, snow2d::gfx::geom2d::Vec2f};
+use {
+    anyhow::*,
+    rokol::gfx as rg,
+    snow2d::{gfx::geom2d::Vec2f, ui::CoordSystem},
+};
 
 use crate::{
     app::Platform,
@@ -34,7 +38,9 @@ pub const PA_BLUE: rg::PassAction =
 #[derive(Debug, Clone, Copy)]
 pub enum DrawStage {
     UiLayer(crate::game::data::res::UiLayer),
+    /// Down parts of the map
     MapDown,
+    /// Up parts of the map
     MapUp,
     Shadow,
     Snow,
@@ -59,13 +65,22 @@ impl DrawStage {
         match self {
             DrawStage::UiLayer(ui_layer) => {
                 if ui_layer == UiLayer::Actors {
-                    // NOTE: we're assuming `OnActors` is drawn actor `Actors`
+                    // FIXME: we're assuming `OnActors` is drawn actor `Actors`
                     agents
                         .world_render
                         .setup_actor_nodes(world, &mut res.ui, dt);
                 }
 
-                res.ui.layer_mut(ui_layer).render(ice, cam_mat);
+                let mut screen = ice
+                    .snow
+                    .screen()
+                    .transform(match ui_layer.to_layer().coord {
+                        CoordSystem::Screen => None,
+                        CoordSystem::World => Some(cam_mat),
+                    })
+                    .build();
+
+                res.ui.render_range(ui_layer.to_draw_range(), &mut screen);
             }
             DrawStage::MapDown => {
                 let mut screen = ice
@@ -239,7 +254,7 @@ mod sdl2_impl {
             crate::run_scheduled_render(Self::DEFAULT_RENDER_SCHEDULE, self);
         }
 
-        pub fn pre_render(&mut self, _dt: Duration, platform: &mut Platform) {
+        pub fn pre_render(&mut self, dt: Duration, platform: &mut Platform) {
             let size = platform.win.size();
 
             self.data.ice.pre_render(snow2d::gfx::WindowState {

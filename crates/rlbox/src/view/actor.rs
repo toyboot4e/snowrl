@@ -16,7 +16,7 @@ use snow2d::{
         tex::{SpriteData, Texture2dDrop},
         Color,
     },
-    ui::{node, Layer, Node},
+    ui::{node, Layer, Node, Ui},
     utils::{
         ez,
         pool::Handle,
@@ -386,17 +386,24 @@ pub struct ActorNodes {
 }
 
 impl ActorNodes {
-    pub fn new(layer: &mut Layer, img_sprite: &SpriteData) -> Self {
-        let base = layer.nodes.add(node::Draw::None);
+    pub fn new(ui: &mut Ui, layer: Layer, img_sprite: &SpriteData) -> Self {
+        let base = ui.nodes.add({
+            let mut n = Node::from(node::Draw::None);
+            n.layer = layer;
+            n
+        });
 
         let h = img_sprite.sub_tex_size_unscaled()[1];
-        let mut img = Node::from(img_sprite);
-        img.params.pos = Vec2f::new(0.0, -h / 2.0);
 
-        let img = layer.nodes.add_as_child(&base, img);
+        let img = ui.nodes.add_as_child(&base, {
+            let mut n = Node::from(img_sprite);
+            n.layer = layer;
+            n.params.pos = Vec2f::new(0.0, -h / 2.0);
+            n
+        });
 
         // TODO: show HP?
-        let hp = layer
+        let hp = ui
             .nodes
             .add_as_child(&base, node::Text::new(format!("")).into());
 

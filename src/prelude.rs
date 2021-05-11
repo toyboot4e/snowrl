@@ -7,7 +7,7 @@ pub use snow2d::{
     audio,
     gfx::{draw::*, geom2d::*, tex::*, Color, Snow2d},
     input::{Dir8, Key, Sign},
-    ui::{Layer, Node},
+    ui::{Layer, Node, Ui},
     utils::{
         arena::{Arena, Index},
         ez::{self, Ease, EasedDt, LinearDt, Tweened},
@@ -20,7 +20,7 @@ pub use snow2d::{
 
 pub use grue2d::{
     game::{
-        data::res::{Fonts, Ui, UiLayer, VInput},
+        data::res::{Fonts, UiLayer, VInput},
         Data,
     },
     GrueRl,

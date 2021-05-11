@@ -9,6 +9,7 @@ use {
     rlbox::{render::tiled as tiled_render, rl::grid2d::Vec2i, utils::DoubleTrack},
     snow2d::{
         gfx::{draw::*, Color, GameClock, Snow2d, WindowState},
+        ui::Ui,
         utils::arena::Index,
     },
     std::time::Duration,
@@ -16,10 +17,7 @@ use {
 
 use crate::game::{
     cfg::{ShadowConfig, SnowConfig},
-    data::{
-        res::{Ui, UiLayer},
-        world::{actor::Actor, World},
-    },
+    data::world::{actor::Actor, World},
 };
 
 /// TODO: remove
@@ -143,16 +141,15 @@ impl WorldRenderer {
         let n_entries = self.sort_buf.len() as f32;
         for (entry_ix, entry) in self.sort_buf.iter().enumerate() {
             let actor = &world.entities[entry.actor_index];
-            let layer = ui.layer_mut(UiLayer::Actors);
 
             let alpha = self.actor_alpha_f32(entry.actor_index.slot() as usize) as u8;
 
-            let base_node = &mut layer.nodes[&actor.nodes.base];
-            base_node.order = entry_ix as f32 / n_entries;
+            let base_node = &mut ui.nodes[&actor.nodes.base];
+            base_node.z_order = entry_ix as f32 / n_entries;
             base_node.params.pos = actor.view.base_pos_world(&world.map.tiled);
 
-            let img_node = &mut layer.nodes[&actor.nodes.img];
-            img_node.order = entry_ix as f32 / n_entries;
+            let img_node = &mut ui.nodes[&actor.nodes.img];
+            img_node.z_order = entry_ix as f32 / n_entries;
             // NOTE: here we're animationg the actor image
             img_node.draw = actor.view.sprite().into();
             img_node.params.color = Color::WHITE.with_alpha(alpha);

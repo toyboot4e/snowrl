@@ -8,7 +8,7 @@ use snow2d::{
         anim::AnimImpl,
         anim_builder::{AnimGen, AnimInsertLog},
         node::Draw,
-        Anim, AnimStorage, Layer, Node,
+        Anim, AnimStorage, Node, Ui,
     },
 };
 
@@ -108,20 +108,49 @@ pub struct TitleNodes {
 
 impl TitleNodes {
     pub fn new(cfg: &ColorConfig, nodes: &mut Pool<Node>, assets: &TitleAssets) -> Self {
-        let logo = nodes.add(Draw::Sprite(assets.logo.clone()));
+        let logo = nodes.add({
+            let mut n = Node::from(Draw::Sprite(assets.logo.clone()));
+            n.layer = UiLayer::Screen.to_layer();
+            n
+        });
 
+        // FIXME: this is..
         let choices = [
             [
-                nodes.add(Draw::Sprite(assets.choices[0].clone())),
-                nodes.add(Draw::Sprite(assets.choices[0].clone())),
+                nodes.add({
+                    let mut n = Node::from(Draw::Sprite(assets.choices[0].clone()));
+                    n.layer = UiLayer::Screen.to_layer();
+                    n
+                }),
+                nodes.add({
+                    let mut n = Node::from(Draw::Sprite(assets.choices[0].clone()));
+                    n.layer = UiLayer::Screen.to_layer();
+                    n
+                }),
             ],
             [
-                nodes.add(Draw::Sprite(assets.choices[1].clone())),
-                nodes.add(Draw::Sprite(assets.choices[1].clone())),
+                nodes.add({
+                    let mut n = Node::from(Draw::Sprite(assets.choices[1].clone()));
+                    n.layer = UiLayer::Screen.to_layer();
+                    n
+                }),
+                nodes.add({
+                    let mut n = Node::from(Draw::Sprite(assets.choices[1].clone()));
+                    n.layer = UiLayer::Screen.to_layer();
+                    n
+                }),
             ],
             [
-                nodes.add(Draw::Sprite(assets.choices[2].clone())),
-                nodes.add(Draw::Sprite(assets.choices[2].clone())),
+                nodes.add({
+                    let mut n = Node::from(Draw::Sprite(assets.choices[2].clone()));
+                    n.layer = UiLayer::Screen.to_layer();
+                    n
+                }),
+                nodes.add({
+                    let mut n = Node::from(Draw::Sprite(assets.choices[2].clone()));
+                    n.layer = UiLayer::Screen.to_layer();
+                    n
+                }),
             ],
         ];
 
@@ -198,38 +227,38 @@ impl TitleAnims {
         &mut self,
         cfg: &ColorConfig,
         nodes: &TitleNodes,
-        layer: &mut Layer,
+        ui: &mut Ui,
         from: usize,
         to: usize,
     ) {
         // remove all the initial animations
         for ix in self.init_anims.drain(0..) {
-            if let Some(anim) = layer.anims.get_mut(ix) {
+            if let Some(anim) = ui.anims.get_mut(ix) {
                 anim.set_accum_norm(1.0);
-                anim.apply(&mut layer.nodes);
+                anim.apply(&mut ui.nodes);
             }
-            layer.anims.remove(ix);
+            ui.anims.remove(ix);
         }
 
         let mut gen = AnimGen::default();
         gen.dt(EasedDt::new(6.0 / 60.0, Ease::Linear));
 
         // items
-        layer.anims.insert(
+        ui.anims.insert(
             gen.node(&nodes.choices[from][1])
                 .color([cfg.item.selected, cfg.item.not_selected]),
         );
-        layer.anims.insert(
+        ui.anims.insert(
             gen.node(&nodes.choices[to][1])
                 .color([cfg.item.not_selected, cfg.item.selected]),
         );
 
         // shadows
-        layer.anims.insert(
+        ui.anims.insert(
             gen.node(&nodes.choices[from][0])
                 .color([cfg.shadow.selected, cfg.shadow.not_selected]),
         );
-        layer.anims.insert(
+        ui.anims.insert(
             gen.node(&nodes.choices[to][0])
                 .color([cfg.shadow.not_selected, cfg.shadow.selected]),
         );

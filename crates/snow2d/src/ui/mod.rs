@@ -9,7 +9,7 @@ pub mod anim;
 pub mod anim_builder;
 pub mod node;
 
-use {glam::Mat4, std::time::Duration};
+use std::time::Duration;
 
 use crate::{
     gfx::{draw::*, RenderPass},
@@ -19,7 +19,6 @@ use crate::{
         pool::{Handle, Pool, Slot, WeakHandle},
         Cheat, Inspect,
     },
-    Ice,
 };
 
 use self::{
@@ -28,13 +27,21 @@ use self::{
     node::{Draw, DrawParams, Order},
 };
 
-/// Coordinate used in a [`Layer`] (`Screen` | `World`)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Inspect)]
 pub enum CoordSystem {
     /// Use fixed position to the screen
     Screen,
     /// Used world coordinates to render nodes. Follow camera automatically
     World,
+}
+
+/// Specifies coordinate system and z ordering
+// TODO: maybe use `Rc`?
+#[derive(Debug, Clone, Copy, PartialEq, Inspect)]
+pub struct Layer {
+    pub coord: CoordSystem,
+    /// 0 to 1
+    pub z_order: f32,
 }
 
 /// Visible object in a UI layer
@@ -45,8 +52,10 @@ pub struct Node {
     pub params: DrawParams,
     /// Draw parameter calculated befre rendering
     pub(super) cache: DrawParams,
-    /// Rendering order [0, 1] (the higher, the latter)
-    pub order: Order,
+    /// Render layer: z ordering and coordinate system
+    pub layer: Layer,
+    /// Local rendering order in range [0, 1] (the higher, the latter drawn)
+    pub z_order: Order,
     /// NOTE: Parents are alive if any children is alive
     pub(super) parent: Option<Handle<Node>>,
     pub(super) children: Vec<WeakHandle<Node>>,
@@ -71,7 +80,11 @@ impl From<Draw> for Node {
             draw,
             params: params.clone(),
             cache: params.clone(),
-            order: 1.0,
+            layer: Layer {
+                coord: CoordSystem::Screen,
+                z_order: 1.0,
+            },
+            z_order: 1.0,
             children: vec![],
             parent: None,
         }
@@ -79,6 +92,11 @@ impl From<Draw> for Node {
 }
 
 impl Node {
+    pub fn global_z_order(&self) -> f32 {
+        // FIXME:
+        self.layer.z_order + self.z_order / 10.0
+    }
+
     pub fn render(&mut self, pass: &mut RenderPass<'_>) {
         let params = &self.cache;
         match self.draw {
@@ -138,19 +156,20 @@ struct OrderEntry {
     slot: Slot,
     /// Used to sort entries
     order: Order,
+    coord: CoordSystem,
 }
 
 pub struct SortedNodesMut<'a> {
     nodes: &'a mut Pool<Node>,
     orders: &'a [OrderEntry],
-    order_pos: usize,
+    pos: usize,
 }
 
 impl<'a> Iterator for SortedNodesMut<'a> {
     type Item = &'a mut Node;
     fn next(&mut self) -> Option<Self::Item> {
-        let slot = self.orders.get(self.order_pos)?.slot;
-        self.order_pos += 1;
+        let slot = self.orders.get(self.pos)?.slot;
+        self.pos += 1;
 
         let ptr = self
             .nodes
@@ -162,21 +181,18 @@ impl<'a> Iterator for SortedNodesMut<'a> {
 
 /// Nodes and animations
 #[derive(Debug, Inspect)]
-pub struct Layer {
+pub struct Ui {
     pub nodes: NodePool,
     pub anims: AnimStorage,
-    #[inspect(skip)]
-    pub coord: CoordSystem,
     #[inspect(skip)]
     ord_buf: Vec<OrderEntry>,
 }
 
-impl Layer {
-    pub fn new(coord: CoordSystem) -> Self {
+impl Ui {
+    pub fn new() -> Self {
         Self {
             nodes: NodePool::new(),
             anims: AnimStorage::new(),
-            coord,
             ord_buf: Vec::with_capacity(16),
         }
     }
@@ -233,7 +249,8 @@ impl Layer {
         for (slot, node) in self.nodes.enumerate_items() {
             self.ord_buf.push(OrderEntry {
                 slot,
-                order: node.order,
+                order: node.global_z_order(),
+                coord: node.layer.coord,
             });
         }
 
@@ -249,23 +266,22 @@ impl Layer {
         SortedNodesMut {
             nodes: &mut self.nodes.pool,
             orders: &self.ord_buf,
-            order_pos: 0,
+            pos: 0,
         }
     }
 
-    pub fn render(&mut self, ice: &mut Ice, cam_mat: Mat4) {
-        let mut screen = ice
-            .snow
-            .screen()
-            .transform(match self.coord {
-                CoordSystem::Screen => None,
-                CoordSystem::World => Some(cam_mat),
-            })
-            .build();
-
-        // render
-        for node in self.nodes_mut_sorted() {
-            node.render(&mut screen);
+    /// FIXME: It basically ignores `node.layer.coord`.
+    pub fn render_range(
+        &mut self,
+        range: impl std::ops::RangeBounds<f32>,
+        pass: &mut RenderPass<'_>,
+    ) {
+        // TODO: more efficient rendering
+        for node in &mut self
+            .nodes_mut_sorted()
+            .filter(|n| range.contains(&n.global_z_order()))
+        {
+            node.render(pass);
         }
     }
 }

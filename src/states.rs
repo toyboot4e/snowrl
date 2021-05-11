@@ -4,7 +4,7 @@ Stack-based game states
 
 use std::{any::TypeId, borrow::Cow};
 
-use snow2d::utils::arena::Index;
+use snow2d::{ui::Ui, utils::arena::Index};
 
 use grue2d::{
     fsm::{GameState, StateCommand, StateReturn},
@@ -15,7 +15,7 @@ use grue2d::{
             script::ScriptRef,
             tick::{GameLoop, TickResult},
         },
-        data::{res::Ui, world::actor::Actor},
+        data::world::actor::Actor,
         Control, Data,
     },
 };
@@ -141,15 +141,16 @@ impl Title {
 }
 
 impl GameState for Title {
-    fn on_enter(&mut self, data: &mut Data, _ctrl: &mut Control) {
+    fn on_enter(&mut self, _data: &mut Data, _ctrl: &mut Control) {
         // self.title.init();
 
-        let song = data
-            .ice
-            .assets
-            .load_sync(paths::sound::bgm::FOREST_02)
-            .unwrap();
-        data.ice.music_player.play_song(song);
+        // TODO: data-driven music
+        // let song = data
+        //     .ice
+        //     .assets
+        //     .load_sync(paths::sound::bgm::FOREST_02)
+        //     .unwrap();
+        // data.ice.music_player.play_song(song);
     }
 
     fn update(&mut self, data: &mut Data, _ctrl: &mut Control) -> StateReturn {
@@ -262,8 +263,8 @@ impl GameState for PlayTalkState {
             .load_sync_preserve::<snow2d::audio::src::Wav, _>(paths::sound::se::TALK_ENTER)
             .unwrap();
 
-        let se = se.get_mut().unwrap();
-        data.ice.audio.play(&*se);
+        let _se = se.get_mut().unwrap();
+        // data.ice.audio.play(&*se);
     }
 
     fn on_exit(&mut self, _data: &mut Data, _ctrl: &mut Control) {

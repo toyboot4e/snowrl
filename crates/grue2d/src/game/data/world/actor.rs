@@ -5,7 +5,7 @@ Game entity with GUI
 use serde::{Deserialize, Serialize};
 
 use snow2d::{
-    ui::Layer,
+    ui::Ui,
     utils::{
         arena::Index,
         tyobj::{SerdeRepr, TypeObject, TypeObjectId},
@@ -18,7 +18,7 @@ use rlbox::{
     view::actor::{ActorImage, ActorImageType, ActorNodes},
 };
 
-use crate::game::data::world::World;
+use crate::game::data::{res::UiLayer, world::World};
 
 /// Internal and view states of an actor
 #[derive(Debug, Clone, Inspect)]
@@ -106,14 +106,14 @@ impl ActorSpawn {
         self
     }
 
-    pub fn spawn(&self, world: &mut World, layer: &mut Layer) -> anyhow::Result<Index<Actor>> {
+    pub fn spawn(&self, world: &mut World, ui: &mut Ui) -> anyhow::Result<Index<Actor>> {
         let type_ = ActorType::from_type_key(&self.type_id)?;
         let img: ActorImage = type_
             .img
             .map(|desc| ActorImage::from_desc_default(desc))
             .unwrap();
 
-        let nodes = ActorNodes::new(layer, img.sprite());
+        let nodes = ActorNodes::new(ui, UiLayer::Actors.to_layer(), img.sprite());
 
         let mut actor = Actor {
             pos: self.pos,
