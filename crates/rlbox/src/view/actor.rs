@@ -24,6 +24,7 @@ use snow2d::{
         ez,
         pool::Handle,
         tyobj::{self, SerdeRepr, SerdeViaTypeObject, TypeObject, TypeObjectId},
+        Inspect,
     },
 };
 
@@ -156,7 +157,7 @@ fn gen_dir_anim_with(
         .collect()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Inspect)]
 pub enum DirAnimKind {
     Auto,
     Dir4,
@@ -184,7 +185,7 @@ impl DirAnimKind {
 ///
 /// 1. Call [`ActorImage::warp`]
 /// 2. Set speed properties of [`ActorImage`]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Inspect)]
 pub struct ActorImageType {
     pub tex: Asset<Texture2dDrop>,
     pub kind: DirAnimKind,
@@ -205,7 +206,7 @@ impl ActorImageType {
 }
 
 /// Part of internal actor data neededfor visualization
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Inspect)]
 struct ActorState {
     pos: Vec2i,
     dir: Dir8,
@@ -223,6 +224,15 @@ pub struct ActorImage {
     walk_dt: ez::EasedDt,
     /// For deserialization
     serde_repr: SerdeRepr<ActorImageType>,
+}
+
+impl Inspect for ActorImage {
+    fn inspect(&mut self, ui: &imgui::Ui, label: &str) {
+        ui.label_text(
+            &imgui::im_str!("{}", label),
+            &imgui::im_str!("TODO: ActorImage"),
+        );
+    }
 }
 
 impl ActorImage {
@@ -402,7 +412,7 @@ impl ActorImage {
 }
 
 /// Handle of nodes for an actor in a pool
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct ActorNodes {
     /// Other nodes are stored as children of this node
     pub base: Handle<Node>,

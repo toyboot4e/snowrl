@@ -29,6 +29,8 @@ use rokol::{
     gfx::{self as rg, BakedResource},
 };
 
+use crate::{self as snow2d, utils::Inspect};
+
 use self::{
     batch::{Batch, BatchData, QuadData},
     draw::*,
@@ -38,7 +40,8 @@ use self::{
 };
 
 /// 4 bytes color data
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Inspect)]
+#[inspect(as = "[u8; 4]")]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -87,7 +90,7 @@ impl Color {
 }
 
 macro_rules! def_colors {
-    ($(($name:ident, $r:expr, $g:expr, $b:expr, $a:expr)), * $(,)?) => {
+    ($($name:ident : $r:expr, $g:expr, $b:expr, $a:expr,)*) => {
         impl Color {
             $(
                 pub const $name: Self = Self {
@@ -103,19 +106,36 @@ macro_rules! def_colors {
 
 def_colors!(
     // name, r, g, b, a
-    (OPAQUE, 255, 255, 255, 255),
-    (SEMI_TRANSPARENT, 255, 255, 255, 128),
-    (TRANSPARENT, 0, 0, 0, 0),
-    (WHITE, 255, 255, 255, 255),
-    (WHITE_SEMI_TRANSPARENT, 255, 255, 255, 128),
-    (WHITE_TRANSPARENT, 255, 255, 255, 0),
-    (BLACK, 0, 0, 0, 0),
-    (BLACK_SEMI_TRANSPARENT, 0, 0, 0, 128),
-    (BLACK_TRANSPARENT, 0, 0, 0, 0),
-    (GRAY, 32, 32, 32, 32),
-    (CORNFLOWER_BLUE, 100, 149, 237, 255),
+    OPAQUE:
+        255, 255, 255, 255,
+    SEMI_TRANSPARENT:
+        255, 255, 255, 128,
+    TRANSPARENT:
+        0, 0, 0, 0,
+    WHITE:
+        255, 255, 255, 255,
+    WHITE_SEMI_TRANSPARENT:
+        255, 255, 255, 128,
+    WHITE_TRANSPARENT:
+        255, 255, 255, 0,
+    BLACK:
+        0, 0, 0, 0,
+    BLACK_SEMI_TRANSPARENT:
+        0, 0, 0, 128,
+    BLACK_TRANSPARENT:
+        0, 0, 0, 0,
+    GRAY:
+        32, 32, 32, 32,
+    CORNFLOWER_BLUE:
+        100, 149, 237, 255,
     // TODO: define more colors
 );
+
+impl Into<[u8; 4]> for Color {
+    fn into(self) -> [u8; 4] {
+        [self.r, self.g, self.b, self.a]
+    }
+}
 
 impl From<[u8; 4]> for Color {
     fn from(xs: [u8; 4]) -> Self {

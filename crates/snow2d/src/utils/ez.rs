@@ -12,7 +12,7 @@ use std::{
     time::Duration,
 };
 
-use crate::input::Dir8;
+use crate::{self as snow2d, input::Dir8, utils::Inspect};
 
 /// Linearly interpolatable; can be [`Tweened`]
 pub trait Lerp {
@@ -94,7 +94,7 @@ pub fn tween<T: Lerp>(a: T, b: T, ease: Ease, t: f32) -> T {
 }
 
 /// Generates tweened values
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Inspect)]
 pub struct Tweened<T: Lerp + Clone> {
     pub a: T,
     pub b: T,
@@ -152,7 +152,7 @@ impl<T: Lerp + Clone> Tweened<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Inspect)]
 pub struct EasedDtDesc {
     pub target: f32,
     pub ease: Ease,
@@ -165,7 +165,7 @@ impl Into<EasedDt> for EasedDtDesc {
 }
 
 /// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` with easing on `get`
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Inspect)]
 pub struct EasedDt {
     pub target: f32,
     pub ease: Ease,
@@ -262,7 +262,7 @@ impl EasedDt {
 }
 
 /// Delta time `[0.0, target]` mapped to `[0.0, 1.0]` on `get`
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Inspect)]
 pub struct LinearDt {
     target: f32,
     accum: f32,
@@ -306,7 +306,7 @@ impl LinearDt {
 }
 
 /// Easing function dispatched dynamically
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Inspect)]
 pub enum Ease {
     Linear,
     //

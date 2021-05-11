@@ -9,6 +9,7 @@ use snow2d::{
     utils::{
         arena::Index,
         tyobj::{SerdeRepr, TypeObject, TypeObjectId},
+        Inspect,
     },
 };
 
@@ -20,7 +21,7 @@ use rlbox::{
 use crate::game::data::world::World;
 
 /// Internal and view states of an actor
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct Actor {
     pub pos: Vec2i,
     pub dir: Dir8,
@@ -31,7 +32,7 @@ pub struct Actor {
     pub interact: Option<Interactable>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Inspect)]
 pub struct ActorStats {
     pub hp: u32,
     pub atk: u32,
@@ -39,7 +40,7 @@ pub struct ActorStats {
 }
 
 /// Relation with player: `Hostile` | `Friendly`
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Inspect)]
 pub enum Relation {
     Hostile,
     Friendly,
@@ -55,7 +56,7 @@ pub struct ActorType {
 impl TypeObject for ActorType {}
 
 /// [`Actor`] component
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct Interactable {
     //
 }
@@ -72,7 +73,7 @@ impl TypeObject for Script {}
 // Data-driven content
 
 /// Create [`Actor`] from RON files
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct ActorSpawn {
     pub type_id: TypeObjectId<ActorType>,
     pub pos: Vec2i,

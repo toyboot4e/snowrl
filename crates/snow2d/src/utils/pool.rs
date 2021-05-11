@@ -35,12 +35,14 @@ use std::{
 
 use derivative::Derivative;
 
+use crate::{self as snow2d, utils::Inspect};
+
 type Gen = std::num::NonZeroU32;
 type GenCounter = u32;
 type RefCount = u16;
 
 /// Newtype of `u32`
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Inspect)]
 pub struct Slot(u32);
 
 impl Slot {
@@ -59,10 +61,11 @@ enum Message {
 /// Owing index to an item in a [`Pool`]
 ///
 /// It can't identify the belonging [`Pool`].
-#[derive(Debug)]
+#[derive(Debug, Inspect)]
 pub struct Handle<T> {
     slot: Slot,
     gen: Gen,
+    #[inspect(skip)]
     sender: Sender<Message>,
     _phantom: PhantomData<fn() -> T>,
 }
@@ -116,7 +119,7 @@ impl<T> Drop for Handle<T> {
 /// Non-owing index to an item in a [`Pool`]
 ///
 /// The item is identified with generational index.
-#[derive(Derivative)]
+#[derive(Derivative, Inspect)]
 #[derivative(Debug, PartialEq, Clone, Copy)]
 pub struct WeakHandle<T> {
     slot: Slot,
@@ -161,6 +164,20 @@ pub struct Pool<T> {
     receiver: Receiver<Message>,
     /// Cloned and passed to [`Handle`]s
     sender: Sender<Message>,
+}
+
+use imgui::Ui;
+impl<T: Inspect> Inspect for Pool<T> {
+    fn inspect(&mut self, ui: &Ui, label: &str) {
+        crate::utils::inspect::inspect_seq(
+            self.entries
+                .iter_mut()
+                .filter(|x| x.gen.is_some())
+                .map(|e| &mut e.item),
+            ui,
+            label,
+        );
+    }
 }
 
 impl<T> Pool<T> {

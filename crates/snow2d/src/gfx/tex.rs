@@ -16,12 +16,14 @@ use {
 };
 
 use crate::{
+    self as snow2d,
     asset::{self, Asset, AssetItem, AssetLoader},
     gfx::{
         draw::{DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d},
         geom2d::{Flips, Scaled, Vec2f},
         Color,
     },
+    utils::Inspect,
 };
 
 /// Image loading result
@@ -153,7 +155,7 @@ pub struct SharedSubTexture2d {
 }
 
 /// Full-featured texture
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Inspect)]
 pub struct SpriteData {
     pub tex: Asset<Texture2dDrop>,
     /// [x, y, width, height]
@@ -220,7 +222,7 @@ impl SpriteBuilder {
 }
 
 /// Suitable for, e.g., window image
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Inspect)]
 pub struct NineSliceSprite {
     pub tex: Asset<Texture2dDrop>,
 }

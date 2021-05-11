@@ -1,15 +1,18 @@
 /*!
-Game data
+Game data controled by `fsm`
 */
 
 pub mod agents;
 pub mod ctrl;
 pub mod data;
 
+pub mod cfg;
+
 use snow2d::{gfx::GameClock, Ice};
 
 use self::{
     agents::WorldRenderer,
+    cfg::GameConfig,
     ctrl::Rogue,
     data::{res::Resources, world::World},
 };
@@ -23,6 +26,8 @@ pub struct Data {
     pub world: World,
     /// Data specific for SnowRL
     pub res: Resources,
+    // How we run the game
+    pub cfg: GameConfig,
 }
 
 /// States to control the roguelike data

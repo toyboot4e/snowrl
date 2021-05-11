@@ -9,9 +9,15 @@ UI nodes (renderables)
 */
 
 use crate::{
+    self as snow2d,
     gfx::{draw::*, geom2d::*, Color, RenderPass},
-    utils::pool::{Handle, WeakHandle},
+    utils::{
+        pool::{Handle, WeakHandle},
+        Inspect,
+    },
 };
+
+use imgui::{im_str, Ui};
 
 // Re-exported as [`Node`] variants
 pub use crate::gfx::tex::{NineSliceSprite, SpriteData};
@@ -20,7 +26,7 @@ pub use crate::gfx::tex::{NineSliceSprite, SpriteData};
 pub type Order = f32;
 
 /// Common geometry data that animations can operate on
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default, Inspect)]
 pub struct DrawParams {
     pub pos: Vec2f,
     pub size: Vec2f,
@@ -65,6 +71,17 @@ pub enum Draw {
     None,
 }
 
+impl Inspect for Draw {
+    fn inspect(&mut self, ui: &Ui, label: &str) {
+        match self {
+            Self::Sprite(x) => x.inspect(ui, label),
+            Self::NineSlice(x) => x.inspect(ui, label),
+            Self::Text(x) => x.inspect(ui, label),
+            Self::None => ui.label_text(&im_str!("{}", label), &im_str!("None")),
+        }
+    }
+}
+
 /// DrawVariant -> Draw -> Node
 macro_rules! impl_into_draw {
     ($ty:ident, $var:ident) => {
@@ -99,7 +116,7 @@ impl_into_draw!(NineSliceSprite, NineSlice);
 impl_into_draw!(Text, Text);
 
 /// [`Draw`] variant
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Inspect)]
 pub struct Text {
     pub txt: String,
     // TODO: size of text
@@ -115,7 +132,7 @@ impl Text {
 }
 
 /// Visible object in a UI layer
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Inspect)]
 pub struct Node {
     pub draw: Draw,
     /// Common geometry data

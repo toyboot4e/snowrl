@@ -4,20 +4,13 @@ Non-blocking animations
 
 use std::time::Duration;
 
-use {
-    rlbox::rl::grid2d::{Dir8, Vec2i},
-    snow2d::{
-        gfx::geom2d::Vec2f,
-        ui::{anim::AnimIndex, anim_builder::AnimSeq},
-        utils::arena::Index,
-    },
-};
+use snow2d::utils::{arena::Index, Inspect};
 
-use crate::game::data::{res::UiLayer, world::actor::Actor};
+use crate::game::data::world::actor::Actor;
 
 use super::{Anim, AnimResult, Data, Timer};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct DamageText {
     pub actor: Index<Actor>,
     pub amount: u32,
@@ -42,55 +35,5 @@ impl Anim for DamageText {
 
     fn update(&mut self, data: &mut Data) -> AnimResult {
         self.timer.tick_as_result(data.ice.dt())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SwingAnim {
-    pub actor: Index<Actor>,
-    pub dir: Dir8,
-    timer: Timer,
-    anims: Option<Vec<AnimIndex>>,
-}
-
-impl SwingAnim {
-    pub fn new(actor: Index<Actor>, dir: Dir8, secs: f32) -> Self {
-        Self {
-            actor,
-            dir,
-            timer: Timer::from_secs_f32(secs),
-            anims: None,
-        }
-    }
-}
-
-impl Anim for SwingAnim {
-    fn on_start(&mut self, data: &mut Data) {
-        let actor = &data.world.entities[self.actor];
-        let actor_layer = data.res.ui.layer_mut(UiLayer::Actors);
-
-        // parameters
-        let dpos = {
-            let size = Vec2f::new(
-                data.world.map.tiled.tile_width as f32,
-                data.world.map.tiled.tile_height as f32,
-            );
-            size * Vec2i::from(self.dir).to_vec2f()
-        };
-        let img_offset = actor.view.img_offset();
-
-        // animation sequence
-        actor_layer.anims.insert_seq({
-            let (mut seq, mut gen) = AnimSeq::begin();
-            gen.node(&actor.nodes.img)
-                .secs(self.timer.target().as_secs_f32() / 2.0);
-            seq.append(gen.pos([img_offset, img_offset + dpos]));
-            seq.append(gen.pos([img_offset + dpos, img_offset]));
-            seq
-        });
-    }
-
-    fn update(&mut self, ata: &mut Data) -> AnimResult {
-        self.timer.tick_as_result(ata.ice.dt())
     }
 }

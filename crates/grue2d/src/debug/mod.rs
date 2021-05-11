@@ -2,17 +2,40 @@
 Debug-only module
 */
 
-use anyhow::*;
-use imgui_backends::{helper::QuickStart, platform::ImGuiSdl2, renderer::ImGuiRokolGfx};
+// TODO: rokol ImGUI renderer
+
+// TODO: show game in ImGUI window
+// use a stack of `RenderTexture`s which can override backbuffer size.
 
 /// ImGUI backend
 pub type Backend = imgui_backends::Backend<ImGuiSdl2, ImGuiRokolGfx>;
+pub type BackendUi<'a> = imgui_backends::BackendUi<'a, ImGuiSdl2, ImGuiRokolGfx>;
 
-use crate::Platform;
+use anyhow::*;
+use imgui::{self as ig, im_str};
+use imgui_backends::{helper::QuickStart, platform::ImGuiSdl2, renderer::ImGuiRokolGfx};
+
+use snow2d::utils::Inspect;
+
+use crate::{
+    app::Platform,
+    game::{Control, Data},
+};
 
 // FIXME: hard-coded value
 const W: usize = 1280;
 const H: usize = 720;
+
+#[derive(Debug, Clone)]
+pub struct DebugState {
+    //
+}
+
+impl Default for DebugState {
+    fn default() -> Self {
+        Self {}
+    }
+}
 
 pub fn create_backend(platform: &Platform) -> Result<Backend> {
     let mut imgui = QuickStart {
@@ -30,4 +53,41 @@ pub fn create_backend(platform: &Platform) -> Result<Backend> {
         platform,
         renderer,
     })
+}
+
+impl DebugState {
+    pub fn debug_render(&mut self, data: &mut Data, ctrl: &mut Control, ui: &mut BackendUi) {
+        // ui.show_demo_window(&mut true);
+
+        ig::Window::new(im_str!("Inspector"))
+            .size([200.0, 400.0], ig::Condition::FirstUseEver)
+            // semi-transparent
+            .bg_alpha(0.5)
+            .build(ui, || {
+                let cfg = data.cfg.clone();
+                data.cfg.inspect(ui, "configuration");
+                if data.cfg.vol != cfg.vol {
+                    data.ice.audio.set_global_volume(data.cfg.vol);
+                }
+
+                data.world.inspect(ui, "world");
+                data.res.ui.inspect(ui, "scene graph");
+
+                ctrl.rogue.anims.inspect(ui, "RL animation");
+            });
+
+        // ig::Window::new(im_str!("Scene graph"))
+        //     .size([200.0, 400.0], ig::Condition::FirstUseEver)
+        //     // semi-transparent
+        //     .bg_alpha(0.5)
+        //     .build(ui, || {
+        //         data.res.ui.inspect(ui, "scene graph");
+        //     });
+
+        // self::show_anim_queue(data, ctrl, ui);
+    }
+
+    // fn show_anim_queue(data: &mut Data, ctrl: &mut Control, ui: &mut BackendUi) {
+    //     let anims = ctrl.rogue.anims.anims();
+    // }
 }

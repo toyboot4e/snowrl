@@ -9,11 +9,13 @@ use dyn_clone::{clone_trait_object, DynClone};
 use std::time::Duration;
 
 use crate::{
+    self as snow2d,
     gfx::{geom2d::Vec2f, Color},
     ui::node::Node,
     utils::{
         enum_dispatch, ez,
         pool::{Handle, Pool},
+        Inspect,
     },
 };
 
@@ -45,11 +47,12 @@ impl<T> AnimFn for T where
 }
 
 /// TODO: does it work?
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct DynAnim {
     pub is_active: bool,
     pub dt: ez::EasedDt,
     pub node: Handle<Node>,
+    #[inspect(skip)]
     pub f: Box<dyn AnimFn>,
 }
 
@@ -85,7 +88,7 @@ impl AnimImpl for DynAnim {
 
 macro_rules! def_tween_anim {
     ($ty:ident, $val:ident, $apply:expr) => {
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, Inspect)]
         pub struct $ty {
             pub is_active: bool,
             pub tween: ez::Tweened<$val>,
@@ -160,7 +163,7 @@ def_tween_anim!(RotTween, f32, |me: &Self, nodes: &mut Pool<Node>| {
 });
 
 /// One of [`AnimImpl`] impls
-#[enum_dispatch(AnimImpl)]
+#[enum_dispatch(AnimImpl, Inspect)]
 #[derive(Debug, Clone)]
 pub enum Anim {
     DynAnim,

@@ -14,9 +14,12 @@ use {
     std::time::Duration,
 };
 
-use crate::game::data::{
-    res::{Ui, UiLayer},
-    world::{actor::Actor, World},
+use crate::game::{
+    cfg::{ShadowConfig, SnowConfig},
+    data::{
+        res::{Ui, UiLayer},
+        world::{actor::Actor, World},
+    },
 };
 
 /// TODO: remove
@@ -155,13 +158,30 @@ impl WorldRenderer {
         }
     }
 
-    pub fn render_shadow(&mut self, rdr: &mut Snow2d, world: &World) {
-        let blur = true;
-        self.shadow_render.render_ofs(rdr, world, blur);
-        self.shadow_render.blend_to_screen(rdr, &world.cam);
+    pub fn render_shadow(&mut self, rdr: &mut Snow2d, world: &World, cfg: &ShadowConfig) {
+        match cfg {
+            ShadowConfig::Blur => {
+                let blur = true;
+                self.shadow_render.render_ofs(rdr, world, blur);
+                self.shadow_render.blend_to_screen(rdr, &world.cam);
+            }
+            ShadowConfig::Raw => {
+                let blur = false;
+                self.shadow_render.render_ofs(rdr, world, blur);
+                self.shadow_render.blend_to_screen(rdr, &world.cam);
+            }
+            ShadowConfig::None => {
+                //
+            }
+        }
     }
 
-    pub fn render_snow(&mut self, window: &WindowState, clock: &GameClock) {
-        self.snow_render.render(window, clock);
+    pub fn render_snow(&mut self, window: &WindowState, clock: &GameClock, cfg: &SnowConfig) {
+        match cfg {
+            SnowConfig::Blizzard => {
+                self.snow_render.render(window, clock);
+            }
+            SnowConfig::None => {}
+        }
     }
 }

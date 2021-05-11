@@ -38,8 +38,8 @@ fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
     unsafe {
         TypeObjectStorageBuilder::begin()
             .unwrap()
-            .register::<ActorImageType, StaticAssetKey>(paths::actors::ACTOR_IMAGES)?
-            .register::<ActorType, StaticAssetKey>(paths::actors::ACTOR_TYPES)?;
+            .register::<ActorImageType, StaticAssetKey>(paths::types::actors::ACTOR_IMAGES)?
+            .register::<ActorType, StaticAssetKey>(paths::types::actors::ACTOR_TYPES)?;
     }
 
     unsafe {
@@ -138,7 +138,7 @@ fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
 
     // player
     ActorSpawn::new("ika-chan")
-        .pos([14, 10])
+        .pos([12, 26])
         .dir(Dir8::S)
         .spawn(world, layer)?;
 
