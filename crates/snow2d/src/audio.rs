@@ -55,21 +55,14 @@ impl DerefMut for Audio {
 pub mod asset {
     //! [`snow2d::asset`](crate::asset) integration
 
+    use std::{fmt, io, path::Path};
+
+    use anyhow::*;
+
     use crate::{
-        asset::{Asset, AssetCacheAny, AssetCacheT, AssetItem, AssetLoader},
+        asset::{Asset, AssetCacheAny, AssetCacheT, AssetItem, AssetKey, AssetLoader},
         audio::{src, Audio, Handle},
     };
-
-    use std::{fmt, io};
-
-    use std::path::Path;
-
-    fn upcast_err<E>(e: E) -> std::io::Error
-    where
-        E: Into<Box<dyn std::error::Error + Send + Sync>>,
-    {
-        std::io::Error::new(std::io::ErrorKind::Other, e)
-    }
 
     /// Adds audio asset loaders to [`AssetCacheAny`]
     pub fn register_asset_loaders(assets: &mut AssetCacheAny, audio: &Audio) {
@@ -110,8 +103,15 @@ pub mod asset {
     {
         type Item = T;
         fn load(&mut self, path: &Path) -> io::Result<Self::Item> {
-            Self::Item::from_path(path).map_err(upcast_err)
+            Self::Item::from_path(path).map_err(self::upcast_err)
         }
+    }
+
+    fn upcast_err<E>(e: E) -> std::io::Error
+    where
+        E: Into<Box<dyn std::error::Error + Send + Sync>>,
+    {
+        std::io::Error::new(std::io::ErrorKind::Other, e)
     }
 
     /// Playback handle for [`MusicPlayer`]
@@ -151,6 +151,52 @@ pub mod asset {
             );
 
             self.current = Some(Playback { handle, song })
+        }
+    }
+
+    impl AssetCacheT<src::Wav> {
+        /// Play sound
+        pub fn play<'a>(&mut self, sound: impl Into<AssetKey<'a>>, audio: &Audio) -> Result<()> {
+            let mut se: Asset<src::Wav> = self.load_sync(sound)?;
+            let se = se.get_mut().unwrap();
+            audio.play(&*se);
+            Ok(())
+        }
+
+        /// Play sound and set the preserve flag on the asset
+        pub fn play_preserve<'a>(
+            &mut self,
+            sound: impl Into<AssetKey<'a>>,
+            audio: &Audio,
+        ) -> Result<()> {
+            let mut se: Asset<src::Wav> = self.load_sync_preserve(sound)?;
+            let se = se.get_mut().unwrap();
+            audio.play(&*se);
+            Ok(())
+        }
+    }
+
+    impl AssetCacheAny {
+        /// Play sound
+        pub fn play<'a>(&mut self, sound: impl Into<AssetKey<'a>>, audio: &Audio) -> Result<()> {
+            let cache: &mut AssetCacheT<src::Wav> = self
+                .cache_mut()
+                .ok_or_else(|| anyhow!("Unable to find cache of type WavStream"))?;
+            cache.play(sound, audio)?;
+            Ok(())
+        }
+
+        /// Play sound and set the preserve flag on the asset
+        pub fn play_preserve<'a>(
+            &mut self,
+            sound: impl Into<AssetKey<'a>>,
+            audio: &Audio,
+        ) -> Result<()> {
+            let cache: &mut AssetCacheT<src::Wav> = self
+                .cache_mut()
+                .ok_or_else(|| anyhow!("Unable to find cache of type WavStream"))?;
+            cache.play_preserve(sound, audio)?;
+            Ok(())
         }
     }
 }

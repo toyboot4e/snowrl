@@ -2,22 +2,17 @@
 High level commands
 */
 
-use snow2d::{
-    ui::node::Node,
-    utils::{arena::Index, tyobj::*},
-};
+use snow2d::utils::arena::Index;
 
-use rlbox::{
-    rl::grid2d::*,
-    view::anim::{DirAnimState, DirAnimType},
-};
+use rlbox::rl::grid2d::*;
 
 use crate::game::{
     ctrl::rogue::{
         anim::{self as rl_anim, *},
+        ev,
         tick::{Event, EventResult, GenAnim},
     },
-    data::{res::*, world::actor::Actor},
+    data::world::{actor::Actor, World},
     Data,
 };
 
@@ -67,18 +62,8 @@ impl Event for JustSwing {
 
 impl GenAnim for JustSwing {
     fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
-        let mut se = data
-            .ice
-            .assets
-            .load_sync_preserve::<snow2d::audio::src::Wav, _>(crate::paths::sound::se::SWING)
-            .unwrap();
-
-        use snow2d::audio::prelude::*;
-        use std::ops::DerefMut;
-        let mut se = se.get_mut().unwrap();
-        // TODO: set volume in asset list
-        se.deref_mut().set_volume(4.0);
-        data.ice.audio.play(&*se);
+        // TODO: volume 4.0
+        ev::play_sound_preserve(crate::paths::sound::se::SWING, data).unwrap();
 
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,
@@ -95,18 +80,31 @@ pub struct MeleeAttack {
     pub dir: Option<Dir8>,
 }
 
-impl Event for MeleeAttack {
-    fn run(&self, data: &mut Data) -> EventResult {
-        let actor = &data.world.entities[self.actor];
-        let actor_dir = self.dir.clone().unwrap_or(actor.dir);
-        let target_pos = actor.pos.offset(actor_dir);
+impl MeleeAttack {
+    fn target_dir(&self, world: &World) -> Dir8 {
+        let actor = &world.entities[self.actor];
+        self.dir.clone().unwrap_or(actor.dir)
+    }
 
-        if let Some((target, _target_actor)) = data
-            .world
+    fn target_pos(&self, world: &World) -> Vec2i {
+        let actor = &world.entities[self.actor];
+        actor.pos.offset(self.target_dir(world))
+    }
+
+    fn pull_target(&self, world: &World) -> Option<Index<Actor>> {
+        let target_pos = self.target_pos(world);
+
+        world
             .entities
             .iter()
             .find(|(_i, e)| e.pos == target_pos)
-        {
+            .map(|(i, _e)| i)
+    }
+}
+
+impl Event for MeleeAttack {
+    fn run(&self, data: &mut Data) -> EventResult {
+        if let Some(target) = self.pull_target(&data.world) {
             // hit entity
             EventResult::chain(Hit {
                 target,
@@ -127,52 +125,14 @@ impl Event for MeleeAttack {
 
 impl GenAnim for MeleeAttack {
     fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
-        // TODO: declartive effects?
+        ev::play_sound_preserve(crate::paths::sound::se::SWING, data).unwrap();
 
-        // play sound
-        let mut se = data
-            .ice
-            .assets
-            .load_sync_preserve::<snow2d::audio::src::Wav, _>(crate::paths::sound::se::SWING)
-            .unwrap();
-
-        let se = se.get_mut().unwrap();
-        data.ice.audio.play(&*se);
-
-        // play animation
-        let attacker = &data.world.entities[self.actor];
-        let attacker_dir = self.dir.clone().unwrap_or(attacker.dir);
-        let target_pos = attacker.pos.offset(attacker_dir);
-
-        if let Some((_ix, target)) = data
-            .world
-            .entities
-            .iter()
-            .find(|(_i, e)| e.pos == target_pos)
-        {
-            data.res.dir_anims.add({
-                let anim_type = TypeObjectId::<DirAnimType>::from_raw("attack".to_string())
-                    .try_retrieve()
-                    .unwrap();
-                let state = DirAnimState::from_tyobj(&*anim_type);
-
-                let layer = UiLayer::OnActors;
-                let anim_layer = data.res.ui.layer_mut(layer);
-
-                let node = anim_layer.nodes.add({
-                    let mut node = Node::from(state.current_frame());
-                    node.params.pos = target.view.img_pos_world(&data.world.map.tiled);
-                    node
-                });
-
-                DirAnimEntry {
-                    node,
-                    layer,
-                    state,
-                    dir: target.dir,
-                }
-            });
-        }
+        ev::run_dir_anim(
+            "attack",
+            self.target_pos(&data.world),
+            self.target_dir(&data.world),
+            data,
+        );
 
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,
