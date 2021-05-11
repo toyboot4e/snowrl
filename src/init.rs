@@ -8,6 +8,7 @@ use rlbox::{
     rl::grid2d::*,
     view::{
         actor::ActorImageType,
+        anim::DirAnimType,
         camera::{Camera2d, FollowCamera2d, TransformParams2d},
         map::TiledRlMap,
         shadow::Shadow,
@@ -39,7 +40,8 @@ fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
         TypeObjectStorageBuilder::begin()
             .unwrap()
             .register::<ActorImageType, StaticAssetKey>(paths::types::actors::ACTOR_IMAGES)?
-            .register::<ActorType, StaticAssetKey>(paths::types::actors::ACTOR_TYPES)?;
+            .register::<ActorType, StaticAssetKey>(paths::types::actors::ACTOR_TYPES)?
+            .register::<DirAnimType, StaticAssetKey>(paths::types::ANIM_TYPES)?;
     }
 
     unsafe {
@@ -138,7 +140,7 @@ fn load_actors(world: &mut World, ui: &mut Ui) -> anyhow::Result<()> {
 
     // player
     ActorSpawn::new("ika-chan")
-        .pos([12, 26])
+        .pos([12, 16])
         .dir(Dir8::S)
         .spawn(world, layer)?;
 

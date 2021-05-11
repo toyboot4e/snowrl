@@ -64,13 +64,13 @@ impl GameState for Roguelike {
                     continue;
                 }
                 TickResult::Event(ev) => {
-                    // play animations if any
+                    // play animations if there any
                     if let Some(anim) = ev.gen_anim(data) {
                         // log::trace!("event animation: {:?}", anim);
 
                         ctrl.rogue.anims.enqueue_box(anim);
 
-                        // run not-batched animation
+                        // enter animation state
                         // (batch walk animations as much as possible)
                         if ctrl.rogue.anims.any_anim_to_run_now() {
                             return StateReturn::ThisFrame(vec![StateCommand::Push(TypeId::of::<
@@ -107,7 +107,7 @@ impl GameState for Roguelike {
     }
 }
 
-/// Roguelike game animation state
+/// Blocking state for waiting animations
 ///
 /// TODO: Animation should have the anmation queue and handle PushAnim event (if possible)
 #[derive(Debug, PartialEq, Default)]
@@ -255,6 +255,28 @@ impl PlayTalkState {
 }
 
 impl GameState for PlayTalkState {
+    fn on_enter(&mut self, data: &mut Data, _ctrl: &mut Control) {
+        let mut se = data
+            .ice
+            .assets
+            .load_sync_preserve::<snow2d::audio::src::Wav, _>(paths::sound::se::TALK_ENTER)
+            .unwrap();
+
+        let se = se.get_mut().unwrap();
+        data.ice.audio.play(&*se);
+    }
+
+    fn on_exit(&mut self, _data: &mut Data, _ctrl: &mut Control) {
+        // let mut se = data
+        //     .ice
+        //     .assets
+        //     .load_sync_preserve::<snow2d::audio::src::Wav, _>(paths::sound::se::TALK_LEAVE)
+        //     .unwrap();
+
+        // let se = se.get_mut().unwrap();
+        // data.ice.audio.play(&*se);
+    }
+
     fn update(&mut self, data: &mut Data, _ctrl: &mut Control) -> StateReturn {
         if data.res.vi.select.is_pressed() {
             // Exit on enter

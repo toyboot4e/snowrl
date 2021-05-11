@@ -2,7 +2,7 @@
 `paste::paste!` concats identifiers in declarative macro with `[< .. >]` syntax
 */
 
-use std::{collections::VecDeque, num::NonZeroU32};
+use std::{collections::VecDeque, marker::PhantomData, num::NonZeroU32};
 
 use imgui::{im_str, Ui};
 
@@ -141,9 +141,15 @@ impl Inspect for NonZeroU32 {
 
 // idiomatic types
 
-impl<T> Inspect for std::marker::PhantomData<T> {
-    fn inspect(&mut self, _ui: &Ui, _label: &str) {}
+macro_rules! impl_ignore {
+    ($ty:ty) => {
+        impl<T> Inspect for $ty {
+            fn inspect(&mut self, _ui: &Ui, _label: &str) {}
+        }
+    };
 }
+
+impl_ignore!(PhantomData<T>);
 
 impl<T: Inspect> Inspect for Option<T> {
     fn inspect(&mut self, ui: &Ui, label: &str) {
@@ -156,23 +162,19 @@ impl<T: Inspect> Inspect for Option<T> {
 
 // collections
 
-impl<T: Inspect + 'static> Inspect for Vec<T> {
-    fn inspect(&mut self, ui: &Ui, label: &str) {
-        inspect::inspect_seq(self.iter_mut(), ui, label)
-    }
+/// Implements `Inspect` with iterator
+macro_rules! impl_seq {
+    ($ty:ident) => {
+        impl<T: Inspect> Inspect for $ty<T> {
+            fn inspect(&mut self, ui: &Ui, label: &str) {
+                inspect::inspect_seq(self.iter_mut(), ui, label)
+            }
+        }
+    };
 }
 
-impl<T: Inspect + 'static> Inspect for VecDeque<T> {
-    fn inspect(&mut self, ui: &Ui, label: &str) {
-        inspect::inspect_seq(self.iter_mut(), ui, label)
-    }
-}
-
-// impl<K: Inspect, V: Inspect> Inspect for HashMap<K, V> {
-//     fn inspect(&mut self, ui: &Ui, _label: &str) {
-//         ui.text(&im_str!("TODO: HashMap"));
-//     }
-// }
+impl_seq!(Vec);
+impl_seq!(VecDeque);
 
 // more std types
 

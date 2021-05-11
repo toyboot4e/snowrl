@@ -9,7 +9,6 @@ use dyn_clone::{clone_trait_object, DynClone};
 use std::time::Duration;
 
 use crate::{
-    self as snow2d,
     gfx::{geom2d::Vec2f, Color},
     ui::node::Node,
     utils::{
@@ -163,7 +162,7 @@ def_tween_anim!(RotTween, f32, |me: &Self, nodes: &mut Pool<Node>| {
 });
 
 /// One of [`AnimImpl`] impls
-#[enum_dispatch(AnimImpl, Inspect)]
+#[enum_dispatch(AnimImpl)]
 #[derive(Debug, Clone)]
 pub enum Anim {
     DynAnim,
@@ -178,5 +177,22 @@ pub enum Anim {
     // ParamsTween,
 }
 
+impl Inspect for Anim {
+    fn inspect(&mut self, ui: &imgui::Ui, label: &str) {
+        match self {
+            Self::DynAnim(x) => x.inspect(ui, label),
+            Self::PosTween(x) => x.inspect(ui, label),
+            Self::XTween(x) => x.inspect(ui, label),
+            Self::YTween(x) => x.inspect(ui, label),
+            Self::SizeTween(x) => x.inspect(ui, label),
+            Self::ColorTween(x) => x.inspect(ui, label),
+            Self::AlphaTween(x) => x.inspect(ui, label),
+            Self::RotTween(x) => x.inspect(ui, label),
+        }
+    }
+}
+
 /// Index of [`Anim`] in expected collection (i.e., generational arena)
 pub type AnimIndex = crate::utils::arena::Index<Anim>;
+
+// TODO: frame-based sprite animation?

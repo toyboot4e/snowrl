@@ -31,10 +31,10 @@ fn generate_inspect_impl(args: &args::TypeArgs, inspect_body: TokenStream2) -> T
     let generics = self::create_impl_generics(args);
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
-    let ty_name = &args.ident;
+    let ty_ident = &args.ident;
 
     quote! {
-        impl #impl_generics snow2d::utils::Inspect for #ty_name #ty_generics #where_clause
+        impl #impl_generics Inspect for #ty_ident #ty_generics #where_clause
         {
             fn inspect(&mut self, ui: &imgui::Ui, label: &str) {
                 #inspect_body

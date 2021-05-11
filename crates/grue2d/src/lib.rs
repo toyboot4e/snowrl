@@ -4,7 +4,7 @@ Framework for SnowRL
 Based on [`rlbox`] (roguelike toolbox) and [`snow2d`] (2D framework)
 */
 
-#![feature(generators, generator_trait, array_map)]
+#![feature(generators, generator_trait, array_map, drain_filter)]
 
 pub extern crate hot_crate;
 pub extern crate rlbox;
@@ -115,7 +115,7 @@ pub struct GrueRl {
     pub data: Data,
     /// States to control the game
     pub ctrl: Control,
-    /// Objects for the state machine
+    /// Objects with exclusive data
     pub agents: Agents,
     /// Controls the game
     pub fsm: Fsm,
@@ -123,6 +123,7 @@ pub struct GrueRl {
     /// (Debug-only) ImGUI
     pub imgui: debug::Backend,
     /// (Debug-only) Debug state
+    #[cfg(debug_assertions)]
     pub debug_state: debug::DebugState,
 }
 
@@ -130,6 +131,7 @@ impl GrueRl {
     pub fn new(platform: &Platform, data: Data, fsm: Fsm, ctrl: Control) -> Result<Self> {
         let screen_size = [platform.win.size().0, platform.win.size().1];
         let agents = Agents::new(screen_size, &data.ice.snow.clock);
+        #[cfg(debug_assertions)]
         let imgui = debug::create_backend(platform)?;
 
         Ok(Self {
@@ -137,7 +139,9 @@ impl GrueRl {
             ctrl,
             agents,
             fsm,
+            #[cfg(debug_assertions)]
             imgui,
+            #[cfg(debug_assertions)]
             debug_state: Default::default(),
         })
     }
@@ -174,13 +178,17 @@ impl GrueRl {
         );
 
         agents.world_render.post_update(&data.world, dt);
+
         data.res.ui.update(dt);
+        data.res.dir_anims.update(dt, &mut data.res.ui);
     }
 
+    #[cfg(debug_assertions)]
     fn debug_update(&mut self, dt: Duration) {
         self.imgui.update_delta_time(dt);
     }
 
+    #[cfg(debug_assertions)]
     fn debug_render(&mut self, platform: &mut Platform) {
         let mut ui = self.imgui.begin_frame(&platform.win);
         self.debug_state
@@ -203,11 +211,13 @@ mod sdl2_impl {
     impl GrueRl {
         pub fn event(&mut self, ev: &Event, platform: &Platform) {
             self.data.ice.event(ev);
+            #[cfg(debug_assertions)]
             self.imgui.handle_event(&platform.win, ev);
         }
 
         pub fn update(&mut self, dt: std::time::Duration, _platform: &mut Platform) {
             self.pre_update(dt);
+            #[cfg(debug_assertions)]
             self.debug_update(dt);
             self.fsm.update(&mut self.data, &mut self.ctrl);
             self.post_update(dt);
@@ -242,6 +252,7 @@ mod sdl2_impl {
         }
 
         pub fn post_render(&mut self, dt: Duration, platform: &mut Platform) {
+            #[cfg(debug_assertions)]
             self.debug_render(platform);
             self.data.ice.post_render(dt);
         }

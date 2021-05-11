@@ -156,8 +156,6 @@ impl SwingAnim {
 
 impl Anim for SwingAnim {
     fn on_start(&mut self, data: &mut Data) {
-        log::trace!("swing secs: {}", self.timer.target().as_secs_f32());
-
         let actor = &data.world.entities[self.actor];
         let actor_layer = data.res.ui.layer_mut(UiLayer::Actors);
 

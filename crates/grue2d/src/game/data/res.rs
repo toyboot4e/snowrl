@@ -8,10 +8,12 @@ use serde::{Deserialize, Serialize};
 
 use snow2d::{
     gfx::text::font::FontSetHandle,
-    input::{vi::*, Input, Key},
-    ui::{CoordSystem, Layer},
-    utils::{arena::Index, Inspect},
+    input::{vi::*, Dir8, Input, Key},
+    ui::{node::Node, CoordSystem, Layer},
+    utils::{arena::Index, pool::Handle, Inspect},
 };
+
+use rlbox::view::anim::DirAnimState;
 
 /// TODO: rm
 const REPEAT_FIRST_FRAMES: u64 = 10;
@@ -162,9 +164,52 @@ impl VInput {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct DirAnimEntry {
+    /// Animation node
+    pub node: Handle<Node>,
+    /// Layer the node belongs to
+    pub layer: UiLayer,
+    pub dir: Dir8,
+    pub state: DirAnimState,
+}
+
+#[derive(Debug, Default)]
+pub struct DirAnimRunner {
+    entries: Vec<DirAnimEntry>,
+}
+
+impl DirAnimRunner {
+    /// Ticks the animation states and applies those animations to target `Node`
+    pub fn update(&mut self, dt: Duration, ui: &mut Ui) {
+        // drain (remove) finished animation nodes
+        let _ = self
+            .entries
+            .drain_filter(|e| e.state.is_stopped())
+            .collect::<Vec<_>>();
+
+        // update
+        for e in &mut self.entries {
+            log::trace!("update");
+            let layer = ui.layer_mut(e.layer);
+            let node = &mut layer.nodes[&e.node];
+            node.draw = e.state.current_frame_with_dir(e.dir).into();
+
+            // NOTE: we don't tick in the first frame
+            e.state.tick(dt);
+        }
+    }
+
+    pub fn add(&mut self, entry: DirAnimEntry) {
+        self.entries.push(entry);
+    }
+}
+
 #[derive(Debug)]
 pub struct Resources {
     pub fonts: Fonts,
     pub vi: VInput,
     pub ui: Ui,
+    /// Directional animations over UI nodes
+    pub dir_anims: DirAnimRunner,
 }

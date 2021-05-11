@@ -1,5 +1,7 @@
 /*!
-Graphics module built
+Graphics
+
+[`Snow2d`] is the context and the primary API.
 
 # Coordinate system
 
@@ -29,7 +31,7 @@ use rokol::{
     gfx::{self as rg, BakedResource},
 };
 
-use crate::{self as snow2d, utils::Inspect};
+use crate::utils::Inspect;
 
 use self::{
     batch::{Batch, BatchData, QuadData},
@@ -233,7 +235,7 @@ impl WindowState {
     }
 }
 
-/// Game time progress
+/// Game time progress (stops while pausing)
 #[derive(Debug, Clone)]
 pub struct GameClock {
     past: Duration,

@@ -9,7 +9,6 @@ UI nodes (renderables)
 */
 
 use crate::{
-    self as snow2d,
     gfx::{draw::*, geom2d::*, Color, RenderPass},
     utils::{
         pool::{Handle, WeakHandle},
@@ -124,10 +123,8 @@ pub struct Text {
 }
 
 impl Text {
-    pub fn new(txt: &str) -> Self {
-        Self {
-            txt: txt.to_string(),
-        }
+    pub fn new(txt: String) -> Self {
+        Self { txt }
     }
 }
 

@@ -6,6 +6,9 @@ SnowRL
 * inspect Pool/Anim and see if there's garbage
 * fix dpi scaling (WindowState, GrueRl::pre_render, begin_default_pass)
 * allow resizing window
+
+* put game logic in one place and see app lifecycle from code
+  * list of tyobj
 */
 
 use anyhow::{Error, Result};
@@ -73,6 +76,7 @@ fn new_game(init: &grue2d::app::Init, platform: &Platform) -> Result<GrueRl> {
                 fonts,
                 vi: VInput::new(),
                 ui,
+                dir_anims: Default::default(),
             },
             cfg: GameConfig {
                 vol: 1.0,

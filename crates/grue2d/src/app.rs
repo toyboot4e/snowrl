@@ -79,16 +79,16 @@ where
                     WindowEvent::HitTest => {
                         // log::trace!("hit-test: {:?}", window_id);
                     }
-                    // window placement
-                    WindowEvent::Moved(x, y) => {
-                        // log::trace!("moved: {:?} ({:?}, {:?})", window_id, x, y);
-                    }
-                    WindowEvent::Resized(w, h) => {
-                        // log::trace!("resized: {:?} ({:?}, {:?})", window_id, w, h);
-                    }
-                    WindowEvent::SizeChanged(w, h) => {
-                        // log::trace!("size changed: {:?} ({:?}, {:?})", window_id, w, h);
-                    }
+                    // // window placement
+                    // WindowEvent::Moved(x, y) => {
+                    //     // log::trace!("moved: {:?} ({:?}, {:?})", window_id, x, y);
+                    // }
+                    // WindowEvent::Resized(w, h) => {
+                    //     // log::trace!("resized: {:?} ({:?}, {:?})", window_id, w, h);
+                    // }
+                    // WindowEvent::SizeChanged(w, h) => {
+                    //     // log::trace!("size changed: {:?} ({:?}, {:?})", window_id, w, h);
+                    // }
                     WindowEvent::Minimized => {
                         // log::trace!("minimized: {:?}", window_id);
                     }

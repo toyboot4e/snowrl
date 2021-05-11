@@ -1,5 +1,5 @@
 /*!
-Object for the finite state machine
+Objects with exclusive data
 */
 
 mod renderer;

@@ -35,7 +35,7 @@ use std::{
 
 use derivative::Derivative;
 
-use crate::{self as snow2d, utils::Inspect};
+use crate::utils::Inspect;
 
 type Gen = std::num::NonZeroU32;
 type GenCounter = u32;

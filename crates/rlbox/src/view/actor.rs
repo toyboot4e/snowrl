@@ -23,7 +23,7 @@ use snow2d::{
     utils::{
         ez,
         pool::Handle,
-        tyobj::{self, SerdeRepr, SerdeViaTypeObject, TypeObject, TypeObjectId},
+        tyobj::{SerdeRepr, SerdeViaTyObj, TypeObject},
         Inspect,
     },
 };
@@ -31,7 +31,7 @@ use snow2d::{
 use crate::{
     rl::grid2d::*,
     utils::DoubleSwap,
-    view::anim::{FrameAnimPattern, FrameAnimState, LoopMode},
+    view::anim::{AnimPattern, LoopMode, MultiPatternAnimState},
 };
 
 /// Default actor image FPS
@@ -44,10 +44,7 @@ pub const ACTOR_WALK_TIME: f32 = 8.0 / 60.0;
 pub const CHANGE_DIR_TIME: f32 = 1.0 / 60.0;
 
 /// Generate character walking animation with some heuristic
-fn gen_anim_auto(
-    tex: &Asset<Texture2dDrop>,
-    fps: f32,
-) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
+fn gen_anim_auto(tex: &Asset<Texture2dDrop>, fps: f32) -> HashMap<Dir8, AnimPattern<SpriteData>> {
     let size = tex.get().unwrap().sub_tex_size_unscaled();
     if size[0] >= size[1] {
         self::gen_anim_dir8(tex, fps)
@@ -57,10 +54,7 @@ fn gen_anim_auto(
 }
 
 /// Generates character walking animation from 3x4 character image
-fn gen_anim_dir4(
-    tex: &Asset<Texture2dDrop>,
-    fps: f32,
-) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
+fn gen_anim_dir4(tex: &Asset<Texture2dDrop>, fps: f32) -> HashMap<Dir8, AnimPattern<SpriteData>> {
     self::gen_dir_anim_with(
         tex,
         fps,
@@ -76,10 +70,7 @@ fn gen_anim_dir4(
 }
 
 /// Generates character walking animation from 6x4 character image
-fn gen_anim_dir8(
-    tex: &Asset<Texture2dDrop>,
-    fps: f32,
-) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
+fn gen_anim_dir8(tex: &Asset<Texture2dDrop>, fps: f32) -> HashMap<Dir8, AnimPattern<SpriteData>> {
     self::gen_dir_anim_with(
         tex,
         fps,
@@ -125,13 +116,13 @@ fn gen_dir_anim_with(
     patterns: &DirAnimPattern,
     gen_uv_rect: impl Fn(usize) -> [f32; 4],
     mut f: impl FnMut(&mut SpriteData),
-) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
+) -> HashMap<Dir8, AnimPattern<SpriteData>> {
     patterns
         .iter()
         .map(|(dir, indices)| {
             (
                 dir.clone(),
-                FrameAnimPattern::new(
+                AnimPattern::new(
                     indices
                         .iter()
                         .map(|ix| {
@@ -170,7 +161,7 @@ impl DirAnimKind {
         &self,
         tex: &Asset<Texture2dDrop>,
         fps: f32,
-    ) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
+    ) -> HashMap<Dir8, AnimPattern<SpriteData>> {
         match self {
             Self::Auto => self::gen_anim_auto(tex, fps),
             Self::Dir4 => self::gen_anim_dir4(tex, fps),
@@ -185,7 +176,7 @@ impl DirAnimKind {
 ///
 /// 1. Call [`ActorImage::warp`]
 /// 2. Set speed properties of [`ActorImage`]
-#[derive(Debug, Clone, Serialize, Deserialize, Inspect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Inspect, TypeObject)]
 pub struct ActorImageType {
     pub tex: Asset<Texture2dDrop>,
     pub kind: DirAnimKind,
@@ -193,15 +184,13 @@ pub struct ActorImageType {
     // TODO: offset
 }
 
-impl TypeObject for ActorImageType {}
-
 impl ActorImageType {
-    pub fn gen_anim_patterns(&self) -> HashMap<Dir8, FrameAnimPattern<SpriteData>> {
+    pub fn gen_anim_patterns(&self) -> HashMap<Dir8, AnimPattern<SpriteData>> {
         self.kind.gen_anim_patterns(&self.tex, self::ACTOR_FPS)
     }
 
-    pub fn gen_anim_state(&self, dir: Dir8) -> FrameAnimState<Dir8, SpriteData> {
-        FrameAnimState::new(self.kind.gen_anim_patterns(&self.tex, self::ACTOR_FPS), dir)
+    pub fn gen_anim_state(&self, dir: Dir8) -> MultiPatternAnimState<Dir8, SpriteData> {
+        MultiPatternAnimState::new(self.kind.gen_anim_patterns(&self.tex, self::ACTOR_FPS), dir)
     }
 }
 
@@ -213,13 +202,18 @@ struct ActorState {
 }
 
 /// An animatable actor image
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SerdeViaTyObj)]
+#[via_tyobj(
+    tyobj = "ActorImageType",
+    from_tyobj = "Self::from_desc_default",
+    repr_field = "serde_repr"
+)]
 #[serde(from = "SerdeRepr<ActorImageType>")]
 #[serde(into = "SerdeRepr<ActorImageType>")]
 pub struct ActorImage {
-    dir_anim_state: FrameAnimState<Dir8, SpriteData>,
+    dir_anim_state: MultiPatternAnimState<Dir8, SpriteData>,
     state_diff: DoubleSwap<ActorState>,
-    dir_tweem: ez::Tweened<Dir8>,
+    dir_tween: ez::Tweened<Dir8>,
     /// Interpolation value for walk animation
     walk_dt: ez::EasedDt,
     /// For deserialization
@@ -248,7 +242,7 @@ impl ActorImage {
             dir_anim_state: desc.gen_anim_state(dir),
             state_diff: DoubleSwap::new(data, data),
             walk_dt: walk_dt.into(),
-            dir_tweem: ez::Tweened {
+            dir_tween: ez::Tweened {
                 a: dir,
                 b: dir,
                 dt: ez::EasedDt::completed(),
@@ -270,32 +264,9 @@ impl ActorImage {
     }
 }
 
-impl SerdeViaTypeObject for ActorImage {
-    type TypeObject = ActorImageType;
-
-    fn from_type_object(obj: &Self::TypeObject) -> Self {
-        Self::from_desc_default(obj)
-    }
-
-    fn from_type_object_with_id(
-        obj: &Self::TypeObject,
-        id: &TypeObjectId<Self::TypeObject>,
-    ) -> Self {
-        let mut img = Self::from_type_object(&obj);
-        img.serde_repr = SerdeRepr::Reference(id.clone());
-        img
-    }
-
-    fn into_type_object_repr(target: Self) -> SerdeRepr<Self::TypeObject> {
-        target.serde_repr
-    }
-}
-
-tyobj::connect_repr_target!(ActorImageType, ActorImage);
-
 /// Lifecycle
 impl ActorImage {
-    /// Updates the image with (new) actor position and direction
+    /// Moves/animates/tweens the image
     pub fn update(&mut self, dt: Duration, pos: Vec2i, dir: Dir8) {
         let (dir_diff, pos_diff) = (
             dir != self.state_diff.a().dir,
@@ -305,21 +276,21 @@ impl ActorImage {
         if dir_diff {
             if pos_diff {
                 // rotate instantly
-                self.dir_tweem = ez::Tweened {
-                    a: self.dir_tweem.a,
+                self.dir_tween = ez::Tweened {
+                    a: self.dir_tween.a,
                     b: dir,
                     dt: ez::EasedDt::completed(),
                 };
             } else {
-                // NOTE: it always animate with rotation
-                self.dir_tweem =
+                // NOTE: it always animates with rotation
+                self.dir_tween =
                     ez::tween_dirs(self.state_diff.a().dir, dir, self::CHANGE_DIR_TIME);
             }
         }
 
         // update direction of the animation
-        self.dir_tweem.tick(dt);
-        self.dir_anim_state.set_pattern(self.dir_tweem.get(), false);
+        self.dir_tween.tick(dt);
+        self.dir_anim_state.set_pattern(self.dir_tween.get(), false);
 
         // update interpolation value for walk animation
         if pos_diff {
@@ -349,12 +320,7 @@ impl ActorImage {
 
     /// Sprite for current frame
     pub fn sprite(&self) -> &SpriteData {
-        self.dir_anim_state.current_frame()
-    }
-
-    /// Used to modify frame animation sprites after loading
-    pub fn frames_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut SpriteData> {
-        self.dir_anim_state.frames_mut()
+        self.dir_anim_state.current_frame().unwrap()
     }
 }
 
@@ -430,8 +396,12 @@ impl ActorNodes {
         let mut img = Node::from(img_sprite);
         img.params.pos = Vec2f::new(0.0, -h / 2.0);
 
-        let img = layer.nodes.attach_child(&base, img);
-        let hp = layer.nodes.attach_child(&base, node::Text::new("").into());
+        let img = layer.nodes.add_as_child(&base, img);
+
+        // TODO: show HP?
+        let hp = layer
+            .nodes
+            .add_as_child(&base, node::Text::new(format!("")).into());
 
         Self { base, img, hp }
     }

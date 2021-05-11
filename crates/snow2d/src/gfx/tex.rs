@@ -16,7 +16,6 @@ use {
 };
 
 use crate::{
-    self as snow2d,
     asset::{self, Asset, AssetItem, AssetLoader},
     gfx::{
         draw::{DrawApiData, OnSpritePush, QuadIter, QuadParamsBuilder, Texture2d},
@@ -160,9 +159,13 @@ pub struct SpriteData {
     pub tex: Asset<Texture2dDrop>,
     /// [x, y, width, height]
     pub uv_rect: [f32; 4],
+    #[serde(default)]
     pub rot: f32,
+    #[serde(default)]
     pub origin: [f32; 2],
+    #[serde(default)]
     pub scales: [f32; 2],
+    #[serde(default)]
     pub color: Color,
 }
 

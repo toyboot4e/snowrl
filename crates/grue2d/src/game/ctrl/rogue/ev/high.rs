@@ -2,23 +2,17 @@
 High level commands
 */
 
-use snow2d::{
-    gfx::geom2d::Vec2f,
-    ui::{
-        anim_builder::AnimGen,
-        node::{self, Node},
-    },
-    utils::{arena::Index, ez, tweak::*},
-};
+use snow2d::utils::arena::Index;
 
 use rlbox::rl::grid2d::*;
 
 use crate::game::{
     ctrl::rogue::{
         anim::{self as rl_anim, *},
+        ev,
         tick::{Event, EventResult, GenAnim},
     },
-    data::{res::UiLayer, world::actor::Actor},
+    data::world::{actor::Actor, World},
     Data,
 };
 
@@ -42,45 +36,14 @@ pub struct Hit {
 impl Event for Hit {
     fn run(&self, _data: &mut Data) -> EventResult {
         EventResult::chain(GiveDamage {
-            actor: self.target,
+            target: self.target,
             amount: 10,
         })
     }
 }
 
 impl GenAnim for Hit {
-    fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
-        let actor = &data.world.entities[self.target];
-
-        let [actors, on_actors] = data.res.ui.layers_mut([UiLayer::Actors, UiLayer::OnActors]);
-        let base_pos = actors.nodes[&actor.nodes.base].params.pos;
-
-        let text = on_actors.nodes.add({
-            let mut text = Node::from(node::Text::new("HIT"));
-            // FIXME: set font texture size and align
-            text.params.pos = base_pos - Vec2f::new(20.0, 20.0);
-            text
-        });
-
-        let mut gen = AnimGen::default();
-        gen.node(&text).dt(ez::EasedDt::linear(1.0));
-        on_actors.anims.insert(gen.alpha([0, 255]));
-
-        let se = data
-            .ice
-            .assets
-                // TODO: set preserved attribute to asstes
-            .load_sync_preserve::<snow2d::audio::src::Wav, _>(crate::paths::sound::se::ATTACK)
-            .unwrap();
-        // TODO: implement AudioExt for Asset<T> where T: AudioExt
-        data.ice.audio.play(&*se.get().unwrap());
-
-        // TODO: wait for reserved duration (swing animation)
-        // Some(Box::new(WaitForUiAnim::new(
-        //     on_actors.anims.insert(gen.alpha([0, 255])),
-        //     UiLayer::OnActors,
-        // )))
-
+    fn gen_anim(&self, _data: &mut Data) -> Option<Box<dyn Anim>> {
         None
     }
 }
@@ -99,12 +62,14 @@ impl Event for JustSwing {
 
 impl GenAnim for JustSwing {
     fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
+        // TODO: volume 4.0
+        ev::play_sound_preserve(crate::paths::sound::se::SWING, data).unwrap();
+
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,
             self.dir
                 .unwrap_or_else(|| data.world.entities[self.actor].dir),
-            // FIXME: magic number
-            tweak!(8.0 / 60.0),
+            SWING_SECS,
         )))
     }
 }
@@ -115,18 +80,31 @@ pub struct MeleeAttack {
     pub dir: Option<Dir8>,
 }
 
-impl Event for MeleeAttack {
-    fn run(&self, data: &mut Data) -> EventResult {
-        let actor = &data.world.entities[self.actor];
-        let actor_dir = self.dir.clone().unwrap_or(actor.dir);
-        let target_pos = actor.pos.offset(actor_dir);
+impl MeleeAttack {
+    fn target_dir(&self, world: &World) -> Dir8 {
+        let actor = &world.entities[self.actor];
+        self.dir.clone().unwrap_or(actor.dir)
+    }
 
-        if let Some((target, _target_actor)) = data
-            .world
+    fn target_pos(&self, world: &World) -> Vec2i {
+        let actor = &world.entities[self.actor];
+        actor.pos.offset(self.target_dir(world))
+    }
+
+    fn pull_target(&self, world: &World) -> Option<Index<Actor>> {
+        let target_pos = self.target_pos(world);
+
+        world
             .entities
             .iter()
             .find(|(_i, e)| e.pos == target_pos)
-        {
+            .map(|(i, _e)| i)
+    }
+}
+
+impl Event for MeleeAttack {
+    fn run(&self, data: &mut Data) -> EventResult {
+        if let Some(target) = self.pull_target(&data.world) {
             // hit entity
             EventResult::chain(Hit {
                 target,
@@ -147,6 +125,15 @@ impl Event for MeleeAttack {
 
 impl GenAnim for MeleeAttack {
     fn gen_anim(&self, data: &mut Data) -> Option<Box<dyn Anim>> {
+        ev::play_sound_preserve(crate::paths::sound::se::SWING, data).unwrap();
+
+        ev::run_dir_anim(
+            "attack",
+            self.target_pos(&data.world),
+            self.target_dir(&data.world),
+            data,
+        );
+
         Some(Box::new(rl_anim::SwingAnim::new(
             self.actor,
             self.dir

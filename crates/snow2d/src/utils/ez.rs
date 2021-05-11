@@ -12,7 +12,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{self as snow2d, input::Dir8, utils::Inspect};
+use crate::{input::Dir8, utils::Inspect};
 
 /// Linearly interpolatable; can be [`Tweened`]
 pub trait Lerp {

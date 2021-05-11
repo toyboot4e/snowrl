@@ -37,10 +37,7 @@ use downcast_rs::{impl_downcast, Downcast};
 use once_cell::sync::OnceCell;
 use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
 
-use crate::{
-    self as snow2d,
-    utils::{Cheat, Inspect},
-};
+use crate::utils::{Cheat, Inspect};
 
 /// Generational index or identity of assets
 type Gen = u32;
@@ -82,7 +79,7 @@ pub struct StringWithScheme {
     scheme_offset: Option<usize>,
 }
 
-/// Maps [`SchemeString`] to relative path from asset root directory
+/// Maps scheme to relative path from asset root directory
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SchemeHolder {
     schemes: Vec<(String, String)>,
@@ -110,23 +107,23 @@ pub trait AssetLoader: fmt::Debug + Sized + 'static {
     fn load(&mut self, path: &Path) -> Result<Self::Item>;
 }
 
-/// Shared ownership of an [`AssetItem`]
+/// Shared ownership of an asset
 #[derive(Debug)]
 pub struct Asset<T: AssetItem> {
     item: Option<Arc<Mutex<T>>>,
+    preserved: Arc<Mutex<bool>>,
+    // constant data is not put in shared memory:
     path: Rc<PathBuf>,
     identity: Gen,
-    /// If true, the asset won't be freed when there's no owner outside of `AssetCacheT`
-    preserve: bool,
 }
 
 impl<T: AssetItem> Clone for Asset<T> {
     fn clone(&self) -> Self {
         Self {
             item: self.item.as_ref().map(|x| Arc::clone(x)),
+            preserved: Arc::clone(&self.preserved),
             path: Rc::clone(&self.path),
             identity: self.identity,
-            preserve: false,
         }
     }
 }
@@ -143,7 +140,7 @@ impl<T: AssetItem> Asset<T> {
     }
 
     pub fn set_preserved(&mut self, b: bool) {
-        self.preserve = b;
+        *self.preserved.lock().unwrap() = b;
     }
 
     /// Tries to get `&T`, fails if the asset is not loaded or failed to load
@@ -162,7 +159,7 @@ impl<T: AssetItem> Asset<T> {
     ///
     /// Unfortunatelly, the return type is not `Option<&mut T>` and doesn't implement trait for type
     /// `T`. Still, you can use `&mut *asset.get()` to cast it to `&mut T`.
-    pub fn get_mut<'a>(&'a mut self) -> Option<impl DerefMut + Deref<Target = T> + 'a> {
+    pub fn get_mut<'a>(&'a mut self) -> Option<impl DerefMut<Target = T> + 'a> {
         self.item.as_mut()?.lock().ok()
     }
 }
@@ -299,9 +296,9 @@ impl<T: AssetItem> AssetCacheT<T> {
                 let item = self.loader.load(&path)?;
                 Some(Arc::new(Mutex::new(item)))
             },
+            preserved: Arc::new(Mutex::new(false)),
             path: Rc::clone(&path),
             identity: self.gen,
-            preserve: false,
         };
         self.gen += 1;
 
@@ -384,7 +381,7 @@ impl<T: AssetItem> FreeUnused for AssetCacheT<T> {
             if let Some(item) = &entry.asset.item {
                 // if the asset entry is the only owner
                 // and it's not stated to be preserved
-                if Arc::strong_count(item) == 1 && !entry.asset.preserve {
+                if Arc::strong_count(item) == 1 && !*entry.asset.preserved.lock().unwrap() {
                     log::debug!(
                         "free asset at `{}` in slot `{}` of cache for type `{}`",
                         self.entries[i].path.display(),

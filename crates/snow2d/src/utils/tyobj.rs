@@ -20,7 +20,9 @@ use derivative::Derivative;
 use once_cell::sync::OnceCell;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{self as snow2d, asset::AssetKey, utils::Inspect};
+pub use snow2d_derive::TypeObject;
+
+use crate::{asset::AssetKey, utils::Inspect};
 
 /// Marker for data that define "type" of instances (type objects). Type objects are stored in
 /// static storage.
@@ -38,6 +40,7 @@ pub trait TypeObject: std::fmt::Debug + Sized {
 #[derive(Derivative, Inspect)]
 #[derivative(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeObjectId<T: TypeObject> {
+    /// TODO: use `Cow` and add lifetime?
     key: String,
     _marker: PhantomData<fn() -> T>,
 }
@@ -80,6 +83,7 @@ impl<T: TypeObject> serde::ser::Serialize for TypeObjectId<T> {
 }
 
 impl<T: TypeObject> TypeObjectId<T> {
+    /// Creates type object from raw ID
     pub fn from_raw(s: String) -> Self {
         Self {
             key: s,
@@ -91,6 +95,7 @@ impl<T: TypeObject> TypeObjectId<T> {
         &self.key
     }
 
+    /// Tries to retrieve the target type object from global storage
     pub fn try_retrieve(&self) -> Option<Rc<T>>
     where
         T: 'static,
@@ -239,39 +244,49 @@ impl<T: TypeObject> SerdeRepr<T> {
     }
 }
 
-/// Utility for [`SerdeRepr`] <=> Target. Use macro for implementing conversion traits.
-pub trait SerdeViaTypeObject {
+pub use snow2d_derive::SerdeViaTyObj;
+
+/// Internal utility to implement `From` and `Into` between [`SerdeRepr`] and target data type
+pub trait SerdeViaTyObj {
     type TypeObject: TypeObject + 'static;
-    fn from_type_object(obj: &Self::TypeObject) -> Self;
-    fn from_type_object_with_id(
-        obj: &Self::TypeObject,
-        _id: &TypeObjectId<Self::TypeObject>,
-    ) -> Self
+
+    fn _repr_mut(&mut self) -> Option<&mut SerdeRepr<Self::TypeObject>> {
+        None
+    }
+
+    fn from_tyobj(obj: &Self::TypeObject) -> Self;
+
+    fn _from_tyobj_with_id(obj: &Self::TypeObject, id: &TypeObjectId<Self::TypeObject>) -> Self
     where
         Self: Sized,
     {
-        Self::from_type_object(obj)
+        let mut target = Self::from_tyobj(&obj);
+        if let Some(repr) = target._repr_mut() {
+            *repr = SerdeRepr::Reference(id.clone());
+        }
+        target
     }
-    fn into_type_object_repr(target: Self) -> SerdeRepr<Self::TypeObject>;
-    fn from_type_object_repr(repr: SerdeRepr<Self::TypeObject>) -> Self
+
+    /// `Into<SerdeRepr<TargetType>` implementation
+    fn into_tyobj_repr(self) -> Option<SerdeRepr<Self::TypeObject>>
+    where
+        Self: Sized,
+    {
+        None
+    }
+
+    /// `From<SerdeRepr<TargetType>>` implementation
+    fn from_tyobj_repr(repr: SerdeRepr<Self::TypeObject>) -> Self
     where
         Self: Sized,
     {
         match repr {
-            SerdeRepr::Embedded(type_obj) => Self::from_type_object(&type_obj),
+            // no ID
+            SerdeRepr::Embedded(tyobj) => Self::from_tyobj(&tyobj),
+            // some ID
             SerdeRepr::Reference(id) => {
-                Self::from_type_object_with_id(id.try_retrieve().unwrap().as_ref(), &id)
+                Self::_from_tyobj_with_id(id.try_retrieve().unwrap().as_ref(), &id)
             }
         }
     }
 }
-
-// TODO: programming pattern
-// pub trait DefaultFromTyObj {
-//     type TypeObject: TypeObject;
-//     fn default_from_type(ty: &TypeObjectId) -> Self;
-// }
-
-// TODO: watch (static asset?)
-
-pub use snow2d_macros::connect_repr_target;

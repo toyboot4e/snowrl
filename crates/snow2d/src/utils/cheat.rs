@@ -2,7 +2,7 @@
 Cheat the borrow checker using raw pointer
 */
 
-/// Cheat the borrow checker pretending it's ordinary Rust
+/// Cheat the borrow checker pretending it's safe Rust
 pub fn cheat<T>(t: &T) -> Cheat<T> {
     unsafe { Cheat::new(t) }
 }

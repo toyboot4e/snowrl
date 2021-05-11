@@ -47,27 +47,17 @@ pub enum Relation {
 }
 
 /// Type object for [`Actor`]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TypeObject)]
 pub struct ActorType {
     pub img: SerdeRepr<ActorImageType>,
     pub stats: ActorStats,
 }
 
-impl TypeObject for ActorType {}
-
-/// [`Actor`] component
+/// TODO:
 #[derive(Debug, Clone, Inspect)]
 pub struct Interactable {
     //
 }
-
-/// TODO: node-based script implementation and DSL
-#[derive(Debug)]
-pub struct Script {
-    //
-}
-
-impl TypeObject for Script {}
 
 // --------------------------------------------------------------------------------
 // Data-driven content
