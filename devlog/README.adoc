@@ -196,7 +196,7 @@ pub mod consts {
 
 `sokol_app.h` lacks some important functionalities; one of them is resizing windows via code. I'm switching to Rust-SDL2 decoupling platform-dependent code (initialization and screen information).
 
-=== Runtime inspector
+=== Derive macro for runtime inspector
 
 I wrote a derive for ImGUI runtime inspector.
 
@@ -208,6 +208,36 @@ pub MyCoolStruct { fields }
 
 Yay!
 
+=== Type objects
+
+https://gameprogrammingpatterns.com/type-object.html[Type Object] pattern is basically about creating a storage of https://gameprogrammingpatterns.com/flyweight.html[flyweight] objects. `ActorType` defines actor "type" for example:
+
+[source,rust]
+----
+#[derive(Debug, Clone, PartialEq, TypeObject)]
+pub struct ActorType {
+    pub img: TypeObjectId<'static>,
+    pub stats: Stats,
+}
+----
+
+They're deserialized from an external file and stored in a storage (`HashMap<String, ActorType>`):
+
+.`actor_types.ron`
+[source,ron]
+----
+{
+    "ika-chan": ActorType(
+        img: "img:ika-chan",
+        stats: (
+            hp: 200,
+            atk: 50,
+            def: 20,
+        ),
+    ),
+}
+----
+
 === Melee attack
 
 Now entities can attack!
@@ -217,9 +247,9 @@ image::http://i3.ytimg.com/vi/Q4cyFkutghE/maxresdefault.jpg[link=https://www.you
 
 === Hot reloading Rust code
 
-https://docs.rs/libloading/latest/libloading/[libloading] is the crate for reloading Rust code at runtime. Most other crates are wrapper of.
+https://docs.rs/libloading/latest/libloading/[libloading] is the crate for reloading Rust code at runtime. Most other crates are wrappers of it.
 
 `libloading` has some https://github.com/nagisa/rust_libloading/issues/59[issue] for reloading dylib crates on macOS. https://github.com/mitchmindtree/hotlib[hotlib] shows a hack that fixes it, but it didn't look like maintained. So I forked `hotlib` and made https://github.com/toyboot4e/hot_crate[hot_crate] (four months ago).
 
-I moved most of my game code into a `dylib` crate. I took care to not create global variables in C code from the `dylib` crate. Now I'll try if the hot reloading really works.
+I moved most of my game code into a `cdylib` crate (`dylib` might also work). I took care to not create global variables in C code from the `dylib` crate; it surely breaks the app! Now I'll try if the hot reloading really works.
 
