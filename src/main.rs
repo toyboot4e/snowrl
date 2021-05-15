@@ -11,7 +11,10 @@ SnowRL
   * list of tyobj
 */
 
+use std::time::Duration;
+
 use anyhow::{Error, Result};
+use sdl2::event::Event;
 
 use snow2d::{gfx::WindowState, ui::Ui};
 
@@ -29,6 +32,37 @@ use snowrl::{init, prelude::*, states, SnowRl};
 fn main() -> Result<()> {
     env_logger::init();
 
+    let (mut platform, mut app) = self::gen_app()?;
+
+    let mut pump = platform.sdl.event_pump().map_err(Error::msg)?;
+    let mut runner = snow2d::GameRunner::new();
+
+    log::trace!("A");
+
+    'running: loop {
+        for ev in pump.poll_iter() {
+            match ev {
+                Event::Quit { .. } => break 'running,
+                _ => {}
+            }
+
+            runner.event(&ev);
+            app.event(&ev, &mut platform);
+        }
+
+        if runner.update() {
+            app.update(runner.dt(), &mut platform);
+            app.render(runner.dt(), &mut platform);
+        }
+
+        // std::thread::sleep(Duration::from_micros(100));
+        std::thread::sleep(Duration::from_millis(1));
+    }
+
+    Ok(())
+}
+
+fn gen_app() -> Result<(Platform, SnowRl)> {
     let init = grue2d::app::Init {
         title: "SnowRL".to_string(),
         // FIXME: magic value
@@ -38,17 +72,16 @@ fn main() -> Result<()> {
         ..Default::default()
     };
 
-    let platform = init
+    let mut platform = init
         .init(|w| {
             w.position_centered();
             // w.allow_hidhdpi();
         })
         .map_err(Error::msg)?;
 
-    grue2d::app::run(platform, |platform| {
-        let game = self::new_game(&init, platform).unwrap();
-        SnowRl::new(game)
-    })
+    let app = SnowRl::new(self::new_game(&init, &mut platform).unwrap());
+
+    Ok((platform, app))
 }
 
 fn new_game(init: &grue2d::app::Init, platform: &Platform) -> Result<GrueRl> {
