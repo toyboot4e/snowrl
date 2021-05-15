@@ -215,3 +215,11 @@ Now entities can attack!
 .Clock to jump to youtube
 image::http://i3.ytimg.com/vi/Q4cyFkutghE/maxresdefault.jpg[link=https://www.youtube.com/watch?v=Q4cyFkutghE]
 
+=== Hot reloading Rust code
+
+https://docs.rs/libloading/latest/libloading/[libloading] is the crate for reloading Rust code at runtime. Most other crates are wrapper of.
+
+`libloading` has some https://github.com/nagisa/rust_libloading/issues/59[issue] for reloading dylib crates on macOS. https://github.com/mitchmindtree/hotlib[hotlib] shows a hack that fixes it, but it didn't look like maintained. So I forked `hotlib` and made https://github.com/toyboot4e/hot_crate[hot_crate] (four months ago).
+
+I moved most of my game code into a `dylib` crate. I took care to not create global variables in C code from the `dylib` crate. Now I'll try if the hot reloading really works.
+
