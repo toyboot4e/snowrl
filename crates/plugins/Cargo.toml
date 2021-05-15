@@ -1,0 +1,27 @@
+[package]
+name = "plugins"
+version = "0.1.0"
+authors = ["toyboot4e <toyboot4e@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+rokol = { path = "../snow2d/rokol/rokol", features = ["impl-gfx", "glcore33", "sdl2", "fontstash"] }
+snow2d = { path = "../snow2d" }
+rlbox = { path = "../rlbox" }
+grue2d = { path = "../grue2d" }
+
+glam = "0.11.2"
+tiled = "0.9.3"
+
+log = "0.4.11"
+env_logger = "0.8.2"
+anyhow = "1.0.37"
+thiserror = "1.0.21"
+
+serde = { version = "1.0.120", features = ["derive"] }
+ron = "0.6.4"
+image = "0.23.13"
+sdl2 = { version = "0.34.3", optional = true }

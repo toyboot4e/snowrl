@@ -1,5 +1,5 @@
 /*!
-SnowRL initialization module
+World/resource initialization
 */
 
 use snow2d::{asset::StaticAssetKey, ui::Ui, utils::tyobj::TypeObjectStorageBuilder, Ice};
@@ -59,13 +59,13 @@ pub fn load_fonts(ice: &mut Ice) -> Fonts {
                 name: "mplus-1p".to_string(),
                 regular: FontDesc {
                     name: "mplus-1p-regular".to_string(),
-                    load: include_bytes!("../assets_embedded/mplus-1p-regular.ttf")
+                    load: include_bytes!("../../../../assets_embedded/mplus-1p-regular.ttf")
                         .as_ref()
                         .into(),
                 },
                 bold: Some(FontDesc {
                     name: "mplus-1p-bold".to_string(),
-                    load: include_bytes!("../assets_embedded/mplus-1p-bold.ttf")
+                    load: include_bytes!("../../../../assets_embedded/mplus-1p-bold.ttf")
                         .as_ref()
                         .into(),
                 }),
