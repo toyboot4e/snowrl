@@ -188,9 +188,11 @@ pub mod consts {
 * https://docs.rs/thunderdome/latest/thunderdome/[thunderdome] for generational arena. I'm using a for that uses typed `Index<T>`.
 * https://github.com/mcarton/rust-derivative[derivative] can handle `#[derive(..)]` with `PhantomData` field: https://github.com/mcarton/rust-derivative/blob/d3ff6f700c69e02e213f26549f38a97c7165c544/tests/derive-ord.rs#L110[derive_ord.rs]
 
-=== `serde` integration
+=== `serde` integration for shared pointers (`Asset<T>`)
 
-* My `Asset<T>` is wrapper of `Arc<Mutex<T>>`
+When serializing/deserializing shared pointers, we have to make sure we don't make duplicate values. But `serde` doesn't let us have custom state variable while deserializing. So we have to use a thread-local variable to have custom `serde` state.
+
+This problem is known as "interning".
 
 === Migrating from `rokol::app` to Rust-SDL2
 
