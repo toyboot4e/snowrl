@@ -2,6 +2,8 @@
 Aggressive imports for SnowRL
 */
 
+pub use anyhow::*;
+
 pub use snow2d::{
     asset::{Asset, AssetCacheAny, AssetCacheT},
     audio,

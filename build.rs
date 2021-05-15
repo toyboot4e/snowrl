@@ -1,8 +1,7 @@
 use std::{
     env,
     fmt::Write as _,
-    fs::{self, File},
-    io::prelude::*,
+    fs,
     path::{Path, PathBuf},
 };
 
@@ -92,6 +91,7 @@ fn main() -> Result<()> {
     let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let asset_root = root.join("assets");
     let dst = root.join("crates/grue2d/src/paths.rs");
+
     // if you prefer to not commit `paths.rs`:
     //    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     //    let dst = out_dir.join("paths.rs");
@@ -112,8 +112,7 @@ fn main() -> Result<()> {
     ap.doc_string("//! Automatically generated with `build.rs`");
     self::rec(&mut ap, &asset_root)?;
 
-    let mut file = File::create(&dst)?;
-    file.write_all(ap.buf.as_bytes())?;
+    fs::write(&dst, ap.buf.as_bytes())?;
 
     Ok(())
 }
