@@ -1,6 +1,12 @@
-//! Procedual macros
+/*!
+Procedual macros
 
+`Inspect` macro does nothing if `dummy` feature is specified.
+*/
+
+#[cfg(not(feature = "dummy"))]
 mod inspect;
+
 mod tyobj;
 mod via_tyobj;
 
@@ -19,6 +25,7 @@ pub fn inspect(input: TokenStream) -> TokenStream {
 
 /// Implements `Inspect` trait
 #[cfg(feature = "dummy")]
+#[proc_macro_derive(Inspect, attributes(inspect))]
 pub fn inspect(input: TokenStream) -> TokenStream {
     TokenStream::new()
 }

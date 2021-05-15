@@ -1,25 +1,19 @@
-//! ImGUI inspector
+/*!
+ImGUI inspector
+
+FIXME: `#[inspect(in_place)]` is not a good idea. need `#[inspect(delegate = "self.field")]`
+*/
 
 mod crate_impls;
 mod std_impls;
 
-use std::ops::DerefMut;
+pub use snow2d_derive::Inspect;
 
 use imgui::{im_str, Ui};
-
-pub use snow2d_derive::Inspect;
 
 /// Derive ImGUI runtime inspector
 pub trait Inspect {
     fn inspect(&mut self, ui: &Ui, label: &str);
-}
-
-// FIXME: `#[inspect(in_place)]` is not a good idea. need `#[inspect(delegate = "self.field")]`
-
-impl<T: Inspect + ?Sized> Inspect for Box<T> {
-    fn inspect(&mut self, ui: &Ui, label: &str) {
-        self.deref_mut().inspect(ui, label);
-    }
 }
 
 pub fn nest(ui: &Ui, label: &str, closure: impl FnOnce()) {

@@ -2,7 +2,7 @@
 `paste::paste!` concats identifiers in declarative macro with `[< .. >]` syntax
 */
 
-use std::{collections::VecDeque, marker::PhantomData, num::NonZeroU32};
+use std::{collections::VecDeque, marker::PhantomData, num::NonZeroU32, ops::DerefMut};
 
 use imgui::{im_str, Ui};
 
@@ -182,5 +182,11 @@ impl Inspect for std::time::Duration {
     fn inspect(&mut self, ui: &Ui, label: &str) {
         let time = self.as_secs_f32();
         ui.label_text(&im_str!("{}", label), &im_str!("{}", time));
+    }
+}
+
+impl<T: Inspect + ?Sized> Inspect for Box<T> {
+    fn inspect(&mut self, ui: &Ui, label: &str) {
+        self.deref_mut().inspect(ui, label);
     }
 }

@@ -11,6 +11,9 @@ pub mod inspect;
 #[cfg(feature = "use-imgui")]
 pub use inspect::Inspect;
 
+#[cfg(feature = "no-imgui")]
+pub use snow2d_derive::Inspect;
+
 pub mod ez;
 pub mod pool;
 
@@ -30,17 +33,19 @@ pub mod arena {
 }
 
 pub mod tweak {
-    //! Re-expoted from [inline_tweak]
-    //!
-    //! Create tweakable literal at runtime on debug build:
-    //!
-    //! ```
-    //! use snow2d::utils::tweak::*;
-    //!
-    //! pub fn volume() -> f32 {
-    //!     tweak!(1.0)
-    //! }
-    //! ```
+    /*!
+    Re-expoted from [inline_tweak]
+
+    Create tweakable literal at runtime on debug build:
+
+    ```
+    use snow2d::utils::tweak::*;
+
+    pub fn volume() -> f32 {
+        tweak!(1.0)
+    }
+    ```
+    */
 
     // `inline_tweak` has to be in scope to use `tweak!`
     pub use inline_tweak::{self, watch, Tweakable};

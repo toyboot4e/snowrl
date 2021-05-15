@@ -3,6 +3,8 @@ UI nodes (renderables)
 
 [`Handle`] of UI nodes are strong references, so a node won't freed until nothing refers to it.
 
+[`Handle`]: crate::utils::pool::Handle
+
 # `Into` impls
 
 `Draw` variants -> `Draw` -> `Node`
