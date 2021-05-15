@@ -1,7 +1,5 @@
 /*!
-
 Turn-based game state
-
 */
 
 pub mod anim;

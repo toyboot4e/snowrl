@@ -254,7 +254,7 @@ mod sdl2_impl {
             crate::run_scheduled_render(Self::DEFAULT_RENDER_SCHEDULE, self);
         }
 
-        pub fn pre_render(&mut self, dt: Duration, platform: &mut Platform) {
+        pub fn pre_render(&mut self, _dt: Duration, platform: &mut Platform) {
             let size = platform.win.size();
 
             self.data.ice.pre_render(snow2d::gfx::WindowState {

@@ -1,5 +1,5 @@
 /*!
-Play
+Play animation
 */
 
 pub mod talk;

@@ -1,3 +1,0 @@
-/*!
-Additional roguelike game events
-*/
