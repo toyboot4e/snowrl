@@ -20,6 +20,7 @@ const REPEAT_FIRST_FRAMES: u64 = 10;
 /// TODO: rm
 const REPEAT_MULTI_FRAMES: u64 = 6;
 
+/// Can be converted to [`Layer`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Inspect)]
 pub enum UiLayer {
     Actors,
@@ -149,6 +150,7 @@ pub struct DirAnimEntry {
     pub state: DirAnimState,
 }
 
+/// Runs directionary animations performed by entities
 #[derive(Debug, Default)]
 pub struct DirAnimRunner {
     entries: Vec<DirAnimEntry>,
@@ -165,7 +167,6 @@ impl DirAnimRunner {
 
         // update
         for e in &mut self.entries {
-            log::trace!("update");
             let node = &mut ui.nodes[&e.node];
             node.draw = e.state.current_frame_with_dir(e.dir).into();
 

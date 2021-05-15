@@ -6,6 +6,7 @@ Based on [`rlbox`] (roguelike toolbox) and [`snow2d`] (2D framework)
 
 #![feature(generators, generator_trait, array_map, drain_filter)]
 
+// TODO: plugin
 pub extern crate hot_crate;
 pub extern crate rlbox;
 
@@ -17,12 +18,10 @@ pub mod paths;
 #[cfg(debug_assertions)]
 pub mod debug;
 
+use anyhow::*;
+use rokol::gfx as rg;
+use snow2d::{gfx::geom2d::Vec2f, ui::CoordSystem};
 use std::time::Duration;
-use {
-    anyhow::*,
-    rokol::gfx as rg,
-    snow2d::{gfx::geom2d::Vec2f, ui::CoordSystem},
-};
 
 use crate::{
     app::Platform,
@@ -238,20 +237,20 @@ mod sdl2_impl {
             self.post_update(dt);
         }
 
-        pub const DEFAULT_RENDER_SCHEDULE: &'static [DrawStage] = &[
-            DrawStage::MapDown,
-            DrawStage::UiLayer(UiLayer::Actors),
-            DrawStage::UiLayer(UiLayer::OnActors),
-            DrawStage::MapUp,
-            DrawStage::Shadow,
-            DrawStage::UiLayer(UiLayer::OnShadow),
-            DrawStage::Snow,
-            DrawStage::UiLayer(UiLayer::Screen),
-        ];
-
         /// Render the game in default order
         pub fn render_default(&mut self) {
-            crate::run_scheduled_render(Self::DEFAULT_RENDER_SCHEDULE, self);
+            pub const DEFAULT_RENDER_SCHEDULE: &'static [DrawStage] = &[
+                DrawStage::MapDown,
+                DrawStage::UiLayer(UiLayer::Actors),
+                DrawStage::UiLayer(UiLayer::OnActors),
+                DrawStage::MapUp,
+                DrawStage::Shadow,
+                DrawStage::UiLayer(UiLayer::OnShadow),
+                DrawStage::Snow,
+                DrawStage::UiLayer(UiLayer::Screen),
+            ];
+
+            crate::run_scheduled_render(DEFAULT_RENDER_SCHEDULE, self);
         }
 
         pub fn pre_render(&mut self, _dt: Duration, platform: &mut Platform) {

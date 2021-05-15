@@ -1,5 +1,5 @@
 /*!
-SnowRL
+Boostrap `SnowRl`
 
 # TODOs
 * remove debug/error log on release build?
@@ -36,8 +36,6 @@ fn main() -> Result<()> {
 
     let mut pump = platform.sdl.event_pump().map_err(Error::msg)?;
     let mut runner = snow2d::GameRunner::new();
-
-    log::trace!("A");
 
     'running: loop {
         for ev in pump.poll_iter() {
