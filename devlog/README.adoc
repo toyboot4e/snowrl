@@ -21,12 +21,9 @@
 
 == Batcher (Dec 17, 2020)
 
-SnowRL (Snow roguelike) is going to be built on top of {rokol}, which is bindings to the {sokol}
-header-only C libraries. I used to use {rust-fna3d} ({fna3d}), but the {learn-gl-sokol} (in Sokol)
-was so good for a beginner.
+SnowRL (Snow roguelike) is going to be built on top of {rokol}, which is bindings to the {sokol} header-only C libraries. I used to use {rust-fna3d} ({fna3d}), but the {learn-gl-sokol} (in Sokol) was so good for a beginner.
 
-This time I made an immediate-mode rendering API: `snow2d::gfx`. It makes heavy use of sprite
-builder:
+This time I made an immediate-mode rendering API: `snow2d::gfx`. It makes heavy use of sprite builder:
 
 [source,rust]
 ----
@@ -36,8 +33,7 @@ screen
     .color(color);
 ----
 
-There's a quad batcher under the hood. I basically ported {zig-gamekit} to Rust (thought it doesn't
-have a builder). {sokol-gl} can also be referred to as an immediate-mode rendering API implementation.
+There's a quad batcher under the hood. I basically ported {zig-gamekit} to Rust (thought it doesn't have a builder). {sokol-gl} can also be referred to as an immediate-mode rendering API implementation.
 
 == FoV rendering (Dec 20, 2020)
 
@@ -49,23 +45,27 @@ Then I applied gaussian blur to it:
 
 image::./img/fov_gauss.png[]
 
-Great! Which would you prefer? I like the latter, but it doesn't look like cell-based FoV. So I
-would make a flag for selecting if we use gaussian blur or not.
+Great! Which would you prefer? I like the latter, but it doesn't look like cell-based FoV. So I would make a flag for selecting if we use gaussian blur or not.
 
 == Turn-based game loop (Dec 27, 2020)
 
-{rust-gen} in Rust is currently unstable and would not be stablized for a while. But I liked its
-simplicity, so I'm using it for my turn-based game loop.
+I'm making a GUI game and I have to run the game loop every frame. But a turn-based game is rather sequential, so "update" model doesn't fit my needs.
 
-Actor actions are immutable objects. They are mapped from one to another and result in primitive
-events to make changes to the game world. Example: `MeleeAttack` → `Hit` →
-`GiveDamage`. `MeleeAttack` is not yet implemenetd, but it would work as this.
+I needed some ideas for making a turn-based GUI game:
 
-I'm also considering adding rules or systems. They can override action event handlings. For example,
-`ZombieSystem` would map `Heal` event to `GiveDamage` event if the target is a zombie.
+. Using coroutine for turn-based game state
++
+Turn-based game state is basically a generator of `Event` s. That's a perfect case for using a coroutine!
++
+{rust-gen} in Rust is currently unstable and would not be stablized for a while. But I liked its simplicity, so I'm using it.
 
-Edit: I read an awesome https://www.boxdragon.se/blog/three-worlds[article]. It says we make
-duplicate game worlds and sync one to another. That's an epic idea.
+. Visualizing events making use of chain of events
++
+Actor actions are immutable `Event` objects. They are mapped from one to another and result in primitive events that make changes to the game world. Example: `MeleeAttack` → `Hit` → `GiveDamage`. We can play animations after each `Event`, because each `Event` tells us enough context to chain another `Event`!
+
+I'm also considering adding rules or systems. They can override action event handlings. For example, `ZombieSystem` would map `Heal` event to `GiveDamage` event if the target is a zombie.
+
+Edit: I read an awesome https://www.boxdragon.se/blog/three-worlds[article]. It suggets making duplicate game world (s) and syncing one to another. That looks like a common successible pattern, and the article even suggests makes use of graph of events for GUI.
 
 == Camera & pixel-perfect shadow (Feb 24, 2021)
 
@@ -131,27 +131,19 @@ pub struct SnowRl {
 }
 ----
 +
-After coming to this structure, I didn't have to struggle with the borrow rules. Maybe it's because
-SnowRl is a simple, turn-based game. Real-time actions games would have other problems, but I guess
-the point is using passive data. I also hear that returning messages to make changes (return value,
-`VecDeque` or `channel`) is also helpful.
+After coming to this structure, I didn't have to struggle with the borrow rules. Maybe it's because SnowRl is a simple, turn-based game. Real-time actions games would have other problems, but I guess the point is using passive data. I also hear that returning messages to make changes (return value, `VecDeque` or `channel`) is also helpful.
 
 . How do you handle variants of entities?
 +
-Maybe I would use `enum`? But making `Player` and `Npc` different types is horrible. I need to
-rethink about it later.
+Maybe I would use `enum`? But making `Player` and `Npc` different types is horrible. I need to rethink about it later.
 +
-Extensibility with non-ECS structure is one of the key points. About handling variants of
-animations, it turned out I only needed limited kind of animations. Also, if I need to add
-parameters to animations, I can extract them to somewhere else and modify `Node`.
+Extensibility with non-ECS structure is one of the key points. About handling variants of animations, it turned out I only needed limited kind of animations. Also, if I need to add parameters to animations, I can extract them to somewhere else and modify `Node`.
 
 . The startup code for your game is messy, right?
 +
-Yes. For example, the https://github.com/lowenware/push-it/blob/main/src/main.rs[main.rs] of Dotrix
-example game is much nicer than mine.
+Yes. For example, the https://github.com/lowenware/push-it/blob/main/src/main.rs[main.rs] of Dotrix example game is much nicer than mine.
 
-I'm temped to try ECS; the open-ended extensibility and the API is nice, but that would be after
-finishing SnowRL.
+I'm temped to try ECS; the open-ended extensibility and the API is nice, but that would be after finishing SnowRL.
 
 == Refactoring (Mar 9, 2021)
 
