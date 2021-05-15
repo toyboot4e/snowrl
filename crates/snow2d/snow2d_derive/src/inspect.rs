@@ -1,4 +1,5 @@
 mod args;
+mod utils;
 
 use {darling::*, proc_macro2::TokenStream as TokenStream2, quote::*, syn::*};
 
@@ -8,7 +9,7 @@ pub fn impl_inspect(ast: syn::DeriveInput) -> TokenStream2 {
 
     match args.data {
         ast::Data::Struct(ref fields) => self::inspect_struct(&args, fields),
-        ast::Data::Enum(ref fields) => self::inspect_unit_enum(&args, fields),
+        ast::Data::Enum(ref fields) => self::inspect_enum(&args, fields),
     }
 }
 
@@ -43,46 +44,6 @@ fn generate_inspect_impl(args: &args::TypeArgs, inspect_body: TokenStream2) -> T
     }
 }
 
-/// `self.field.inspect(ui, label);`
-fn collect_field_inspectors<'a>(
-    field_args: &'a ast::Fields<args::FieldArgs>,
-) -> impl Iterator<Item = TokenStream2> + 'a {
-    field_args
-        .fields
-        .iter()
-        .filter(|field| !field.skip)
-        .enumerate()
-        .map(move |(field_index, field)| {
-            let (field_ident, label) = match field_args.style {
-                ast::Style::Struct => {
-                    let field_ident = field.ident.as_ref().unwrap_or_else(|| unreachable!());
-                    (quote!(#field_ident), format!("{}", field_ident))
-                }
-                ast::Style::Tuple => {
-                    // `self.0`, not `self.0usize` for example
-                    let field_ident = Index::from(field_index);
-                    (quote!(#field_ident), format!("{}", field_index))
-                }
-                ast::Style::Unit => unreachable!(),
-            };
-
-            if let Some(as_) = field.as_.as_ref() {
-                let as_: Type = parse_str(as_).unwrap();
-                quote! {
-                    {
-                        let mut as_: #as_ = self.into();
-                        as_.#field_ident.inspect(ui, #label);
-                        *self = as_.into();
-                    }
-                }
-            } else {
-                quote! {
-                    self.#field_ident.inspect(ui, #label);
-                }
-            }
-        })
-}
-
 fn inspect_struct(args: &args::TypeArgs, fields: &ast::Fields<args::FieldArgs>) -> TokenStream2 {
     let inspect = if let Some(as_) = args.as_.as_ref() {
         let as_: Type = parse_str(as_).unwrap();
@@ -102,14 +63,14 @@ fn inspect_struct(args: &args::TypeArgs, fields: &ast::Fields<args::FieldArgs>) 
             }
         } else if args.in_place {
             // inspect each field
-            let field_inspectors = self::collect_field_inspectors(&fields);
+            let field_inspectors = utils::struct_field_inspectors(&fields);
 
             quote! {
                 #(#field_inspectors)*
             }
         } else {
             // insert tree and inspect each field
-            let field_inspectors = self::collect_field_inspectors(&fields);
+            let field_inspectors = utils::struct_field_inspectors(&fields);
 
             let open = args.open;
             quote! {
@@ -130,17 +91,76 @@ fn inspect_struct(args: &args::TypeArgs, fields: &ast::Fields<args::FieldArgs>) 
     self::generate_inspect_impl(args, inspect)
 }
 
-fn inspect_unit_enum(args: &args::TypeArgs, variants: &[args::VariantArgs]) -> TokenStream2 {
-    for v in variants {
-        assert!(
-            v.fields.is_empty(),
-            "Only plain enum variants are supported by `#[derive(Inspect)]`"
-        );
+fn inspect_enum(args: &args::TypeArgs, variants: &[args::VariantArgs]) -> TokenStream2 {
+    if variants.iter().all(|v| v.fields.is_empty()) {
+        self::inspect_unit_enum(args, variants)
+    } else {
+        self::inspect_enum_variant(args, variants)
     }
+}
 
-    let ty_name = &args.ident;
+/// Inspect the variant's fields
+fn inspect_enum_variant(args: &args::TypeArgs, variants: &[args::VariantArgs]) -> TokenStream2 {
+    let ty_ident = &args.ident;
 
-    // create `[TypeName::A, TypeName::B]
+    let matchers = variants.iter().map(|v| {
+        let v_ident = &v.ident;
+
+        match v.fields.style {
+            ast::Style::Struct => {
+                let f_idents = v
+                    .fields
+                    .iter()
+                    .map(|f| {
+                        let ident = &f.ident;
+                        quote!(#ident)
+                    })
+                    .collect::<Vec<_>>();
+
+                let labels = v
+                    .fields
+                    .iter()
+                    .map(|f| format!("{}", f.ident.as_ref().unwrap()));
+
+                quote! {
+                    #ty_ident::#v_ident { #(#f_idents),* } => {
+                        #(#f_idents.inspect(ui, #labels);)*
+                    }
+                }
+            }
+            ast::Style::Tuple => {
+                let f_idents = (0..v.fields.len())
+                    .map(|i| format_ident!("f{}", i))
+                    .collect::<Vec<_>>();
+                let labels = (0..v.fields.len()).map(|i| format!("{}", i));
+
+                quote! {
+                    #ty_ident::#v_ident(#(#f_idents),*) => {
+                        #(#f_idents.inspect(ui, #labels);)*
+                    }
+                }
+            }
+            ast::Style::Unit => quote! {
+                #ty_ident::#v_ident
+            },
+        }
+    });
+
+    self::generate_inspect_impl(
+        args,
+        quote! {{
+            match self {
+                #(#matchers,)*
+            }
+        }},
+    )
+}
+
+/// Show menu to choose one of the variants
+fn inspect_unit_enum(args: &args::TypeArgs, variants: &[args::VariantArgs]) -> TokenStream2 {
+    let ty_ident = &args.ident;
+
+    // create `[TypeName::A, TypeName::B]`
     let variant_idents = variants
         .iter()
         .map(|v| format_ident!("{}", v.ident))
@@ -152,9 +172,9 @@ fn inspect_unit_enum(args: &args::TypeArgs, variants: &[args::VariantArgs]) -> T
     self::generate_inspect_impl(
         args,
         quote! {{
-            const VARIANTS: &[#ty_name] = &[#(#ty_name::#variant_idents,)*];
+            const VARIANTS: &[#ty_ident] = &[#(#ty_ident::#variant_idents,)*];
 
-            fn item_ix(variant: &#ty_name) -> Option<usize> {
+            fn item_ix(variant: &#ty_ident) -> Option<usize> {
                 VARIANTS
                     .iter()
                     .enumerate()

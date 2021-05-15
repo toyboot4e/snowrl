@@ -1,17 +1,24 @@
 /*!
-Asset cache and reference-counted asset references
+Cached data that can be referred to by path
+
+[`Asset<T>`] is a reference-counted reference to an asset item. It might be rare in rustic context.
+
+[`AssetCacheAny`] contains [`AssetLoader`] s. Each type of asset is stored in [`AssetCacheT`].
 
 # Serde support
 
-1. Asset handles should be serialized without creating duplicates (a.k.a. intering). Set global
-[`AssetCacheAny`] via [`AssetDeState`].
+1. [`AssetDeState`] has thread-local pointer for binding an [`AssetCacheAny`]. Use it to not make
+duplicates whle seriailizing.
 2. Asset data should be serialized as `PathBuf`. TODO: copy-free asset key
 
-# TODOs
+# TODO
 
-* DummyAssetItem and Deref
 * async loading
 * hot reloading (tiled map, actor image, etc.)
+
+# FIXME
+
+* `Deref` is a bad idea. It can't implement traits that the underlying data implements
 */
 
 #![allow(dead_code)]
@@ -96,7 +103,7 @@ impl StringWithScheme {
     }
 }
 
-/// Asset data
+/// Data that can be used as an asset
 pub trait AssetItem: fmt::Debug + Sized + 'static {
     type Loader: AssetLoader<Item = Self>;
 }
@@ -107,7 +114,7 @@ pub trait AssetLoader: fmt::Debug + Sized + 'static {
     fn load(&mut self, path: &Path) -> Result<Self::Item>;
 }
 
-/// Shared ownership of an asset
+/// Shared ownership of an asset item
 #[derive(Debug)]
 pub struct Asset<T: AssetItem> {
     item: Option<Arc<Mutex<T>>>,
@@ -243,13 +250,11 @@ pub struct AssetCacheT<T: AssetItem> {
     gen: Gen,
 }
 
-/// Cache of any [`AssetItem`] type, a bundle of [`AssetCacheT`]s
+/// Collection of [`AssetCacheT`]s, all of the assets
 #[derive(Debug)]
 pub struct AssetCacheAny {
     caches: HashMap<TypeId, Box<dyn FreeUnused>>,
 }
-
-// TODO: interning on serde
 
 impl<T: AssetItem> AssetCacheT<T> {
     pub fn new(loader: T::Loader) -> Self {

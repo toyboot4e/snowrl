@@ -117,7 +117,7 @@ impl Node {
 
 /// One of [`AnimImpl`] impls
 #[enum_dispatch(AnimImpl)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub enum Anim {
     DynAnim,
     // tweens
@@ -129,21 +129,6 @@ pub enum Anim {
     AlphaTween,
     RotTween,
     // ParamsTween,
-}
-
-impl Inspect for Anim {
-    fn inspect(&mut self, ui: &imgui::Ui, label: &str) {
-        match self {
-            Self::DynAnim(x) => x.inspect(ui, label),
-            Self::PosTween(x) => x.inspect(ui, label),
-            Self::XTween(x) => x.inspect(ui, label),
-            Self::YTween(x) => x.inspect(ui, label),
-            Self::SizeTween(x) => x.inspect(ui, label),
-            Self::ColorTween(x) => x.inspect(ui, label),
-            Self::AlphaTween(x) => x.inspect(ui, label),
-            Self::RotTween(x) => x.inspect(ui, label),
-        }
-    }
 }
 
 /// Index of [`Anim`] in expected collection (i.e., generational arena)
@@ -355,7 +340,7 @@ impl Inspect for AnimStorage {
         inspect::nest(ui, label, || {
             inspect::nest(ui, "running", || {
                 for (i, (_index, x)) in self.running.iter_mut().enumerate() {
-                    x.inspect(ui, imgui::im_str!("{}", i).to_str());
+                    Inspect::inspect(x, ui, imgui::im_str!("{}", i).to_str());
                 }
             });
 

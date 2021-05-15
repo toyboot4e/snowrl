@@ -12,6 +12,7 @@ edition = "2018"
 
 [features]
 use-imgui = ["imgui"]
+no-imgui = ["snow2d_derive/dummy"]
 
 [dependencies]
 sdl2 = "0.34.3"
