@@ -64,6 +64,9 @@ events to make changes to the game world. Example: `MeleeAttack` → `Hit` →
 I'm also considering adding rules or systems. They can override action event handlings. For example,
 `ZombieSystem` would map `Heal` event to `GiveDamage` event if the target is a zombie.
 
+Edit: I read an awesome https://www.boxdragon.se/blog/three-worlds[article]. It says we make
+duplicate game worlds and sync one to another. That's an epic idea.
+
 == Camera & pixel-perfect shadow (Feb 24, 2021)
 
 I added a bunch of items and modules.
@@ -193,9 +196,21 @@ pub mod consts {
 
 `sokol_app.h` lacks some important functionalities; one of them is resizing windows via code. I'm switching to Rust-SDL2 decoupling platform-dependent code (initialization and screen information).
 
-// == Title?
+=== Runtime inspector
 
-// === Type objects
+I wrote a derive for ImGUI runtime inspector.
 
-// === Animation API
+[source,rust]
+----
+#[derive(Inspect)]
+pub MyCoolStruct { fields }
+----
+
+Yay!
+
+=== Melee attack
+
+Now entities can attack!
+
+image::http://i3.ytimg.com/vi/Q4cyFkutghE/maxresdefault.jpg[link=https://www.youtube.com/watch?v=Q4cyFkutghE]
 
