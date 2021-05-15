@@ -10,3 +10,6 @@
 [submodule "crates/grue2d/hot_crate"]
 	path = crates/grue2d/hot_crate
 	url = https://github.com/toyboot4e/hot_crate
+[submodule "crates/snow2d"]
+	path = crates/snow2d
+	url = https://github.com/toyboot4e/snow2d
