@@ -74,7 +74,7 @@ impl<'a> TalkViewCommand<'a> {
         world: &World,
     ) -> TalkLayout {
         let pos = Self::base_pos(world, self.to);
-        self.layout_impl(tcfg, fb, fstyle, pos)
+        self.layout_impl(tcfg, fb, fstyle, pos, world)
     }
 
     fn base_pos(world: &World, actor: Index<Actor>) -> Vec2f {
@@ -89,7 +89,9 @@ impl<'a> TalkViewCommand<'a> {
         tcfg: &TalkConfig,
         fb: &FontTexture,
         fstyle: &FontStyle,
+        // center of cell the entity of is talked from
         pos: Vec2f,
+        world: &World,
     ) -> TalkLayout {
         let mut win_rect =
             fb.text_bounds_multiline(&self.txt, pos, fstyle.fontsize, fstyle.ln_space);
@@ -107,10 +109,11 @@ impl<'a> TalkViewCommand<'a> {
         let mut txt_pos = Vec2f::new(win_rect[0], win_rect[1]);
 
         if tcfg.dir == TalkDirection::Down {
-            // inverse horizontally
-            baloon_pos.y += tweak!(59.0);
-            txt_pos.y = pos.y + (pos.y - txt_pos.y);
-            win_rect[1] = pos.y + (pos.y - win_rect[1]);
+            let h = world.map.tiled.tile_height as f32;
+            // only ballon has origin at [0.5, 0.5]
+            baloon_pos.y += h * 1.5;
+            txt_pos.y += win_rect[3] + h * 2.0;
+            win_rect[1] += win_rect[3] + h * 2.0;
         }
 
         // add paddings

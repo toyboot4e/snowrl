@@ -25,7 +25,7 @@ use super::*;
 /// TODO: remove the magic number
 const PLAYER: usize = 0;
 
-const FONT_SIZE: f32 = 12.0;
+const FONT_SIZE: f32 = 22.0;
 
 /// (Primitive) Some action resulted in a non-turn consuming action
 ///
