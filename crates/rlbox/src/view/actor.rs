@@ -380,9 +380,6 @@ pub struct ActorNodes {
     /// Other nodes are stored as children of this node
     pub base: Handle<Node>,
     pub img: Handle<Node>,
-    pub hp: Handle<Node>,
-    // /// Non-ordinary view components
-    // pub extras: Vec<Handle<Node>>,
 }
 
 impl ActorNodes {
@@ -402,11 +399,6 @@ impl ActorNodes {
             n
         });
 
-        // TODO: show HP?
-        let hp = ui
-            .nodes
-            .add_as_child(&base, node::Text::new(format!("")).into());
-
-        Self { base, img, hp }
+        Self { base, img }
     }
 }

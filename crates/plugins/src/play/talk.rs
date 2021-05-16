@@ -92,7 +92,9 @@ impl<'a> TalkViewCommand<'a> {
         pos: Vec2f,
     ) -> TalkLayout {
         let mut win_rect =
-            fb.text_bounds_multiline(&self.txt, pos, fstyle.fontsize, fstyle.line_spacing);
+            fb.text_bounds_multiline(&self.txt, pos, fstyle.fontsize, fstyle.ln_space);
+
+        // FIXME:
 
         // FIXME: the hard-coded y alignment
         let mut baloon_pos = Vec2f::new(pos.x, pos.y + tweak!(11.0));
@@ -191,10 +193,10 @@ impl PlayTalk {
         // FIXME: use custom config
         let fstyle = FontStyle {
             font_ix: unsafe { snow2d::gfx::text::font::FontIx::from_raw(1) },
-            fontsize: 20.0,
-            // FIXME: layout only works with this spacing. why?
-            line_spacing: 4.0,
+            fontsize: 22.0,
+            ln_space: 2.0,
         };
+
         let layout = talk.layout(&talk.cfg, &data.ice.snow.fontbook.tex, &fstyle, &data.world);
         let view = TalkView::new(layout, &mut data.ice.assets);
 
@@ -207,9 +209,12 @@ impl PlayTalk {
                 win
             }),
             txt: ui.nodes.add({
-                let mut txt = Node::from(Text {
-                    txt: talk.txt.into_owned(),
-                });
+                let mut txt = {
+                    let mut txt = Text::builder(talk.txt.into_owned(), &data.ice.snow.fontbook.tex);
+                    txt.fontsize(fstyle.fontsize).ln_space(fstyle.ln_space);
+                    txt.build()
+                };
+
                 txt.layer = UiLayer::OnShadow.to_layer();
                 txt.params.pos = view.layout.txt.into();
                 txt

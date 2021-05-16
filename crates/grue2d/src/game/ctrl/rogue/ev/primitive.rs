@@ -25,6 +25,8 @@ use super::*;
 /// TODO: remove the magic number
 const PLAYER: usize = 0;
 
+const FONT_SIZE: f32 = 12.0;
+
 /// (Primitive) Some action resulted in a non-turn consuming action
 ///
 /// Player should take another turn on this event.
@@ -154,8 +156,13 @@ impl GenAnim for GiveDamage {
         let base_pos = ui.nodes[&actor.nodes.base].params.pos;
 
         let text = ui.nodes.add({
-            let text = format!("{}", self.amount);
-            let mut text = Node::from(node::Text::new(text));
+            let mut text = Node::from({
+                let mut text =
+                    node::Text::builder(format!("{}", self.amount), &data.ice.snow.fontbook.tex);
+                text.fontsize(FONT_SIZE).ln_space(2.0).origin([0.5, 0.5]);
+                text.build()
+            });
+
             text.layer = UiLayer::OnShadow.to_layer();
             // FIXME: set font texture size and align
             text.params.pos = base_pos - Vec2f::new(20.0, 20.0);

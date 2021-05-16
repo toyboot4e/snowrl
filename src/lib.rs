@@ -60,13 +60,8 @@ impl SnowRl {
     }
 
     fn try_reload_plugin(&mut self, platform: &mut Platform) -> bool {
-        let reload = self.plugin_crate.try_reload().unwrap();
-
-        if reload {
-            self.load_plugin(platform);
-        }
-
-        reload
+        // it turned out `sokol` can't be reloaded
+        false
     }
 }
 

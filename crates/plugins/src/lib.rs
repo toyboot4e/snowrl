@@ -40,16 +40,8 @@ impl Plugin for PluginA {
     }
 
     fn on_load(&mut self, grue: &mut GrueRl, _platfrom: &mut Platform) {
-        // restart the game
-        let [w, h] = grue.data.ice.snow.window.size_u32();
-
-        // init `sokol` (we have new global variables)
-        rokol::glue::sdl::ResourceSettings::default().init_gfx();
-
-        let (data, ctrl, fsm) = crate::init::new_game(w, h).unwrap();
-        grue.data = data;
-        grue.ctrl = ctrl;
-        grue.fsm = fsm;
+        // don't reload C dylib
+        return;
     }
 
     fn event(&mut self, grue: &mut GrueRl, ev: &Event, platform: &mut Platform) {
