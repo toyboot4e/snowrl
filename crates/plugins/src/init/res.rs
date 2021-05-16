@@ -2,7 +2,7 @@
 World/resource initialization
 */
 
-use snow2d::{asset::StaticAssetKey, ui::Ui, utils::tyobj::TypeObjectStorageBuilder, Ice};
+use snow2d::{asset::AssetKey, ui::Ui, utils::tyobj::TypeObjectStorageBuilder, Ice};
 
 use rlbox::{
     rl::grid2d::*,
@@ -36,9 +36,9 @@ fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
     unsafe {
         TypeObjectStorageBuilder::begin()
             .unwrap()
-            .register::<ActorImageType, StaticAssetKey>(paths::types::actors::ACTOR_IMAGES)?
-            .register::<ActorType, StaticAssetKey>(paths::types::actors::ACTOR_TYPES)?
-            .register::<DirAnimType, StaticAssetKey>(paths::types::ANIM_TYPES)?;
+            .register::<ActorImageType, &AssetKey<'static>>(paths::types::actors::ACTOR_IMAGES)?
+            .register::<ActorType, &AssetKey<'static>>(paths::types::actors::ACTOR_TYPES)?
+            .register::<DirAnimType, &AssetKey<'static>>(paths::types::ANIM_TYPES)?;
     }
 
     unsafe {
