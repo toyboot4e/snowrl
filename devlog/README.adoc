@@ -167,7 +167,7 @@ I just grouped my passive game `Data`:
 
 I can reduce the nests with aliases: `let Data { mut ctx, mut world, mut res} = data;`.
 
-== A bunch more features (May 16, 2021)
+== A bunch more features (March 2021 ~ May 2021)
 
 === Remarkable crates
 
@@ -248,7 +248,7 @@ pub struct ActorType {
 They're deserialized from an external file and stored in a `HashMap<String, ActorType>`:
 
 .`actor_types.ron`
-[source,json]
+[source,ron]
 ----
 {
     "ika-chan": ActorType(
@@ -269,4 +269,6 @@ https://docs.rs/libloading/latest/libloading/[libloading] is the crate for reloa
 `libloading` has some https://github.com/nagisa/rust_libloading/issues/59[issue] for reloading dylib crates on macOS. https://github.com/mitchmindtree/hotlib[hotlib] shows a hack that fixes it, but it didn't look like maintained. So I forked `hotlib` and made https://github.com/toyboot4e/hot_crate[hot_crate] (four months ago).
 
 I moved most of my game code into a `cdylib` crate (`dylib` might also work). I took care to not create global variables in C code from the `dylib` crate; it surely breaks the app! Now I'll try if the hot reloading really works.
+
+OMG. It turned out global variables in C library (sokol) matter: https://github.com/floooh/sokol/issues/91[issue #91].
 

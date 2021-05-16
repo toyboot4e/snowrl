@@ -22,6 +22,8 @@ use rokol::gfx as rg;
 use snow2d::{gfx::geom2d::Vec2f, ui::CoordSystem};
 use std::time::Duration;
 
+use sdl2::event::Event;
+
 use crate::{
     app::Platform,
     fsm::*,
@@ -39,6 +41,9 @@ pub trait Plugin: std::fmt::Debug {
     /// from dylib crate!
     fn init_game(&mut self) -> Result<(Platform, (Data, Control, Fsm))>;
     fn on_load(&mut self, grue: &mut GrueRl, platform: &mut Platform);
+    fn event(&mut self, grue: &mut GrueRl, ev: &Event, platform: &mut Platform);
+    fn update(&mut self, grue: &mut GrueRl, dt: Duration, platform: &mut Platform);
+    fn render(&mut self, grue: &mut GrueRl, dt: Duration, platform: &mut Platform);
 }
 
 /// All of the game data: [`Data`], [`Control`], [`Agents`] and [`Fsm`]

@@ -21,7 +21,7 @@ env_logger = "0.8.2"
 anyhow = "1.0.37"
 thiserror = "1.0.21"
 
-serde = { version = "1.0.120", features = ["derive"] }
-ron = "0.6.4"
 image = "0.23.13"
-sdl2 = { version = "0.34.3", optional = true }
+ron = "0.6.4"
+serde = { version = "1.0.120", features = ["derive"] }
+sdl2 = { version = "0.34.5", optional = true }

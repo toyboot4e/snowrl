@@ -30,7 +30,7 @@ rokol = { path = "crates/snow2d/rokol/rokol", features = ["impl-gfx", "glcore33"
 snow2d = { path = "crates/snow2d" }
 rlbox = { path = "crates/rlbox" }
 grue2d = { path = "crates/grue2d" }
-plugins = { path = "crates/plugins" }
+plugins = { path = "crates/plugins", features = ["sdl2"] }
 
 glam = "0.11.2"
 tiled = "0.9.3"
