@@ -74,7 +74,7 @@ impl<'a> TalkViewCommand<'a> {
         world: &World,
     ) -> TalkLayout {
         let pos = Self::base_pos(world, self.to);
-        self.layout_impl(tcfg, fb, fstyle, pos)
+        self.layout_impl(tcfg, fb, fstyle, pos, world)
     }
 
     fn base_pos(world: &World, actor: Index<Actor>) -> Vec2f {
@@ -89,10 +89,14 @@ impl<'a> TalkViewCommand<'a> {
         tcfg: &TalkConfig,
         fb: &FontTexture,
         fstyle: &FontStyle,
+        // center of cell the entity of is talked from
         pos: Vec2f,
+        world: &World,
     ) -> TalkLayout {
         let mut win_rect =
-            fb.text_bounds_multiline(&self.txt, pos, fstyle.fontsize, fstyle.line_spacing);
+            fb.text_bounds_multiline(&self.txt, pos, fstyle.fontsize, fstyle.ln_space);
+
+        // FIXME:
 
         // FIXME: the hard-coded y alignment
         let mut baloon_pos = Vec2f::new(pos.x, pos.y + tweak!(11.0));
@@ -105,10 +109,11 @@ impl<'a> TalkViewCommand<'a> {
         let mut txt_pos = Vec2f::new(win_rect[0], win_rect[1]);
 
         if tcfg.dir == TalkDirection::Down {
-            // inverse horizontally
-            baloon_pos.y += tweak!(59.0);
-            txt_pos.y = pos.y + (pos.y - txt_pos.y);
-            win_rect[1] = pos.y + (pos.y - win_rect[1]);
+            let h = world.map.tiled.tile_height as f32;
+            // only ballon has origin at [0.5, 0.5]
+            baloon_pos.y += h * 1.5;
+            txt_pos.y += win_rect[3] + h * 2.0;
+            win_rect[1] += win_rect[3] + h * 2.0;
         }
 
         // add paddings
@@ -191,10 +196,10 @@ impl PlayTalk {
         // FIXME: use custom config
         let fstyle = FontStyle {
             font_ix: unsafe { snow2d::gfx::text::font::FontIx::from_raw(1) },
-            fontsize: 20.0,
-            // FIXME: layout only works with this spacing. why?
-            line_spacing: 4.0,
+            fontsize: 22.0,
+            ln_space: 2.0,
         };
+
         let layout = talk.layout(&talk.cfg, &data.ice.snow.fontbook.tex, &fstyle, &data.world);
         let view = TalkView::new(layout, &mut data.ice.assets);
 
@@ -207,9 +212,12 @@ impl PlayTalk {
                 win
             }),
             txt: ui.nodes.add({
-                let mut txt = Node::from(Text {
-                    txt: talk.txt.into_owned(),
-                });
+                let mut txt = {
+                    let mut txt = Text::builder(talk.txt.into_owned(), &data.ice.snow.fontbook.tex);
+                    txt.fontsize(fstyle.fontsize).ln_space(fstyle.ln_space);
+                    txt.build()
+                };
+
                 txt.layer = UiLayer::OnShadow.to_layer();
                 txt.params.pos = view.layout.txt.into();
                 txt

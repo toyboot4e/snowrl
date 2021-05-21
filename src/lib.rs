@@ -60,13 +60,8 @@ impl SnowRl {
     }
 
     fn try_reload_plugin(&mut self, platform: &mut Platform) -> bool {
-        let reload = self.plugin_crate.try_reload().unwrap();
-
-        if reload {
-            self.load_plugin(platform);
-        }
-
-        reload
+        // it turned out `sokol` can't be reloaded
+        false
     }
 }
 
@@ -74,29 +69,21 @@ impl SnowRl {
 mod impl_ {
     use super::*;
 
-    use rokol::gfx as rg;
     use sdl2::event::Event;
     use std::time::Duration;
 
     impl SnowRl {
         pub fn event(&mut self, ev: &Event, platform: &mut Platform) {
-            self.grue.event(ev, platform);
+            self.plugin.event(&mut self.grue, ev, platform);
         }
 
         pub fn update(&mut self, dt: Duration, platform: &mut Platform) {
             self.try_reload_plugin(platform);
-
-            self.grue.update(dt, platform);
+            self.plugin.update(&mut self.grue, dt, platform);
         }
 
         pub fn render(&mut self, dt: Duration, platform: &mut Platform) {
-            self.grue.pre_render(dt, platform);
-            self.grue.render_default();
-            self.grue.post_render(dt, platform);
-            self.grue.on_end_frame();
-
-            rg::commit();
-            platform.swap_window();
+            self.plugin.render(&mut self.grue, dt, platform);
         }
     }
 }

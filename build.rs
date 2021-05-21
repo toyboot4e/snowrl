@@ -13,7 +13,7 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 #[derive(Debug)]
 struct AssetPrint {
     pub asset_root: PathBuf,
-    pub use_strings: Vec<String>,
+    pub headers: Vec<String>,
     pub buf: String,
     pub indent: usize,
 }
@@ -33,13 +33,13 @@ impl AssetPrint {
     pub fn doc_string(&mut self, s: &str) {
         writeln!(&mut self.buf, "{}", s).unwrap();
         writeln!(&mut self.buf, "").unwrap();
-        self.use_strings();
+        self.headers();
     }
 
-    fn use_strings(&mut self) {
-        for i in 0..self.use_strings.len() {
+    fn headers(&mut self) {
+        for i in 0..self.headers.len() {
             self.indent();
-            writeln!(&mut self.buf, "{}", self.use_strings[i]).unwrap();
+            writeln!(&mut self.buf, "{}", self.headers[i]).unwrap();
         }
     }
 
@@ -58,7 +58,7 @@ impl AssetPrint {
 
         writeln!(
             &mut self.buf,
-            r#"pub static {}: StaticAssetKey = StaticAssetKey("{}");"#,
+            r#"pub static {}: &'static AssetKey<'static> = &AssetKey::new_const(Cow::Borrowed(as_path("{}")));"#,
             name,
             rel_path.display()
         )
@@ -75,7 +75,7 @@ impl AssetPrint {
         writeln!(&mut self.buf, "pub mod {} {{", name,).unwrap();
         self.indent += 1;
 
-        self.use_strings();
+        self.headers();
     }
 
     pub fn pop_dir(&mut self) {
@@ -98,13 +98,19 @@ fn main() -> Result<()> {
     // and do this in your source file:
     //     include!(concat!(env!("OUT_DIR"), "/paths.rs"));
 
-    let use_strings = vec![
+    let headers = vec![
         "#![allow(unused)]".to_string(),
-        "use snow2d::asset::StaticAssetKey;".to_string(),
+        "use snow2d::asset::AssetKey;".to_string(),
+        "use std::{borrow::Cow, ffi::OsStr, path::Path};".to_string(),
+        r#"const fn as_path(s:&'static str) -> &'static Path {
+            unsafe { &*(s as *const str as *const OsStr as *const Path) }
+        }"#
+        .to_string(),
     ];
+
     let mut ap = AssetPrint {
         asset_root: asset_root.clone(),
-        use_strings,
+        headers,
         buf: String::with_capacity(1024 * 10),
         indent: 0,
     };

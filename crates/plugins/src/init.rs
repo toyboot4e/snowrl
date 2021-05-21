@@ -45,10 +45,12 @@ pub fn new_game(w: u32, h: u32) -> Result<(Data, Control, Fsm)> {
                 dpi_scale: [2.0, 2.0],
             })
         });
+
         res::init_assets(&mut ice).unwrap();
 
         let mut ui = Ui::new();
         let world = res::init_world([w, h], &mut ice, &mut ui).unwrap();
+
         let fonts = res::load_fonts(&mut ice);
 
         Data {

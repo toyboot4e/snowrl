@@ -12,6 +12,8 @@ pub mod prelude;
 pub mod scenes;
 pub mod states;
 
+use std::time::Duration;
+
 use anyhow::*;
 use grue2d::{
     app::Platform,
@@ -19,6 +21,8 @@ use grue2d::{
     game::{Control, Data},
     GrueRl, Plugin,
 };
+use rokol::gfx as rg;
+use sdl2::event::Event;
 
 #[derive(Debug)]
 pub struct PluginA {}
@@ -33,8 +37,27 @@ impl Plugin for PluginA {
         Ok((platform, (data, ctrl, fsm)))
     }
 
-    fn on_load(&mut self, _grue: &mut GrueRl, _platfrom: &mut Platform) {
-        // do something
+    fn on_load(&mut self, grue: &mut GrueRl, _platfrom: &mut Platform) {
+        // don't reload C dylib
+        return;
+    }
+
+    fn event(&mut self, grue: &mut GrueRl, ev: &Event, platform: &mut Platform) {
+        grue.event(ev, platform);
+    }
+
+    fn update(&mut self, grue: &mut GrueRl, dt: Duration, platform: &mut Platform) {
+        grue.update(dt, platform);
+    }
+
+    fn render(&mut self, grue: &mut GrueRl, dt: Duration, platform: &mut Platform) {
+        grue.pre_render(dt, platform);
+        grue.render_default();
+        grue.post_render(dt, platform);
+        grue.on_end_frame();
+
+        rg::commit();
+        platform.swap_window();
     }
 }
 
