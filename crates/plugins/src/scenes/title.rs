@@ -7,7 +7,7 @@ use snow2d::{
     ui::{
         anim::AnimImpl,
         anim_builder::{AnimGen, AnimInsertLog},
-        node::Draw,
+        node::Surface,
         Anim, AnimStorage, Node, Ui,
     },
 };
@@ -109,7 +109,7 @@ pub struct TitleNodes {
 impl TitleNodes {
     pub fn new(cfg: &ColorConfig, nodes: &mut Pool<Node>, assets: &TitleAssets) -> Self {
         let logo = nodes.add({
-            let mut n = Node::from(Draw::Sprite(assets.logo.clone()));
+            let mut n = Node::from(Surface::Sprite(assets.logo.clone()));
             n.layer = UiLayer::Screen.to_layer();
             n
         });
@@ -118,36 +118,36 @@ impl TitleNodes {
         let choices = [
             [
                 nodes.add({
-                    let mut n = Node::from(Draw::Sprite(assets.choices[0].clone()));
+                    let mut n = Node::from(Surface::Sprite(assets.choices[0].clone()));
                     n.layer = UiLayer::Screen.to_layer();
                     n
                 }),
                 nodes.add({
-                    let mut n = Node::from(Draw::Sprite(assets.choices[0].clone()));
-                    n.layer = UiLayer::Screen.to_layer();
-                    n
-                }),
-            ],
-            [
-                nodes.add({
-                    let mut n = Node::from(Draw::Sprite(assets.choices[1].clone()));
-                    n.layer = UiLayer::Screen.to_layer();
-                    n
-                }),
-                nodes.add({
-                    let mut n = Node::from(Draw::Sprite(assets.choices[1].clone()));
+                    let mut n = Node::from(Surface::Sprite(assets.choices[0].clone()));
                     n.layer = UiLayer::Screen.to_layer();
                     n
                 }),
             ],
             [
                 nodes.add({
-                    let mut n = Node::from(Draw::Sprite(assets.choices[2].clone()));
+                    let mut n = Node::from(Surface::Sprite(assets.choices[1].clone()));
                     n.layer = UiLayer::Screen.to_layer();
                     n
                 }),
                 nodes.add({
-                    let mut n = Node::from(Draw::Sprite(assets.choices[2].clone()));
+                    let mut n = Node::from(Surface::Sprite(assets.choices[1].clone()));
+                    n.layer = UiLayer::Screen.to_layer();
+                    n
+                }),
+            ],
+            [
+                nodes.add({
+                    let mut n = Node::from(Surface::Sprite(assets.choices[2].clone()));
+                    n.layer = UiLayer::Screen.to_layer();
+                    n
+                }),
+                nodes.add({
+                    let mut n = Node::from(Surface::Sprite(assets.choices[2].clone()));
                     n.layer = UiLayer::Screen.to_layer();
                     n
                 }),

@@ -1,5 +1,5 @@
 /*!
-View data
+Span of the simple markup text
 */
 
 use snow2d::gfx::tex::SpriteData;
