@@ -2,10 +2,15 @@
 Span of the simple markup text
 */
 
-use snow2d::gfx::tex::SpriteData;
 use thiserror::Error;
 
 use crate::markup::token::*;
+
+pub fn to_spans<'a>(src: &'a str) -> Result<(Vec<Token<'a>>, SpanLines<'a>), ParseError> {
+    let tks = Tokenizer::tokenize(src)?;
+    let nodes = SpanLines::from_tokens(&tks)?;
+    Ok((tks, nodes))
+}
 
 /// TODO: report error location
 #[derive(Debug, Clone, Error)]
@@ -16,18 +21,44 @@ pub enum ParseError {
     TokenizeError(#[from] TokenizeError),
 }
 
-/// View representation of a rather rich text
 #[derive(Debug, Clone)]
-pub struct TextView<'a> {
-    nodes: Vec<Span<'a>>,
+pub struct LineSpan {
+    pub lo: usize,
+    pub hi: usize,
 }
 
-impl<'a> TextView<'a> {
+/// Spans of a rather rich-text
+#[derive(Debug, Clone)]
+pub struct SpanLines<'a> {
+    spans: Vec<Span<'a>>,
+    lines: Vec<LineSpan>,
+}
+
+impl<'a> SpanLines<'a> {
+    pub fn lines(&self) -> Vec<&[Span<'a>]> {
+        let mut lines = Vec::with_capacity(1 + self.spans.len() / 4);
+
+        for line in &self.lines {
+            lines.push(&self.spans[line.lo..line.hi]);
+        }
+
+        lines
+    }
+
+    pub fn line_spans(&self) -> &[LineSpan] {
+        &self.lines
+    }
+
     pub fn from_tokens(tks: &[Token<'a>]) -> Result<Self, ParseError> {
-        let mut nodes = Vec::with_capacity(tks.len());
+        let mut spans = Vec::with_capacity(tks.len());
+        let mut nls = Vec::with_capacity(4);
 
         for tk in tks {
             let node = match tk {
+                Token::Newline => {
+                    nls.push(spans.len());
+                    continue;
+                }
                 Token::Text(text) => Span::Text(TextSpan {
                     slice: text.slice,
                     font_face: FontFace::default(),
@@ -59,29 +90,56 @@ impl<'a> TextView<'a> {
                 }
             };
 
-            nodes.push(node);
+            spans.push(node);
         }
 
-        Ok(Self { nodes })
+        let lines = if let Some(first) = nls.first() {
+            let mut lines = Vec::new();
+
+            lines.push(LineSpan { lo: 0, hi: *first });
+
+            for i in 0..(nls.len() - 1) {
+                lines.push(LineSpan {
+                    lo: nls[i],
+                    hi: nls[i + 1],
+                });
+            }
+
+            if let Some(last) = nls.last() {
+                lines.push(LineSpan {
+                    lo: last.clone(),
+                    hi: spans.len(),
+                });
+            }
+
+            lines
+        } else {
+            vec![LineSpan {
+                lo: 0,
+                hi: tks.len(),
+            }]
+        };
+
+        Ok(Self { spans, lines })
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum Span<'a> {
     Text(TextSpan<'a>),
-    Image(ImageSpan),
+    Image(ImageSpan<'a>),
 }
 
 #[derive(Debug, Clone)]
 pub struct TextSpan<'a> {
-    slice: &'a str,
-    font_face: FontFace,
-    word_kind: Option<WordKind>,
+    pub slice: &'a str,
+    pub font_face: FontFace,
+    pub word_kind: Option<WordKind>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ImageSpan {
-    img: SpriteData,
+pub struct ImageSpan<'a> {
+    pub data: &'a str,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

@@ -392,7 +392,7 @@ impl ActorNodes {
 
         let h = img_sprite.sub_tex_size_unscaled()[1];
 
-        let img = ui.nodes.add_as_child(&base, {
+        let img = ui.nodes.add_child(&base, {
             let mut n = Node::from(img_sprite);
             n.layer = layer;
             n.params.pos = Vec2f::new(0.0, -h / 2.0);

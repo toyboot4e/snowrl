@@ -151,7 +151,7 @@ impl WorldRenderer {
             let img_node = &mut ui.nodes[&actor.nodes.img];
             img_node.z_order = entry_ix as f32 / n_entries;
             // NOTE: here we're animationg the actor image
-            img_node.draw = actor.view.sprite().into();
+            img_node.surface = actor.view.sprite().into();
             img_node.params.color = Color::WHITE.with_alpha(alpha);
         }
     }

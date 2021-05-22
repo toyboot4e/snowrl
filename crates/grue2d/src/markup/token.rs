@@ -26,6 +26,8 @@ pub enum Token<'a> {
     Macro(MacroToken<'a>),
     /// Ordinary text
     Text(TextToken<'a>),
+    /// Newline character
+    Newline,
 }
 
 /// `:marco[text]`
@@ -82,11 +84,21 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn tokenize_impl(&mut self) -> Result<(), TokenizeError> {
+        // `hi` refers to the next, peeked character (if it's ASCII)
         while self.sp.hi < self.src.len() {
+            if self.src[self.sp.hi] == b'\n' {
+                self.consume_span();
+                self.tks.push(Token::Newline);
+                self.sp.hi += 1;
+                self.sp.lo = self.sp.hi;
+                continue;
+            }
+
             if self.src[self.sp.hi] == b':' {
                 let colon = self.sp.hi;
 
                 if colon == 0 || colon != 0 && self.src[colon - 1] == b' ' {
+                    // consume the characters before the colon (`:`)
                     self.consume_span();
 
                     // word starting with `:` is always a macro

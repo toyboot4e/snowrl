@@ -7,7 +7,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use snow2d::{
-    gfx::text::FontSetHandle,
+    gfx::text::FontFamilyHandle,
     input::{vi::*, Dir8, Input, Key},
     ui::{CoordSystem, Layer, Node, Ui},
     utils::{arena::Index, pool::Handle, Inspect},
@@ -52,6 +52,8 @@ impl UiLayer {
     }
 
     /// Returns inclusive range of z orders of nodes to draw
+    ///
+    /// `z_order` of nodes should be in range from `0.0` to `1.0`.
     pub fn to_draw_range(&self) -> std::ops::RangeInclusive<f32> {
         let low = self.to_layer().z_order;
         let hi = low + 0.1;
@@ -62,7 +64,7 @@ impl UiLayer {
 /// SnowRL font collection
 #[derive(Debug)]
 pub struct Fonts {
-    pub default: Index<FontSetHandle>,
+    pub default: Index<FontFamilyHandle>,
 }
 
 /// SnowRL virtual input collection
@@ -168,7 +170,7 @@ impl DirAnimRunner {
         // update
         for e in &mut self.entries {
             let node = &mut ui.nodes[&e.node];
-            node.draw = e.state.current_frame_with_dir(e.dir).into();
+            node.surface = e.state.current_frame_with_dir(e.dir).into();
 
             // NOTE: we don't tick in the first frame
             e.state.tick(dt);

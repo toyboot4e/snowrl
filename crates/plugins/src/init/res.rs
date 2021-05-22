@@ -55,7 +55,8 @@ pub fn load_fonts(ice: &mut Ice) -> Fonts {
     Fonts {
         default: {
             use snow2d::gfx::text::font::*;
-            let family_desc = FontSetDesc {
+
+            let family_desc = FontFamilyDesc {
                 name: "mplus-1p".to_string(),
                 regular: FontDesc {
                     name: "mplus-1p-regular".to_string(),
@@ -71,6 +72,7 @@ pub fn load_fonts(ice: &mut Ice) -> Fonts {
                 }),
                 italic: None,
             };
+
             ice.snow.fontbook.load_family(&family_desc).unwrap()
         },
     }
