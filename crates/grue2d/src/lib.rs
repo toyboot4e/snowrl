@@ -18,6 +18,7 @@ pub extern crate rlbox;
 pub mod app;
 pub mod fsm;
 pub mod game;
+pub mod markup;
 pub mod paths;
 
 #[cfg(debug_assertions)]

@@ -16,6 +16,7 @@ use std::time::Duration;
 use anyhow::{Error, Result};
 use sdl2::event::Event;
 
+/// Boilerplate to run a game with `snow2d`
 fn main() -> Result<()> {
     env_logger::init();
 
@@ -24,6 +25,7 @@ fn main() -> Result<()> {
     let mut pump = platform.sdl.event_pump().map_err(Error::msg)?;
     let mut runner = snow2d::GameRunner::new();
 
+    // TODO: fix your timestep
     'running: loop {
         for ev in pump.poll_iter() {
             match ev {
@@ -40,7 +42,7 @@ fn main() -> Result<()> {
             app.render(runner.dt(), &mut platform);
         }
 
-        std::thread::sleep(Duration::from_micros(100));
+        std::thread::sleep(Duration::from_micros(1000));
     }
 
     Ok(())

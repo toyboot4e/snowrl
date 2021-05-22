@@ -385,7 +385,7 @@ pub struct ActorNodes {
 impl ActorNodes {
     pub fn new(ui: &mut Ui, layer: Layer, img_sprite: &SpriteData) -> Self {
         let base = ui.nodes.add({
-            let mut n = Node::from(node::Draw::None);
+            let mut n = Node::from(node::Surface::None);
             n.layer = layer;
             n
         });

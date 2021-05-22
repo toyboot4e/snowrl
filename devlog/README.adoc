@@ -272,3 +272,28 @@ I moved most of my game code into a `cdylib` crate (`dylib` might also work). I 
 
 OMG. It turned out global variables in C library (sokol) matter: https://github.com/floooh/sokol/issues/91[issue #91].
 
+== Quest map (May 2021 ~)
+
+So, I'm getting closer and closer to writing the game content. Now it's time to try the idea of making an RPG on top of the roguelike game system; I will make a map where we explore to kill a big enemy which is the keeper of the way out.
+
+=== Simple markup language
+
+Navitaional UI is one of the most important point to get started with a new game. At the beginning of SnowRL, I'd like to show how to control the player with keyboard. But then I need the ability to show text and keyboard icons in a same paragraph. Now it's time to implement a simple markup language!
+
+First of all, I parsed simple markup language into my scene graph nodes:
+
+."Markup with :b[bold] text."
+image::img/markup_simple.png[]
+
+Each span of text can be styled with these parameters:
+
+* fontsize
+* font color
+* font face (regular, bold or italic)
+
+> I'm using an alternative to {fontdue} in C, but https://github.com/libgdx/libgdx/wiki/Distance-field-fonts[SDF] fonts would be perfect for game dev.
+>
+> By the way, text might be one of the most difficult thing to deal with.
+
+TODO: keyboard icon handling
+
