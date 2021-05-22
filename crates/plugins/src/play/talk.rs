@@ -9,7 +9,7 @@ use snow2d::{
     gfx::{
         geom2d::*,
         tex::{NineSliceSprite, SpriteData},
-        text::style::FontStyle,
+        text::font::FontIx,
     },
     ui::{anim_builder::AnimGen, node::*, Node},
     utils::{arena::Index, ez, pool::Handle, tweak::*},
@@ -24,6 +24,14 @@ use grue2d::game::{
 };
 
 use crate::utils::{consts, paths};
+
+/// TODO: move it somewhere else
+#[derive(Debug, Clone)]
+pub struct FontStyle {
+    pub font_ix: FontIx,
+    pub fontsize: f32,
+    pub ln_space: f32,
+}
 
 /// Talk view description
 #[derive(Debug)]

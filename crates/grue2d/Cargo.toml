@@ -21,7 +21,7 @@ tiled = "0.9.3"
 log = "0.4.11"
 env_logger = "0.8.2"
 anyhow = "1.0.37"
-thiserror = "1.0.21"
+thiserror = "1.0.24"
 
 auto_ops = "0.1.0"
 bitflags = "1.2.1"

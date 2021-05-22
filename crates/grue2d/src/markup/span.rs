@@ -19,7 +19,7 @@ pub enum ParseError {
 /// View representation of a rather rich text
 #[derive(Debug, Clone)]
 pub struct TextView<'a> {
-    nodes: Vec<Node<'a>>,
+    nodes: Vec<Span<'a>>,
 }
 
 impl<'a> TextView<'a> {
@@ -28,7 +28,7 @@ impl<'a> TextView<'a> {
 
         for tk in tks {
             let node = match tk {
-                Token::Text(text) => Node::Text(TextNode {
+                Token::Text(text) => Span::Text(TextSpan {
                     slice: text.slice,
                     font_face: FontFace::default(),
                     word_kind: None,
@@ -51,7 +51,7 @@ impl<'a> TextView<'a> {
                         return Err(ParseError::UnexpectedMacroTag);
                     }
 
-                    Node::Text(TextNode {
+                    Span::Text(TextSpan {
                         slice: m.content,
                         font_face,
                         word_kind,
@@ -67,20 +67,20 @@ impl<'a> TextView<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub enum Node<'a> {
-    Text(TextNode<'a>),
-    Image(ImageNode),
+pub enum Span<'a> {
+    Text(TextSpan<'a>),
+    Image(ImageSpan),
 }
 
 #[derive(Debug, Clone)]
-pub struct TextNode<'a> {
+pub struct TextSpan<'a> {
     slice: &'a str,
     font_face: FontFace,
     word_kind: Option<WordKind>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ImageNode {
+pub struct ImageSpan {
     img: SpriteData,
 }
 

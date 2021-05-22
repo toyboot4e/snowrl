@@ -16,6 +16,7 @@ use grue2d::{
 
 type Load<'a> = Symbol<'a, unsafe extern "C" fn() -> Box<dyn Plugin>>;
 
+/// Create a window and initialize the game
 pub fn init() -> Result<(Platform, SnowRl)> {
     let plugin_crate = {
         let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
@@ -73,15 +74,18 @@ mod impl_ {
     use std::time::Duration;
 
     impl SnowRl {
+        #[inline(always)]
         pub fn event(&mut self, ev: &Event, platform: &mut Platform) {
             self.plugin.event(&mut self.grue, ev, platform);
         }
 
+        #[inline(always)]
         pub fn update(&mut self, dt: Duration, platform: &mut Platform) {
             self.try_reload_plugin(platform);
             self.plugin.update(&mut self.grue, dt, platform);
         }
 
+        #[inline(always)]
         pub fn render(&mut self, dt: Duration, platform: &mut Platform) {
             self.plugin.render(&mut self.grue, dt, platform);
         }

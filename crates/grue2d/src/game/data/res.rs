@@ -7,7 +7,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use snow2d::{
-    gfx::text::font::FontSetHandle,
+    gfx::text::FontSetHandle,
     input::{vi::*, Dir8, Input, Key},
     ui::{CoordSystem, Layer, Node, Ui},
     utils::{arena::Index, pool::Handle, Inspect},
