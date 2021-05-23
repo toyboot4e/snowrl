@@ -1,28 +1,25 @@
 /*!
+Tokens without any semantic information
+
+Each macro token is given semantic information in later pass.
+
 TODO: support nesting macros
 */
 
 use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct ByteSpan {
-    lo: usize,
-    hi: usize,
+/// `&str` -> `Vec<Token>`
+pub fn tokenize<'a>(src: &'a str) -> Result<Vec<Token<'a>>, TokenizeError> {
+    // create a one-shot toknizer and runs it
+    let mut t = Tokenizer::new(src);
+    t.tokenize_impl()?;
+    Ok(t.into_tokens())
 }
 
-impl ByteSpan {
-    pub fn slice<'a>(&self, src: &'a str) -> Option<&'a str> {
-        if self.lo < self.hi {
-            Some(&src[self.lo..self.hi])
-        } else {
-            None
-        }
-    }
-}
-
+/// `Macro` | `Text`
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token<'a> {
-    /// Example: `:italic[text]`
+    /// Example: `:i\[text\]`
     Macro(MacroToken<'a>),
     /// Ordinary text
     Text(TextToken<'a>),
@@ -54,8 +51,26 @@ pub enum TokenizeError {
     UnexpectdOrderOfMacroBrackets,
 }
 
+/// Internal utilty for the tokenizer
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ByteSpan {
+    lo: usize,
+    hi: usize,
+}
+
+impl ByteSpan {
+    pub fn slice<'a>(&self, src: &'a str) -> Option<&'a str> {
+        if self.lo < self.hi {
+            Some(&src[self.lo..self.hi])
+        } else {
+            None
+        }
+    }
+}
+
+/// Internal implementation of the [`tokenize`] method
 #[derive(Debug, Clone)]
-pub struct Tokenizer<'a> {
+struct Tokenizer<'a> {
     /// UTF-8 string slice referenced as bytes
     src: &'a [u8],
     sp: ByteSpan,
@@ -63,13 +78,6 @@ pub struct Tokenizer<'a> {
 }
 
 impl<'a> Tokenizer<'a> {
-    /// Creates a one-shot toknizer and runs it
-    pub fn tokenize(src: &'a str) -> Result<Vec<Token<'a>>, TokenizeError> {
-        let mut me = Self::new(src);
-        me.tokenize_impl()?;
-        Ok(me.into_tokens())
-    }
-
     /// Returns multi-shot tokenizer
     fn new(src: &'a str) -> Self {
         Self {

@@ -1,7 +1,17 @@
 /*!
-Simple markup language
+Simple markup language integration
 
-Markup text → tokens → rich spans → view nodes → UI nodes in `snow2d`
+Use [`Renderer`] to create UI nodes from the annonymous markup language.
+
+# Conversion steps
+
+Markup text → [`token`] s → [`span`] s → [`view`] nodes → UI nodes in `snow2d`
+
+# Modules
+
+* [`token`] contains grammer.
+* [`span`] contains semantics.
+* [`view`] contains layout logic.
 */
 
 pub mod span;
@@ -19,6 +29,7 @@ use self::{
     view::NodeLines,
 };
 
+/// Configuration to render markup text into UI nodes
 #[derive(Debug)]
 pub struct RenderConfig {
     /// Default font family
@@ -29,15 +40,25 @@ pub struct RenderConfig {
     pub nl_space: f32,
 }
 
-/// List of [`Node`](view::Node) s
-#[derive(Debug)]
-pub struct Text<'a> {
-    nodes: NodeLines<'a>,
-    // lifetime
-    spans: SpanLines<'a>,
-    tks: Vec<Token<'a>>,
+/// Binding of context to [`run`](Self::run) the rendering method
+pub struct Renderer<'a, 'b, 'c, 'd> {
+    /// Fonts and font texture
+    pub fb: &'a mut FontBook,
+    /// The rendering configuration
+    pub cfg: &'b RenderConfig,
+    /// Where we render UI nodes
+    pub pool: &'c mut snow2d::ui::NodePool,
+    /// Node configuration
+    pub default_node: &'d snow2d::ui::Node,
 }
 
+impl<'a, 'b, 'c, 'd> Renderer<'a, 'b, 'c, 'd> {
+    pub fn run(self, src: &str) -> Result<TextHandle, ParseError> {
+        self::render(src, self.fb, self.cfg, self.pool, self.default_node)
+    }
+}
+
+/// Handle / lifetime of UI nodes created from markup text
 #[derive(Debug)]
 pub struct TextHandle {
     root: snow2d::ui::NodeHandle,
@@ -45,8 +66,8 @@ pub struct TextHandle {
     children: Vec<snow2d::ui::NodeHandle>,
 }
 
-/// Renders text into `snow2d` ui node
-pub fn render<'a>(
+/// Parses markup text and renders it into UI nodes
+fn render<'a>(
     src: &'a str,
     fb: &mut FontBook,
     cfg: &RenderConfig,
@@ -57,19 +78,25 @@ pub fn render<'a>(
     Ok(self::render_text(&text, fb, cfg, pool, default_node))
 }
 
+#[derive(Debug)]
+struct Text<'a> {
+    nodes: NodeLines<'a>,
+    // lifetime
+    spans: SpanLines<'a>,
+    tks: Vec<Token<'a>>,
+}
+
 /// Parses text into the rather-rich markup format
-pub fn parse<'a>(
-    src: &'a str,
-    fb: &mut FontBook,
-    cfg: &RenderConfig,
-) -> Result<Text<'a>, ParseError> {
-    let (tks, spans) = span::to_spans(src)?;
+fn parse<'a>(src: &'a str, fb: &mut FontBook, cfg: &RenderConfig) -> Result<Text<'a>, ParseError> {
+    let tks = token::tokenize(src)?;
+    let spans = span::to_spans(&tks)?;
     let nodes = view::to_nodes(&spans, fb, cfg);
+
     Ok(Text { nodes, tks, spans })
 }
 
 /// Renders parsed text into `snow2d` ui node
-pub fn render_text<'a>(
+fn render_text<'a>(
     text: &Text<'a>,
     fb: &mut FontBook,
     cfg: &RenderConfig,

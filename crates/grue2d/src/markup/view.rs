@@ -1,5 +1,5 @@
 /*!
-Rich text node: rich span + geometry infromation
+Spans with semantic information and geometric information
 */
 
 use snow2d::gfx::{geom2d::Vec2f, text::FontBook};
@@ -9,6 +9,31 @@ use crate::markup::{
     RenderConfig,
 };
 
+/// `SpanLines` -> `NodeLines`
+pub fn to_nodes<'a>(spans: &SpanLines<'a>, fb: &mut FontBook, cfg: &RenderConfig) -> NodeLines<'a> {
+    let mut nodes = vec![];
+
+    for ln in spans.lines() {
+        let mut offset = 0.0;
+
+        for sp in ln {
+            let size = self::measure(sp, fb, cfg);
+
+            nodes.push(Node {
+                sp: sp.clone(),
+                geom: Geom { x: offset, size },
+            });
+
+            offset += size.x;
+        }
+    }
+
+    NodeLines {
+        nodes,
+        // TODO: don't clone
+        lines: spans.line_spans().to_vec(),
+    }
+}
 /// Geometry data of rich text [`Node`]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Geom {
@@ -49,30 +74,5 @@ fn measure(sp: &Span, fb: &FontBook, cfg: &RenderConfig) -> Vec2f {
         Span::Image(_img) => {
             todo!()
         }
-    }
-}
-
-pub fn to_nodes<'a>(spans: &SpanLines<'a>, fb: &mut FontBook, cfg: &RenderConfig) -> NodeLines<'a> {
-    let mut nodes = vec![];
-
-    for ln in spans.lines() {
-        let mut offset = 0.0;
-
-        for sp in ln {
-            let size = self::measure(sp, fb, cfg);
-
-            nodes.push(Node {
-                sp: sp.clone(),
-                geom: Geom { x: offset, size },
-            });
-
-            offset += size.x;
-        }
-    }
-
-    NodeLines {
-        nodes,
-        // TODO: don't clone
-        lines: spans.line_spans().to_vec(),
     }
 }

@@ -1,15 +1,14 @@
 /*!
-Span of the simple markup text
+Span with semantic information as a specific DSL for SnowRL
 */
 
 use thiserror::Error;
 
 use crate::markup::token::*;
 
-pub fn to_spans<'a>(src: &'a str) -> Result<(Vec<Token<'a>>, SpanLines<'a>), ParseError> {
-    let tks = Tokenizer::tokenize(src)?;
-    let nodes = SpanLines::from_tokens(&tks)?;
-    Ok((tks, nodes))
+/// `&Token` -> `SpanLines`
+pub fn to_spans<'a>(tks: &[Token<'a>]) -> Result<SpanLines<'a>, ParseError> {
+    SpanLines::from_tokens(&tks)
 }
 
 /// TODO: report error location
@@ -49,7 +48,7 @@ impl<'a> SpanLines<'a> {
         &self.lines
     }
 
-    pub fn from_tokens(tks: &[Token<'a>]) -> Result<Self, ParseError> {
+    fn from_tokens(tks: &[Token<'a>]) -> Result<Self, ParseError> {
         let mut spans = Vec::with_capacity(tks.len());
         let mut nls = Vec::with_capacity(4);
 
