@@ -74,7 +74,8 @@ fn measure(sp: &Span, fb: &FontBook, cfg: &RenderConfig) -> Vec2f {
         Span::Image(_img) => {
             todo!()
         }
-        // TODO: don't use heuristic. measure size using keyboard icons
-        Span::Kbd(kbd) => Vec2f::new(kbd.len() as f32 * cfg.fontsize, cfg.fontsize),
+        // FIXME:
+        Span::Kbd(kbd) => Vec2f::new(24.0, 24.0),
+        // Span::Kbd(kbd) => Vec2f::new(kbd.len() as f32 * cfg.fontsize, cfg.fontsize),
     }
 }

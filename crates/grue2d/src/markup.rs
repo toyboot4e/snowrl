@@ -62,7 +62,7 @@ impl KbdIcons {
                         rect.x as f32 / tex_size[0],
                         rect.y as f32 / tex_size[1],
                         rect.w as f32 / tex_size[0],
-                        rect.y as f32 / tex_size[1],
+                        rect.h as f32 / tex_size[1],
                     ]
                 };
 
@@ -209,7 +209,12 @@ impl<'a, 'b, 'c, 'd> Renderer<'a, 'b, 'c, 'd> {
 
                             let mut ui_node = self.default_node.clone();
                             ui_node.surface = sprite.into();
+
                             ui_node.params.pos = Vec2f::new(markup_node.geom.x, y);
+                            ui_node.params.size = markup_node.geom.size;
+
+                            // algin vertically
+                            ui_node.params.pos.y -= (markup_node.geom.size.y - cfg.fontsize) / 2.0;
 
                             line.push(ui_node);
                         }
