@@ -5,7 +5,7 @@ Aggressive imports for SnowRL
 pub use anyhow::*;
 
 pub use snow2d::{
-    asset::{Asset, AssetCacheAny, AssetCacheT},
+    asset::{Asset, AssetCache},
     audio,
     gfx::{draw::*, geom2d::*, tex::*, Color, Snow2d},
     input::{Dir8, Key, Sign},

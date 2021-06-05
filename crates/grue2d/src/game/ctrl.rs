@@ -1,5 +1,5 @@
 /*!
-Agents: objects with exclusive states that work on other data
+States to control the GUI roguelike game
 */
 
 pub mod rogue;

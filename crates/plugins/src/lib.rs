@@ -37,8 +37,9 @@ impl Plugin for PluginA {
         Ok((platform, (data, ctrl, fsm)))
     }
 
-    fn on_load(&mut self, grue: &mut GrueRl, _platfrom: &mut Platform) {
-        // don't reload C dylib
+    fn on_load(&mut self, _grue: &mut GrueRl, _platfrom: &mut Platform) {
+        // it turned out don't reload C dylib with global variables that can't be swapped with
+        // previous ones
         return;
     }
 

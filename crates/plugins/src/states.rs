@@ -183,7 +183,7 @@ pub struct PlayScript {
 }
 
 impl PlayScript {
-    pub fn new(cache: &mut AssetCacheAny) -> Self {
+    pub fn new(cache: &mut AssetCache) -> Self {
         Self {
             window: NineSliceSprite {
                 tex: cache.load_sync(paths::img::sourve::A).unwrap(),

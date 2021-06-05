@@ -3,7 +3,7 @@ Hard-coded asset definitions
 */
 
 use snow2d::{
-    asset::{AssetCacheAny, Result},
+    asset::{AssetCache, Result},
     gfx::tex::*,
 };
 
@@ -11,7 +11,7 @@ use crate::utils::paths;
 
 pub trait AssetDef {
     type Target;
-    fn load(assets: &mut AssetCacheAny) -> Result<Self::Target>;
+    fn load(assets: &mut AssetCache) -> Result<Self::Target>;
 }
 
 pub mod title {
@@ -22,7 +22,7 @@ pub mod title {
     impl AssetDef for Choices {
         type Target = [SpriteData; 3];
 
-        fn load(assets: &mut AssetCacheAny) -> Result<Self::Target> {
+        fn load(assets: &mut AssetCache) -> Result<Self::Target> {
             let tex = assets.load_sync(paths::img::title::CHOICES)?;
             let unit = 1.0 / 3.0;
 
@@ -41,7 +41,7 @@ pub mod title {
 
     impl AssetDef for Logo {
         type Target = SpriteData;
-        fn load(assets: &mut AssetCacheAny) -> Result<Self::Target> {
+        fn load(assets: &mut AssetCache) -> Result<Self::Target> {
             Ok({
                 let mut s = SpriteData::from_tex(assets.load_sync(paths::img::title::SNOWRL)?);
                 s.scales = [0.5, 0.5];

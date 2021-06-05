@@ -1,5 +1,5 @@
 /*!
-Game data controled by `fsm`
+Fixed set of components of [`GrueRl`](crate::GrueRl) controlled by [`fsm`](crate::fsm)
 */
 
 pub mod agents;
@@ -17,7 +17,7 @@ use self::{
     data::{res::Resources, world::World},
 };
 
-/// Passive data. They don't work to each other; they just update themselves.
+/// Passive data to be operated on
 #[derive(Debug)]
 pub struct Data {
     /// Generic game context
@@ -26,11 +26,11 @@ pub struct Data {
     pub world: World,
     /// Data specific for SnowRL
     pub res: Resources,
-    // How we run the game
+    /// How we run the game
     pub cfg: GameConfig,
 }
 
-/// States to control the roguelike data
+/// States to control the GUI roguelike game
 #[derive(Debug)]
 pub struct Control {
     /// State for playing roguelike game
@@ -45,7 +45,7 @@ impl Control {
     }
 }
 
-/// Objects with exclusive states that work on other data
+/// Objects with exclusive states that work on / look into other [`Data`]
 #[derive(Debug)]
 pub struct Agents {
     pub world_render: WorldRenderer,

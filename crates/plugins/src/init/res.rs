@@ -21,7 +21,7 @@ use crate::prelude::*;
 
 pub fn init_assets(ice: &mut Ice) -> anyhow::Result<()> {
     ice.assets
-        .add_cache::<Texture2dDrop>(AssetCacheT::new(TextureLoader));
+        .add_cache::<Texture2dDrop>(TextureLoader);
     snow2d::audio::asset::register_asset_loaders(&mut ice.assets, &ice.audio.clone());
     self::load_type_objects(ice)?;
 
@@ -81,7 +81,7 @@ pub fn load_fonts(ice: &mut Ice) -> Fonts {
 pub fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<World> {
     let map = TiledRlMap::new(
         paths::map::tmx::TILES,
-        ice.assets.cache_mut::<Texture2dDrop>().unwrap(),
+        &mut ice.assets,
     )?;
 
     let radius = [consts::FOV_R, 10];

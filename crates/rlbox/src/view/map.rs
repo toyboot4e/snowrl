@@ -3,9 +3,9 @@ Map view
 */
 
 use {
-    anyhow::{Context, Result},
+    anyhow::*,
     snow2d::{
-        asset::{self, Asset, AssetCacheT, AssetKey},
+        asset::{self, Asset, AssetCache, AssetKey},
         gfx::{
             draw::Texture2d,
             tex::{SharedSubTexture2d, Texture2dDrop},
@@ -26,13 +26,10 @@ pub struct TiledRlMap {
 
 /// fs
 impl TiledRlMap {
-    pub fn new(
-        tiled_path: impl AsRef<Path>,
-        cache: &mut AssetCacheT<Texture2dDrop>,
-    ) -> Result<Self> {
+    pub fn new(tiled_path: impl AsRef<Path>, cache: &mut AssetCache) -> Result<Self> {
         let tiled_path = asset::path(tiled_path);
-
         let tiled = tiled::parse_file(&tiled_path)?;
+
         let rlmap = RlMap::from_tiled(&tiled);
         let idmap = GidTextureMap::from_tiled(&tiled_path, &tiled, cache)?;
 
@@ -63,7 +60,7 @@ impl GidTextureMap {
     pub fn from_tiled(
         tmx_file_path: &Path,
         tiled: &tiled::Map,
-        cache: &mut AssetCacheT<Texture2dDrop>,
+        cache: &mut AssetCache,
     ) -> anyhow::Result<Self> {
         let tiled_dir_path = tmx_file_path
             .parent()

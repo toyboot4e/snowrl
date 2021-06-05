@@ -1,5 +1,5 @@
 /*!
-Objects with exclusive data
+Objects with exclusive state
 */
 
 mod renderer;

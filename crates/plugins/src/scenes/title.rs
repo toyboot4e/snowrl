@@ -88,7 +88,7 @@ pub struct TitleAssets {
 
 impl TitleAssets {
     /// TODO: use derive macro to load it
-    pub fn new(assets: &mut AssetCacheAny) -> Self {
+    pub fn new(assets: &mut AssetCache) -> Self {
         Self {
             logo: title::Logo::load(assets).unwrap(),
             choices: title::Choices::load(assets).unwrap(),

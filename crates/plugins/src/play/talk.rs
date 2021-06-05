@@ -5,7 +5,7 @@ Talk
 use {rokol::fons::FontTexture, std::borrow::Cow};
 
 use snow2d::{
-    asset::AssetCacheAny,
+    asset::AssetCache,
     gfx::{
         geom2d::*,
         tex::{NineSliceSprite, SpriteData},
@@ -147,7 +147,7 @@ struct TalkView {
 }
 
 impl TalkView {
-    pub fn new(layout: TalkLayout, assets: &mut AssetCacheAny) -> Self {
+    pub fn new(layout: TalkLayout, assets: &mut AssetCache) -> Self {
         let win_sprite = NineSliceSprite {
             tex: assets.load_sync(paths::img::sourve::A).unwrap(),
         };
