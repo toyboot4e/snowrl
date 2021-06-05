@@ -34,6 +34,7 @@ pub fn to_nodes<'a>(spans: &SpanLines<'a>, fb: &mut FontBook, cfg: &RenderConfig
         lines: spans.line_spans().to_vec(),
     }
 }
+
 /// Geometry data of rich text [`Node`]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Geom {
@@ -66,7 +67,6 @@ pub struct Node<'a> {
 
 fn measure(sp: &Span, fb: &FontBook, cfg: &RenderConfig) -> Vec2f {
     match sp {
-        // FIXME: measure size using user-specified rendering configuration
         Span::Text(text) => {
             fb.tex.set_size(cfg.fontsize);
             Vec2f::from(fb.tex.text_size_oneline(text.slice))
@@ -74,5 +74,7 @@ fn measure(sp: &Span, fb: &FontBook, cfg: &RenderConfig) -> Vec2f {
         Span::Image(_img) => {
             todo!()
         }
+        // TODO: don't use heuristic. measure size using keyboard icons
+        Span::Kbd(kbd) => Vec2f::new(kbd.len() as f32 * cfg.fontsize, cfg.fontsize),
     }
 }

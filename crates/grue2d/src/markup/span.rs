@@ -4,6 +4,8 @@ Span with semantic information as a specific DSL for SnowRL
 
 use thiserror::Error;
 
+use snow2d::input::Key;
+
 use crate::markup::token::*;
 
 /// `&Token` -> `SpanLines`
@@ -18,6 +20,8 @@ pub enum ParseError {
     UnexpectedMacroTag,
     #[error("{0}")]
     TokenizeError(#[from] TokenizeError),
+    #[error("{0}")]
+    InvalidIconArg(String),
 }
 
 #[derive(Debug, Clone)]
@@ -63,30 +67,33 @@ impl<'a> SpanLines<'a> {
                     font_face: FontFace::default(),
                     word_kind: None,
                 }),
-                Token::Macro(m) => {
-                    let word_kind = match m.tag {
-                        x if x == "chara" => Some(WordKind::Chara),
-                        x if x == "place" => Some(WordKind::Place),
-                        x if x == "kwd" => Some(WordKind::Keyword),
-                        _ => None,
-                    };
+                Token::Macro(m) => match m.tag {
+                    "kbd" => Span::Kbd(KbdSpan::parse(m.content)?),
+                    _ => {
+                        let word_kind = match m.tag {
+                            x if x == "chara" => Some(WordKind::Chara),
+                            x if x == "place" => Some(WordKind::Place),
+                            x if x == "kwd" => Some(WordKind::Keyword),
+                            _ => None,
+                        };
 
-                    let font_face = match m.tag {
-                        "i" => FontFace::Italic,
-                        "b" => FontFace::Bold,
-                        _ => FontFace::Regular,
-                    };
+                        let font_face = match m.tag {
+                            "i" => FontFace::Italic,
+                            "b" => FontFace::Bold,
+                            _ => FontFace::Regular,
+                        };
 
-                    if word_kind.is_none() && font_face == FontFace::Regular {
-                        return Err(ParseError::UnexpectedMacroTag);
+                        if word_kind.is_none() && font_face == FontFace::Regular {
+                            return Err(ParseError::UnexpectedMacroTag);
+                        }
+
+                        Span::Text(TextSpan {
+                            slice: m.content,
+                            font_face,
+                            word_kind,
+                        })
                     }
-
-                    Span::Text(TextSpan {
-                        slice: m.content,
-                        font_face,
-                        word_kind,
-                    })
-                }
+                },
             };
 
             spans.push(node);
@@ -127,8 +134,10 @@ impl<'a> SpanLines<'a> {
 pub enum Span<'a> {
     Text(TextSpan<'a>),
     Image(ImageSpan<'a>),
+    Kbd(KbdSpan),
 }
 
+/// Text with decoration
 #[derive(Debug, Clone)]
 pub struct TextSpan<'a> {
     pub slice: &'a str,
@@ -136,9 +145,32 @@ pub struct TextSpan<'a> {
     pub word_kind: Option<WordKind>,
 }
 
+/// Image
 #[derive(Debug, Clone)]
 pub struct ImageSpan<'a> {
     pub data: &'a str,
+    // align, scale, rotation, etc.
+}
+
+/// Keyboard image
+#[derive(Debug, Clone)]
+pub struct KbdSpan {
+    pub keys: Vec<Key>,
+}
+
+impl KbdSpan {
+    pub fn len(&self) -> usize {
+        self.keys.len()
+    }
+
+    pub fn parse(s: &str) -> Result<Self, ParseError> {
+        let keys = s
+            .chars()
+            .map(|c| Key::from_char(c).ok_or_else(|| ParseError::InvalidIconArg(s.to_string())))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Self { keys })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

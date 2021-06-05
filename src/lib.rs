@@ -3,6 +3,7 @@ Integrate plugins
 */
 
 pub extern crate grue2d;
+pub extern crate plugins;
 
 use std::{env, path::PathBuf};
 
@@ -31,7 +32,38 @@ pub fn init() -> Result<(Platform, SnowRl)> {
     let load: Load = unsafe { plugin_crate.get(b"load").unwrap() };
     let plugin = unsafe { load() };
 
-    let (platform, (data, ctrl, fsm)) = plugins::PluginA {}.init_game()?;
+    let (platform, (mut data, ctrl, fsm)) = plugins::PluginA {}.init_game()?;
+
+    let mut node = snow2d::ui::Node::from(snow2d::ui::node::Surface::None);
+    node.z_order = 1.0;
+    node.layer = grue2d::game::data::res::UiLayer::Screen.to_layer();
+
+    let cfg = markup::RenderConfig {
+        font_family: data.ice.snow.fontbook.families[data.res.fonts.default].clone(),
+        fontsize: 22.0,
+        nl_space: 4.0,
+    };
+
+    let text = markup::Renderer {
+        fb: &mut data.ice.snow.fontbook,
+        kbd_icons: &mut data.res.kbd_icons,
+        pool: &mut data.res.ui.nodes,
+        default_node: &node,
+    }
+    .run(
+        &cfg,
+        r#"Markup with :b[bold] text.
+
+Keyboard key :kbd[x]!
+
+    Third line of text!"#,
+    )
+    .unwrap();
+
+    // TODO: positioning
+    // let node = &mut data.res.ui.nodes[&text.root];
+    // node.params.pos = [100.0, 100.0].into();
+
     let grue = GrueRl::new(&platform, data, ctrl, fsm)?;
 
     Ok((
@@ -40,15 +72,19 @@ pub fn init() -> Result<(Platform, SnowRl)> {
             grue,
             plugin,
             plugin_crate,
+            text,
         },
     ))
 }
+
+use grue2d::markup::{self, TextHandle};
 
 /// Run the game with plugins
 pub struct SnowRl {
     pub grue: GrueRl,
     pub plugin: Box<dyn Plugin>,
     pub plugin_crate: HotCrate,
+    pub text: TextHandle,
 }
 
 impl SnowRl {

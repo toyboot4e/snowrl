@@ -52,7 +52,7 @@ impl KbdIcons {
 
         let tex_size = tex.get().unwrap().sub_tex_size_scaled();
 
-        let mut uvs = pack
+        let uvs = pack
             .frames
             .iter()
             .filter_map(|frame| {
@@ -67,18 +67,24 @@ impl KbdIcons {
                 };
 
                 // (.*-)?([a-z]*)\.png
+                //       ^------^ key_name
                 let key_name = {
                     // ignore everything before a last `-`
-                    let hyphen = frame.filename.bytes().rposition(|b| b == b'-').unwrap();
+                    let first = frame
+                        .filename
+                        .bytes()
+                        .rposition(|b| b == b'-')
+                        .map(|x| x + 1)
+                        .unwrap_or(0);
+
                     // ignore everything after `.`
                     let dot = frame.filename.bytes().position(|b| b == b'.').unwrap();
-                    &frame.filename[hyphen..dot]
+                    &frame.filename[first..dot]
                 };
 
                 if key_name.len() == 1 {
                     let c = key_name.chars().next().unwrap();
-                    let key = Key::from_char(c).unwrap();
-                    Some((key, uvs))
+                    Key::from_char(c).map(|key| (key, uvs))
                 } else {
                     // TODO: support enter, F[0-12], space etc.
                     None
@@ -107,42 +113,12 @@ pub struct RenderConfig {
     pub nl_space: f32,
 }
 
-/// Binding of context to [`run`](Self::run) the rendering method
-pub struct Renderer<'a, 'b, 'c, 'd> {
-    /// Fonts and font texture
-    pub fb: &'a mut FontBook,
-    /// The rendering configuration
-    pub cfg: &'b RenderConfig,
-    /// Where we render UI nodes
-    pub pool: &'c mut snow2d::ui::NodePool,
-    /// Node configuration
-    pub default_node: &'d snow2d::ui::Node,
-}
-
-impl<'a, 'b, 'c, 'd> Renderer<'a, 'b, 'c, 'd> {
-    pub fn run(self, src: &str) -> Result<TextHandle, ParseError> {
-        self::render(src, self.fb, self.cfg, self.pool, self.default_node)
-    }
-}
-
 /// Handle / lifetime of UI nodes created from markup text
 #[derive(Debug)]
 pub struct TextHandle {
-    root: snow2d::ui::NodeHandle,
+    pub root: snow2d::ui::NodeHandle,
     /// Lifetime of chid nodes
     children: Vec<snow2d::ui::NodeHandle>,
-}
-
-/// Parses markup text and renders it into UI nodes
-fn render<'a>(
-    src: &'a str,
-    fb: &mut FontBook,
-    cfg: &RenderConfig,
-    pool: &mut snow2d::ui::NodePool,
-    default_node: &snow2d::ui::Node,
-) -> Result<TextHandle, ParseError> {
-    let text = self::parse(src, fb, cfg)?;
-    Ok(self::render_text(&text, fb, cfg, pool, default_node))
 }
 
 #[derive(Debug)]
@@ -153,8 +129,24 @@ struct Text<'a> {
     tks: Vec<Token<'a>>,
 }
 
+/// Renders the simple markup langauge into snow2d UI nodes
+pub struct Renderer<'a, 'b, 'c, 'd> {
+    /// Fonts and font texture
+    pub fb: &'a mut FontBook,
+    /// Where we render UI nodes
+    pub pool: &'b mut snow2d::ui::NodePool,
+    /// Node configuration
+    pub default_node: &'c snow2d::ui::Node,
+    /// Spritesheet of keyboard icons
+    pub kbd_icons: &'d mut KbdIcons,
+}
+
 /// Parses text into the rather-rich markup format
-fn parse<'a>(src: &'a str, fb: &mut FontBook, cfg: &RenderConfig) -> Result<Text<'a>, ParseError> {
+fn parse<'src>(
+    src: &'src str,
+    fb: &mut FontBook,
+    cfg: &RenderConfig,
+) -> Result<Text<'src>, ParseError> {
     let tks = token::tokenize(src)?;
     let spans = span::to_spans(&tks)?;
     let nodes = view::to_nodes(&spans, fb, cfg);
@@ -162,78 +154,97 @@ fn parse<'a>(src: &'a str, fb: &mut FontBook, cfg: &RenderConfig) -> Result<Text
     Ok(Text { nodes, tks, spans })
 }
 
-/// Renders parsed text into `snow2d` ui node
-fn render_text<'a>(
-    text: &Text<'a>,
-    fb: &mut FontBook,
-    cfg: &RenderConfig,
-    pool: &mut snow2d::ui::NodePool,
-    default_node: &snow2d::ui::Node,
-) -> TextHandle {
-    use snow2d::ui::{node, Node};
+impl<'a, 'b, 'c, 'd> Renderer<'a, 'b, 'c, 'd> {
+    pub fn run(&mut self, cfg: &RenderConfig, src: &str) -> Result<TextHandle, ParseError> {
+        let text = self::parse(src, &mut self.fb, &cfg)?;
+        Ok(self.render_text(cfg, &text))
+    }
 
-    let mut y = 0.0;
-    let lines = text.nodes.lines().map(|ln| {
-        let mut line = Vec::new();
+    /// Renders parsed text into `snow2d` ui node
+    fn render_text<'src>(&mut self, cfg: &RenderConfig, text: &Text<'src>) -> TextHandle {
+        use snow2d::ui::node;
 
-        for markup_node in ln {
-            let ui_node = match &markup_node.sp {
-                Span::Text(text) => {
-                    // FIXME: use user style
-                    let mut ui_node = node::Text::builder(text.slice.to_string(), &fb.tex);
+        let mut y = 0.0;
 
-                    ui_node.fontsize(cfg.fontsize);
-                    ui_node.font(match text.font_face {
-                        FontFace::Regular => cfg.font_family.regular(),
-                        FontFace::Italic => cfg.font_family.italic(),
-                        FontFace::Bold => cfg.font_family.bold(),
-                    });
+        // TODO: use `.map` when Rust 2021 edition comes
+        let mut lines = Vec::new();
+        for ln in text.nodes.lines() {
+            let mut line = Vec::new();
 
-                    let mut ui_node = ui_node.build();
-                    ui_node.layer = default_node.layer;
-                    ui_node.z_order = default_node.z_order;
+            for markup_node in ln {
+                match &markup_node.sp {
+                    Span::Text(text) => {
+                        // FIXME: use user style
+                        let mut ui_node = {
+                            let mut ui_node =
+                                node::Text::builder(text.slice.to_string(), &self.fb.tex);
 
-                    // TODO: measure height and align y
-                    ui_node.params.pos = Vec2f::new(markup_node.geom.x, y);
-                    ui_node.params.size = markup_node.geom.size;
+                            ui_node.fontsize(cfg.fontsize);
+                            ui_node.font(match text.font_face {
+                                FontFace::Regular => cfg.font_family.regular(),
+                                FontFace::Italic => cfg.font_family.italic(),
+                                FontFace::Bold => cfg.font_family.bold(),
+                            });
+                            ui_node.build()
+                        };
 
-                    ui_node
+                        ui_node.layer = self.default_node.layer;
+                        ui_node.z_order = self.default_node.z_order;
+
+                        // TODO: measure height and align y
+                        ui_node.params.pos = Vec2f::new(markup_node.geom.x, y);
+                        ui_node.params.size = markup_node.geom.size;
+
+                        line.push(ui_node);
+                    }
+                    Span::Image(_img) => {
+                        todo!()
+                    }
+                    Span::Kbd(kbd) => {
+                        for key in kbd.keys.iter().cloned() {
+                            // TODO: return RenderError
+                            let sprite = self.kbd_icons.get_sprite(key).unwrap_or_else(|| {
+                                panic!("Unable to find sprite for key {:?}", key)
+                            });
+
+                            let mut ui_node = self.default_node.clone();
+                            ui_node.surface = sprite.into();
+                            ui_node.params.pos = Vec2f::new(markup_node.geom.x, y);
+
+                            line.push(ui_node);
+                        }
+                    }
                 }
-                Span::Image(_img) => {
-                    todo!()
-                }
-            };
+            }
 
-            line.push(ui_node);
+            y += cfg.fontsize + cfg.nl_space;
+
+            lines.push(line);
         }
 
-        y += cfg.fontsize + cfg.nl_space;
-
-        line
-    });
-
-    let root = pool.add({
-        let mut node = default_node.clone();
-        node.surface = node::Surface::None;
-        node
-    });
-
-    let mut children = Vec::new();
-
-    for line in lines {
-        let parent = pool.add({
-            let mut node = default_node.clone();
+        let root = self.pool.add({
+            let mut node = self.default_node.clone();
             node.surface = node::Surface::None;
             node
         });
 
-        for child in line {
-            let child = pool.add_child(&parent, child);
-            children.push(child);
+        let mut children = Vec::new();
+
+        for line in lines {
+            let parent = self.pool.add({
+                let mut node = self.default_node.clone();
+                node.surface = node::Surface::None;
+                node
+            });
+
+            for child in line {
+                let child = self.pool.add_child(&parent, child);
+                children.push(child);
+            }
+
+            self.pool.attach_child(&root, &parent);
         }
 
-        pool.attach_child(&root, &parent);
+        TextHandle { root, children }
     }
-
-    TextHandle { root, children }
 }
