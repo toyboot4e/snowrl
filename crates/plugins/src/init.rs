@@ -1,6 +1,7 @@
 mod res;
 
 use snow2d::{
+    asset,
     gfx::{Snow2d, WindowState},
     ui::Ui,
 };
@@ -13,6 +14,7 @@ use grue2d::{
         data::res::{Resources, VInput},
         Control, Data,
     },
+    markup::KbdIcons,
 };
 
 use crate::{prelude::*, states};
@@ -53,11 +55,23 @@ pub fn new_game(w: u32, h: u32) -> Result<(Data, Control, Fsm)> {
 
         let fonts = res::load_fonts(&mut ice);
 
+        let kbd_icons = {
+            let kbd_icons_tex = ice
+                .assets
+                .load_sync_preserve(grue2d::paths::img::kbd::KBD_2.as_ref())?;
+
+            KbdIcons::new(
+                kbd_icons_tex,
+                &asset::path(grue2d::paths::img::kbd::KBD_2_PACK),
+            )?
+        };
+
         Data {
             ice,
             world,
             res: Resources {
                 fonts,
+                kbd_icons,
                 vi: VInput::new(),
                 ui,
                 dir_anims: Default::default(),

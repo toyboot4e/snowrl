@@ -37,4 +37,5 @@ sdl2 = { version = "0.34.3", optional = true }
 # NOTE: `rokol` should be patched in root package
 imgui = { version = "0.7.0", optional = true }
 imgui-backends = { git = "https://github.com/toyboot4e/imgui-backends-rs", branch = "snowrl", features = ["sdl2-rokol-gl"], optional = true }
+serde_json = "1.0.64"
 

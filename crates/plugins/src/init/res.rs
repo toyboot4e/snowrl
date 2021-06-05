@@ -2,7 +2,12 @@
 World/resource initialization
 */
 
-use snow2d::{asset::AssetKey, ui::Ui, utils::tyobj::TypeObjectStorageBuilder, Ice};
+use snow2d::{
+    asset::{Asset, AssetKey},
+    ui::Ui,
+    utils::tyobj::TypeObjectStorageBuilder,
+    Ice,
+};
 
 use rlbox::{
     rl::grid2d::*,
@@ -15,14 +20,19 @@ use rlbox::{
     },
 };
 
-use grue2d::game::data::world::{actor::*, World};
+use grue2d::{
+    game::data::world::{actor::*, World},
+    markup::KbdIcons,
+};
 
 use crate::prelude::*;
 
 pub fn init_assets(ice: &mut Ice) -> anyhow::Result<()> {
-    ice.assets
-        .add_cache::<Texture2dDrop>(TextureLoader);
+    // register asset loaders
+    ice.assets.add_cache::<Texture2dDrop>(TextureLoader);
     snow2d::audio::asset::register_asset_loaders(&mut ice.assets, &ice.audio.clone());
+
+    // load type objects
     self::load_type_objects(ice)?;
 
     Ok(())
@@ -79,10 +89,7 @@ pub fn load_fonts(ice: &mut Ice) -> Fonts {
 }
 
 pub fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<World> {
-    let map = TiledRlMap::new(
-        paths::map::tmx::TILES,
-        &mut ice.assets,
-    )?;
+    let map = TiledRlMap::new(paths::map::tmx::TILES, &mut ice.assets)?;
 
     let radius = [consts::FOV_R, 10];
     let map_size = map.rlmap.size;

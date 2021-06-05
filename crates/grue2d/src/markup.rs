@@ -18,9 +18,17 @@ pub mod span;
 pub mod token;
 pub mod view;
 
-use snow2d::gfx::{
-    geom2d::Vec2f,
-    text::{FontBook, FontFamilyHandle},
+use std::{collections::HashMap, fs, path::Path};
+
+use snow2d::{
+    asset::Asset,
+    gfx::{
+        geom2d::Vec2f,
+        tex::{pack, SpriteData, Texture2dDrop},
+        text::{FontBook, FontFamilyHandle},
+    },
+    input::Key,
+    prelude::Texture2d,
 };
 
 use self::{
@@ -28,6 +36,65 @@ use self::{
     token::*,
     view::NodeLines,
 };
+
+/// Spritesheet of keyboard icons
+#[derive(Debug)]
+pub struct KbdIcons {
+    tex: Asset<Texture2dDrop>,
+    /// Hash map of uv rect (x, y, w, h)
+    uvs: HashMap<Key, [f32; 4]>,
+}
+
+impl KbdIcons {
+    pub fn new(tex: Asset<Texture2dDrop>, pack_json: &Path) -> anyhow::Result<Self> {
+        let pack_text_bytes = fs::read(pack_json)?;
+        let pack: pack::TexPack = serde_json::from_slice(&pack_text_bytes)?;
+
+        let tex_size = tex.get().unwrap().sub_tex_size_scaled();
+
+        let mut uvs = pack
+            .frames
+            .iter()
+            .filter_map(|frame| {
+                let uvs = {
+                    let rect = &frame.frame;
+                    [
+                        rect.x as f32 / tex_size[0],
+                        rect.y as f32 / tex_size[1],
+                        rect.w as f32 / tex_size[0],
+                        rect.y as f32 / tex_size[1],
+                    ]
+                };
+
+                // (.*-)?([a-z]*)\.png
+                let key_name = {
+                    // ignore everything before a last `-`
+                    let hyphen = frame.filename.bytes().rposition(|b| b == b'-').unwrap();
+                    // ignore everything after `.`
+                    let dot = frame.filename.bytes().position(|b| b == b'.').unwrap();
+                    &frame.filename[hyphen..dot]
+                };
+
+                if key_name.len() == 1 {
+                    let c = key_name.chars().next().unwrap();
+                    let key = Key::from_char(c).unwrap();
+                    Some((key, uvs))
+                } else {
+                    // TODO: support enter, F[0-12], space etc.
+                    None
+                }
+            })
+            .collect::<HashMap<_, _>>();
+
+        Ok(Self { tex, uvs })
+    }
+
+    pub fn get_sprite(&self, key: Key) -> Option<SpriteData> {
+        self.uvs
+            .get(&key)
+            .map(|uv| SpriteData::builder(self.tex.clone()).uv_rect(*uv).build())
+    }
+}
 
 /// Configuration to render markup text into UI nodes
 #[derive(Debug)]

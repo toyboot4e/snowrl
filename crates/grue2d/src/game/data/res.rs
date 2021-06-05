@@ -15,6 +15,8 @@ use snow2d::{
 
 use rlbox::view::anim::DirAnimState;
 
+use crate::markup::KbdIcons;
+
 /// TODO: rm
 const REPEAT_FIRST_FRAMES: u64 = 10;
 /// TODO: rm
@@ -185,6 +187,8 @@ impl DirAnimRunner {
 #[derive(Debug)]
 pub struct Resources {
     pub fonts: Fonts,
+    /// TODO: re-consider the data layout
+    pub kbd_icons: KbdIcons,
     pub vi: VInput,
     pub ui: Ui,
     /// Directional animations over UI nodes
