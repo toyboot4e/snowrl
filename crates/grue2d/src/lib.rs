@@ -12,7 +12,6 @@ Based on [`rlbox`] (roguelike toolbox) and [`snow2d`] (2D framework)
     const_raw_ptr_deref
 )]
 
-pub extern crate hot_crate;
 pub extern crate rlbox;
 
 pub mod app;

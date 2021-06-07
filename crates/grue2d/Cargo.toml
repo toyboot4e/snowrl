@@ -12,7 +12,6 @@ use-imgui = ["snow2d/use-imgui", "rlbox/use-imgui", "imgui", "imgui-backends"]
 rokol = { path = "../snow2d/rokol/rokol", features = ["impl-gfx", "glcore33"] }
 snow2d = { path = "../snow2d" }
 rlbox = { path = "../rlbox" }
-hot_crate = { path = "hot_crate" }
 
 image = "0.23.12"
 glam = { version = "0.11.2", features = ["bytemuck"] }
