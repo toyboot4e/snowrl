@@ -34,7 +34,6 @@ pub fn init() -> Result<(Platform, SnowRl)> {
         &cfg,
         [100.0, 100.0],
         r#"Markup with :b[bold] text.
-
 Keyboard key :kbd[x]!
 
     Third line of text!"#,

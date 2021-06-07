@@ -1,4 +1,4 @@
-mod res;
+mod init_res;
 
 use snow2d::{
     asset,
@@ -48,12 +48,12 @@ pub fn new_game(w: u32, h: u32) -> Result<(Data, Control, Fsm)> {
             })
         });
 
-        res::init_assets(&mut ice).unwrap();
+        init_res::init_assets(&mut ice).unwrap();
 
         let mut ui = Ui::new();
-        let world = res::init_world([w, h], &mut ice, &mut ui).unwrap();
+        let world = init_res::init_world([w, h], &mut ice, &mut ui).unwrap();
 
-        let fonts = res::load_fonts(&mut ice);
+        let fonts = init_res::load_fonts(&mut ice);
 
         let kbd_icons = {
             let kbd_icons_tex = ice
