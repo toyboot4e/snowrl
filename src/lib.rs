@@ -52,6 +52,7 @@ pub fn init() -> Result<(Platform, SnowRl)> {
     }
     .run(
         &cfg,
+        [100.0,100.0],
         r#"Markup with :b[bold] text.
 
 Keyboard key :kbd[x]!
@@ -59,10 +60,6 @@ Keyboard key :kbd[x]!
     Third line of text!"#,
     )
     .unwrap();
-
-    // TODO: positioning
-    // let node = &mut data.res.ui.nodes[&text.root];
-    // node.params.pos = [100.0, 100.0].into();
 
     let grue = GrueRl::new(&platform, data, ctrl, fsm)?;
 

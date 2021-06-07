@@ -155,9 +155,19 @@ fn parse<'src>(
 }
 
 impl<'a, 'b, 'c, 'd> Renderer<'a, 'b, 'c, 'd> {
-    pub fn run(&mut self, cfg: &RenderConfig, src: &str) -> Result<TextHandle, ParseError> {
+    pub fn run(
+        &mut self,
+        cfg: &RenderConfig,
+        pos: impl Into<Vec2f>,
+        src: &str,
+    ) -> Result<TextHandle, ParseError> {
         let text = self::parse(src, &mut self.fb, &cfg)?;
-        Ok(self.render_text(cfg, &text))
+        let handle = self.render_text(cfg, &text);
+
+        let root = &mut self.pool[&handle.root];
+        root.params.pos = pos.into();
+
+        Ok(handle)
     }
 
     /// Renders parsed text into `snow2d` ui node
@@ -235,19 +245,20 @@ impl<'a, 'b, 'c, 'd> Renderer<'a, 'b, 'c, 'd> {
 
         let mut children = Vec::new();
 
+        // hierarchy: root > line > node
         for line in lines {
-            let parent = self.pool.add({
+            let line_node = self.pool.add_child(&root, {
                 let mut node = self.default_node.clone();
                 node.surface = node::Surface::None;
                 node
             });
 
             for child in line {
-                let child = self.pool.add_child(&parent, child);
+                let child = self.pool.add_child(&line_node, child);
                 children.push(child);
             }
 
-            self.pool.attach_child(&root, &parent);
+            self.pool.attach_child(&root, &line_node);
         }
 
         TextHandle { root, children }
