@@ -4,9 +4,6 @@ version = "0.1.0"
 authors = ["toyboot4e <toyboot4e@gmail.com>"]
 edition = "2018"
 
-[lib]
-crate-type = ["dylib"]
-
 [dependencies]
 rokol = { path = "../snow2d/rokol/rokol", features = ["impl-gfx", "glcore33", "sdl2", "fontstash"] }
 snow2d = { path = "../snow2d" }

@@ -41,11 +41,9 @@ use crate::{
 pub const PA_BLUE: rg::PassAction =
     rg::PassAction::clear_const([100.0 / 255.0, 149.0 / 255.0, 237.0 / 255.0, 250.0 / 255.0]);
 
+/// Logic that operates on data ([`GrueRl`])
 pub trait Plugin: std::fmt::Debug {
     /// Create components of [`GrueRl`]
-    ///
-    /// NOTE: Here we won't create [`GrueRl`] in `dylib crate; don't create global variables in C
-    /// from dylib crate!
     fn init_game(&mut self) -> Result<(Platform, (Data, Control, Fsm))>;
     fn on_load(&mut self, grue: &mut GrueRl, platform: &mut Platform);
     fn event(&mut self, grue: &mut GrueRl, ev: &Event, platform: &mut Platform);

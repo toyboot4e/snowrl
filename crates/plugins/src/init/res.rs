@@ -2,12 +2,7 @@
 World/resource initialization
 */
 
-use snow2d::{
-    asset::{Asset, AssetKey},
-    ui::Ui,
-    utils::tyobj::TypeObjectStorageBuilder,
-    Ice,
-};
+use snow2d::{asset::AssetKey, ui::Ui, utils::tyobj::TypeObjectStorageBuilder, Ice};
 
 use rlbox::{
     rl::grid2d::*,
@@ -20,10 +15,7 @@ use rlbox::{
     },
 };
 
-use grue2d::{
-    game::data::world::{actor::*, World},
-    markup::KbdIcons,
-};
+use grue2d::game::data::world::{actor::*, World};
 
 use crate::prelude::*;
 

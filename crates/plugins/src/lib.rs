@@ -62,7 +62,6 @@ impl Plugin for PluginA {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn load() -> Box<dyn Plugin> {
-    Box::new(PluginA {})
+pub fn load() -> PluginA {
+    PluginA {}
 }
