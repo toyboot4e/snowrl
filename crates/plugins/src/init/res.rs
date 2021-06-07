@@ -31,23 +31,15 @@ pub fn init_assets(ice: &mut Ice) -> anyhow::Result<()> {
 }
 
 fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
-    unsafe {
-        snow2d::asset::AssetDeState::start(&mut ice.assets).unwrap();
-    }
-
-    unsafe {
+    snow2d::asset::AssetDeState::run(&mut ice.assets, |_cache| unsafe {
         TypeObjectStorageBuilder::begin()
             .unwrap()
             .register::<ActorImageType, &AssetKey<'static>>(paths::types::actors::ACTOR_IMAGES)?
             .register::<ActorType, &AssetKey<'static>>(paths::types::actors::ACTOR_TYPES)?
             .register::<DirAnimType, &AssetKey<'static>>(paths::types::ANIM_TYPES)?;
-    }
 
-    unsafe {
-        snow2d::asset::AssetDeState::end().unwrap();
-    }
-
-    Ok(())
+        Ok(())
+    })
 }
 
 pub fn load_fonts(ice: &mut Ice) -> Fonts {
@@ -114,15 +106,9 @@ pub fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::
     };
 
     // Be sure to set [`AssetDeState`] while we're loading assets
-    unsafe {
-        snow2d::asset::AssetDeState::start(&mut ice.assets).unwrap();
-    }
-
-    self::load_actors(&mut world, ui)?;
-
-    unsafe {
-        snow2d::asset::AssetDeState::end().unwrap();
-    }
+    snow2d::asset::AssetDeState::run(&mut ice.assets, |_cache| {
+        self::load_actors(&mut world, ui).unwrap();
+    });
 
     // animate initial FoV:
     world.shadow.mark_dirty();

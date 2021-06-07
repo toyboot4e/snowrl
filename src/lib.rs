@@ -7,10 +7,7 @@ pub extern crate plugins;
 
 use anyhow::*;
 
-use grue2d::{
-    app::Platform,
-    GrueRl, Plugin,
-};
+use grue2d::{app::Platform, GrueRl, Plugin};
 
 /// Create a window and initialize the game
 pub fn init() -> Result<(Platform, SnowRl)> {
@@ -35,7 +32,7 @@ pub fn init() -> Result<(Platform, SnowRl)> {
     }
     .run(
         &cfg,
-        [100.0,100.0],
+        [100.0, 100.0],
         r#"Markup with :b[bold] text.
 
 Keyboard key :kbd[x]!
@@ -44,16 +41,12 @@ Keyboard key :kbd[x]!
     )
     .unwrap();
 
+    // TODO: scaled layout + scaled text
+    // data.res.ui.nodes[&text.root].params.scale = [2.0, 2.0].into();
+
     let grue = GrueRl::new(&platform, data, ctrl, fsm)?;
 
-    Ok((
-        platform,
-        SnowRl {
-            grue,
-            plugin,
-            text,
-        },
-    ))
+    Ok((platform, SnowRl { grue, plugin, text }))
 }
 
 use grue2d::markup::{self, TextHandle};
