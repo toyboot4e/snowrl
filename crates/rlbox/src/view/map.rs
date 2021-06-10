@@ -27,7 +27,7 @@ pub struct TiledRlMap {
 /// fs
 impl TiledRlMap {
     pub fn new(tiled_path: impl AsRef<Path>, cache: &mut AssetCache) -> Result<Self> {
-        let tiled_path = asset::path(tiled_path);
+        let tiled_path = cache.resolve(tiled_path.as_ref());
         let tiled = tiled::parse_file(&tiled_path)?;
 
         let rlmap = RlMap::from_tiled(&tiled);

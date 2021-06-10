@@ -62,7 +62,7 @@ pub fn new_game(w: u32, h: u32) -> Result<(Data, Control, Fsm)> {
 
             KbdIcons::new(
                 kbd_icons_tex,
-                &asset::path(grue2d::paths::img::kbd::KBD_2_PACK),
+                &ice.assets.resolve(grue2d::paths::img::kbd::KBD_2_PACK),
             )?
         };
 

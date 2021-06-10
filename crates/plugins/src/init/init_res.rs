@@ -31,12 +31,15 @@ pub fn init_assets(ice: &mut Ice) -> anyhow::Result<()> {
 }
 
 fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
-    snow2d::asset::AssetDeState::run(&mut ice.assets, |_cache| unsafe {
+    snow2d::asset::AssetDeState::run(&mut ice.assets, |cache| unsafe {
         TypeObjectStorageBuilder::begin()
             .unwrap()
-            .register::<ActorImageType, &AssetKey<'static>>(paths::types::actors::ACTOR_IMAGES)?
-            .register::<ActorType, &AssetKey<'static>>(paths::types::actors::ACTOR_TYPES)?
-            .register::<DirAnimType, &AssetKey<'static>>(paths::types::ANIM_TYPES)?;
+            .register::<ActorImageType, &AssetKey<'static>>(
+                paths::types::actors::ACTOR_IMAGES,
+                cache,
+            )?
+            .register::<ActorType, &AssetKey<'static>>(paths::types::actors::ACTOR_TYPES, cache)?
+            .register::<DirAnimType, &AssetKey<'static>>(paths::types::ANIM_TYPES, cache)?;
 
         Ok(())
     })
