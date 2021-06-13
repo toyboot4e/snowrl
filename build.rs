@@ -58,7 +58,7 @@ impl AssetPrint {
 
         writeln!(
             &mut self.buf,
-            r#"pub static {}: &'static AssetKey<'static> = &AssetKey::new_const(Cow::Borrowed(as_path("{}")));"#,
+            r#"pub static {}: &'static AssetKey<'static> = &AssetKey::new_const(Cow::Borrowed(as_path("{}")), None);"#,
             name,
             rel_path.display()
         )

@@ -22,3 +22,4 @@ image = "0.23.13"
 ron = "0.6.4"
 serde = { version = "1.0.120", features = ["derive"] }
 sdl2 = { version = "0.34.5", optional = true }
+glsp = "0.2.0"

@@ -102,22 +102,22 @@ impl VInput {
                 [
                     // x positive (right)
                     InputBundle {
-                        keys: keys![D, E, C],
+                        keys: keys![Right, D, E, C],
                     },
                     // x negative (left)
                     InputBundle {
-                        keys: keys![A, Q, Z],
+                        keys: keys![Left, A, Q, Z],
                     },
                 ],
                 // y
                 [
                     // y positive (down)
                     InputBundle {
-                        keys: keys![Z, X, C],
+                        keys: keys![Down, Z, X, C],
                     },
                     // y negative (up)
                     InputBundle {
-                        keys: keys![W, Q, E],
+                        keys: keys![Up, W, Q, E],
                     },
                 ],
             ),
