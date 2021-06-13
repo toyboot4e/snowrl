@@ -10,16 +10,16 @@ snow2d = { path = "../snow2d" }
 rlbox = { path = "../rlbox" }
 grue2d = { path = "../grue2d" }
 
-glam = "0.11.2"
-tiled = "0.9.3"
+glam = "0.16.0"
+tiled = "0.9.5"
 
-log = "0.4.11"
-env_logger = "0.8.2"
-anyhow = "1.0.37"
-thiserror = "1.0.21"
+log = "0.4.14"
+env_logger = "0.8.4"
+anyhow = "1.0.41"
+thiserror = "1.0.25"
 
-image = "0.23.13"
+image = "0.23.14"
 ron = "0.6.4"
-serde = { version = "1.0.120", features = ["derive"] }
+serde = { version = "1.0.126", features = ["derive"] }
 sdl2 = { version = "0.34.5", optional = true }
 glsp = "0.2.0"

@@ -5,7 +5,7 @@ Map view
 use {
     anyhow::*,
     snow2d::{
-        asset::{self, Asset, AssetCache, AssetKey},
+        asset::{Asset, AssetCache, AssetKey},
         gfx::{
             draw::Texture2d,
             tex::{SharedSubTexture2d, Texture2dDrop},
@@ -26,12 +26,12 @@ pub struct TiledRlMap {
 
 /// fs
 impl TiledRlMap {
-    pub fn new(tiled_path: impl AsRef<Path>, cache: &mut AssetCache) -> Result<Self> {
-        let tiled_path = cache.resolve(tiled_path.as_ref());
-        let tiled = tiled::parse_file(&tiled_path)?;
+    pub fn new<'a>(tiled_path: impl Into<AssetKey<'a>>, cache: &mut AssetCache) -> Result<Self> {
+        let resolved = cache.resolve(tiled_path);
+        let tiled = tiled::parse_file(&resolved)?;
 
         let rlmap = RlMap::from_tiled(&tiled);
-        let idmap = GidTextureMap::from_tiled(&tiled_path, &tiled, cache)?;
+        let idmap = GidTextureMap::from_tiled(&resolved, &tiled, cache)?;
 
         Ok(Self {
             tiled,
@@ -75,10 +75,8 @@ impl GidTextureMap {
                 tex: {
                     // NOTE: this value can either be relative path from tmx file or tsx file
                     let relative_img_path = &tileset.images[0].source;
-                    log::trace!("{:?}", relative_img_path);
                     let img_path = tiled_dir_path.join(relative_img_path);
-
-                    cache.load_sync(AssetKey::new(&img_path)).unwrap()
+                    cache.load_sync(AssetKey::from_path(img_path)).unwrap()
                 },
             });
         }
