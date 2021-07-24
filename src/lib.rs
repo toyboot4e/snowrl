@@ -4,6 +4,8 @@ Integrate plugins
 
 pub extern crate grue2d;
 pub extern crate plugins;
+pub extern crate rokol;
+pub extern crate snow2d;
 
 use anyhow::*;
 

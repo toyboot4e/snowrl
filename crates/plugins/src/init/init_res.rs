@@ -31,7 +31,7 @@ pub fn init_assets(ice: &mut Ice) -> anyhow::Result<()> {
 }
 
 fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
-    snow2d::asset::AssetDeState::run(&mut ice.assets, |cache| unsafe {
+    snow2d::asset::with_cache(&mut ice.assets, |cache| unsafe {
         TypeObjectStorageBuilder::begin()
             .unwrap()
             .register::<ActorImageType, &AssetKey<'static>>(
@@ -108,8 +108,7 @@ pub fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::
         entities: Arena::with_capacity(20),
     };
 
-    // Be sure to set [`AssetDeState`] while we're loading assets
-    snow2d::asset::AssetDeState::run(&mut ice.assets, |_cache| {
+    snow2d::asset::with_cache(&mut ice.assets, |_cache| {
         self::load_actors(&mut world, ui).unwrap();
     });
 

@@ -32,7 +32,7 @@ impl Plugin for PluginA {
         let [w, h] = [1280, 720];
 
         let platform = crate::init::gen_app(w, h)?;
-        let (data, ctrl, fsm) = crate::init::new_game(w, h)?;
+        let (mut data, ctrl, fsm) = crate::init::new_game(w, h)?;
 
         Ok((platform, (data, ctrl, fsm)))
     }
