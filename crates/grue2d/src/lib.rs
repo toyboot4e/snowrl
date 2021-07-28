@@ -95,6 +95,7 @@ impl GrueRl {
 /// Lifecycle components
 impl GrueRl {
     /// Called before updating the FSM (game state). Ticks input/graphics times
+    #[inline(always)]
     fn pre_update(&mut self, dt: Duration) {
         let data = &mut self.data;
         data.ice.pre_update(dt);
@@ -103,6 +104,7 @@ impl GrueRl {
     }
 
     /// Called after updating the FSM (game state). Updates buffers and ticks UI state
+    #[inline(always)]
     fn post_update(&mut self, dt: Duration) {
         let (data, agents) = (&mut self.data, &mut self.agents);
 
@@ -129,11 +131,13 @@ impl GrueRl {
     }
 
     #[cfg(debug_assertions)]
+    #[inline(always)]
     fn debug_update(&mut self, dt: Duration) {
         self.imgui.update_delta_time(dt);
     }
 
     #[cfg(debug_assertions)]
+    #[inline(always)]
     fn debug_render(&mut self, platform: &mut Platform) {
         let mut ui = self.imgui.begin_frame(&platform.win);
         self.debug_state
@@ -154,12 +158,14 @@ mod sdl2_impl {
 
     /// Lifecycle methods
     impl GrueRl {
+        #[inline(always)]
         pub fn event(&mut self, ev: &Event, platform: &Platform) {
             self.data.ice.event(ev);
             #[cfg(debug_assertions)]
             self.imgui.handle_event(&platform.win, ev);
         }
 
+        #[inline(always)]
         pub fn update(&mut self, dt: std::time::Duration, _platform: &mut Platform) {
             self.pre_update(dt);
             #[cfg(debug_assertions)]
@@ -169,6 +175,7 @@ mod sdl2_impl {
         }
 
         /// Render the game in default order
+        #[inline(always)]
         pub fn render_default(&mut self) {
             pub const DEFAULT_RENDER_SCHEDULE: &'static [DrawStage] = &[
                 DrawStage::MapDown,
@@ -184,6 +191,7 @@ mod sdl2_impl {
             crate::run_scheduled_render(DEFAULT_RENDER_SCHEDULE, self);
         }
 
+        #[inline(always)]
         pub fn pre_render(&mut self, _dt: Duration, platform: &mut Platform) {
             let size = platform.win.size();
 
@@ -196,12 +204,14 @@ mod sdl2_impl {
             });
         }
 
+        #[inline(always)]
         pub fn post_render(&mut self, dt: Duration, platform: &mut Platform) {
             #[cfg(debug_assertions)]
             self.debug_render(platform);
             self.data.ice.post_render(dt);
         }
 
+        #[inline(always)]
         pub fn on_end_frame(&mut self) {
             self.data.ice.on_end_frame();
         }
@@ -222,6 +232,7 @@ pub enum DrawStage {
     ClearScreen,
 }
 
+#[inline(always)]
 pub fn run_scheduled_render(schedule: &[DrawStage], grue: &mut GrueRl) {
     for stage in schedule {
         stage.draw(grue);
@@ -229,6 +240,7 @@ pub fn run_scheduled_render(schedule: &[DrawStage], grue: &mut GrueRl) {
 }
 
 impl DrawStage {
+    #[inline(always)]
     pub fn draw(self, grue: &mut GrueRl) {
         let (data, agents) = (&mut grue.data, &mut grue.agents);
         let cam_mat = data.world.cam.to_mat4();

@@ -89,6 +89,7 @@ impl<F> AnimPattern<F> {
             //  0  1  2  3  4  5  6 :: frame
             //  0  1  2  3  2  1  0 :: 2 * (len - 1) - frame
             //  where the last frame should be omitted so that it's not duplicated
+            // FIXME: attampted to substract with overflow on deatching monitor
             LoopMode::PingPong | LoopMode::PingPongOnce if frame >= len => 2 * (len - 1) - frame,
             // not ping pong (clamp)
             // FIXME: we should not need the min bounds

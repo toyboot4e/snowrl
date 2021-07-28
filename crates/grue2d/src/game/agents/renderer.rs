@@ -156,6 +156,7 @@ impl WorldRenderer {
         }
     }
 
+    /// FIXME: Don't re-create shadow when not needed
     pub fn render_shadow(&mut self, rdr: &mut Snow2d, world: &World, cfg: &ShadowConfig) {
         match cfg {
             ShadowConfig::Blur => {
