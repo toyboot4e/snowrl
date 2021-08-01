@@ -13,8 +13,9 @@ Run the game
   * list of tyobj
 */
 
+// TODO: fix spike
+
 use anyhow::{Error, Result};
-use sdl2::event::Event;
 
 /// Boilerplate code to run the game with `snow2d::GameRunner`
 fn main() -> Result<()> {
@@ -22,47 +23,23 @@ fn main() -> Result<()> {
 
     let (mut platform, mut app) = snowrl::init()?;
 
-    let mut pump = platform.sdl.event_pump().map_err(Error::msg)?;
-    let mut runner = snow2d::GameRunner::new();
-    let mut fps = snow2d::Fps::new();
+    let pump = platform.sdl.event_pump().map_err(Error::msg)?;
+    let mut fps = snow2d::Fps::default();
 
-    // FIXME: freeze on key press
-    'game_loop: loop {
-        for ev in pump.poll_iter() {
-            if matches!(ev, Event::Quit { .. }) {
-                break 'game_loop;
-            }
+    snow2d::run(
+        pump,
+        &mut (&mut platform, &mut app),
+        |(platform, app), ev| {
+            app.event(&ev, platform);
+        },
+        |(platform, app), dt| {
+            fps.update(dt);
+            // log::trace!("FPS: {:.1}, {:.1}", fps.avg(), fps.spike());
 
-            runner.event(&ev);
-            app.event(&ev, &mut platform);
-        }
-
-        let tick = runner.update();
-
-        if !tick {
-            // not focused
-            std::thread::sleep(std::time::Duration::from_secs_f32(0.2));
-            continue;
-        }
-
-        if let Some(dt) = runner.timestep() {
-            // focused & update
-
-            // FIXME: consider when not focused)
-            fps.update();
-            log::trace!("FPS: {:.1}, {:.1}", fps.avg(), fps.spike());
-
-            app.update(dt, &mut platform);
-            app.render(dt, &mut platform);
-        } else {
-            // focusd & iding
-            if let Some(dt) = runner.sleep_duration() {
-                std::thread::sleep(dt);
-            } else {
-                eprintln!("ASSSSSSSSSSSSSSSSSSSSSSSS??");
-            }
-        }
-    }
+            app.update(dt, platform);
+            app.render(dt, platform);
+        },
+    );
 
     Ok(())
 }
