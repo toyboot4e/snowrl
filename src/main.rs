@@ -21,20 +21,19 @@ use anyhow::{Error, Result};
 fn main() -> Result<()> {
     env_logger::init();
 
-    let (mut platform, mut app) = snowrl::init()?;
-
-    let pump = platform.sdl.event_pump().map_err(Error::msg)?;
+    let mut state = snowrl::init()?;
+    let pump = state.0.sdl.event_pump().map_err(Error::msg)?;
     let mut fps = snow2d::Fps::default();
 
     snow2d::run(
         pump,
-        &mut (&mut platform, &mut app),
-        |(platform, app), ev| {
+        &mut state,
+        |(ref mut platform, ref mut app), ev| {
             app.event(&ev, platform);
         },
-        |(platform, app), dt| {
+        |(ref mut platform, ref mut app), dt| {
             fps.update(dt);
-            // log::trace!("FPS: {:.1}, {:.1}", fps.avg(), fps.spike());
+            log::trace!("FPS: {:.1}, {:.1}", fps.avg(), fps.spike());
 
             app.update(dt, platform);
             app.render(dt, platform);

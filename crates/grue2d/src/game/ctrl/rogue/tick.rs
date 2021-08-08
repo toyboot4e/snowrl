@@ -1,7 +1,5 @@
 /*!
-
 Turn-based game loop implemented with generator in unstable Rust
-
 */
 
 use std::{

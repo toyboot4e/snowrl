@@ -1,5 +1,7 @@
 mod init_res;
 
+use std::path::PathBuf;
+
 use snow2d::{
     gfx::{Snow2d, WindowState},
     ui::Ui,
@@ -38,14 +40,22 @@ pub fn gen_app(w: u32, h: u32) -> Result<Platform> {
 pub fn new_game(w: u32, h: u32) -> Result<(Data, Control, Fsm)> {
     // create our game context
     let mut data = {
-        let mut ice = Ice::new(unsafe {
-            Snow2d::new(WindowState {
-                w,
-                h,
-                // TODO: remove the magic scaling number
-                dpi_scale: [2.0, 2.0],
-            })
-        });
+        let mut ice = {
+            let snow = unsafe {
+                Snow2d::new(WindowState {
+                    w,
+                    h,
+                    // TODO: remove the magic scaling number
+                    dpi_scale: [2.0, 2.0],
+                })
+            };
+
+            // FIXME: Consider release build
+            let proj_root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+            let asset_root = PathBuf::from(proj_root).join("assets");
+
+            Ice::new(snow, asset_root)
+        };
 
         init_res::init_assets(&mut ice).unwrap();
 
