@@ -16,6 +16,12 @@ pub fn init() -> Result<(Platform, SnowRl)> {
     let plugin = plugins::load();
     let (platform, (mut data, ctrl, fsm)) = plugins::PluginA {}.init_game()?;
 
+    // ****************************************
+    // Disable text input, including IME. This is important for constant FPS
+    // (At least on my mac for unknown reason)
+    // ****************************************
+    platform.vid.text_input().stop();
+
     let mut node = snow2d::ui::Node::from(snow2d::ui::node::Surface::None);
     node.z_order = 1.0;
     node.layer = grue2d::game::data::res::UiLayer::Screen.to_layer();
