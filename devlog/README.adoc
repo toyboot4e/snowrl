@@ -297,3 +297,23 @@ Each span of text can be styled with these parameters:
 
 TODO: keyboard icon handling
 
+=== My `unsafe` uses (Aug 9, 2021)
+
+I sometimes cheat the borrow checker using raw pointers. Reasons:
+
+* To indicate danger of crash
+.. Other global variables must be ready
+.. The function can be called only once a frame
+.. The function can be called only once on app init
+
+* For fair uses
+.. When coorperating with FFI
+.. When implementing special traits (`Zeroable` and `Pod`)
+
+* To cheat the borrow checker
+.. Accessing `static mut` variable
+.. Creating debug-only default value from raw value
+.. When mutablly borrowing both container and their child/children
+... `AssetCache` and `AssetCache<T>`
+... Node `parent` and `children`
+
