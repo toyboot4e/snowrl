@@ -279,24 +279,17 @@ So, I'm getting closer and closer to writing the game content. Now it's time to 
 
 === Simple markup language
 
-Navitaional UI is one of the most important point to get started with a new game. At the beginning of SnowRL, I'd like to show how to control the player with keyboard. But then I need the ability to show text and keyboard icons in a same paragraph. Now it's time to implement a simple markup language!
+At the beginning of SnowRL, I'd like to show how to control the player with keyboard. But then I need the ability to show text and keyboard icons in the same paragraph. Now it's time to implement a simple markup language!
 
-First of all, I parsed simple markup language into my scene graph nodes:
+I parsed source string into vec of spans with grammer: raw text or `:marco[argument]`. Here are some examples:
 
 ."Markup with :b[bold] text."
 image::img/markup_simple.png[]
 
-Each span of text can be styled with these parameters:
+."Keyboard key :key[X]!"
+image::img/markup_kbd.png[]
 
-* fontsize
-* font color
-* font face (regular, bold or italic)
-
-> I'm using an alternative to {fontdue} in C, but https://github.com/libgdx/libgdx/wiki/Distance-field-fonts[SDF] fonts would be perfect for game dev.
->
-> By the way, text might be one of the most difficult thing to deal with.
-
-TODO: keyboard icon handling
+> By the way, I'm using an alternative to {fontdue} in C, but https://github.com/libgdx/libgdx/wiki/Distance-field-fonts[SDF] fonts would be perfect for game dev.
 
 === My `unsafe` uses (Aug 9, 2021)
 
