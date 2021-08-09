@@ -19,6 +19,7 @@
 :just-snow: https://www.shadertoy.com/view/ldsGDn[Just snow]
 :soloud-rs: https://docs.rs/soloud/latest/soloud/[soloud-rs]
 :fontdue: https://github.com/mooman219/fontdue[fontdue]
+:tlp: https://github.com/toyboot4e/tlp[tlp]
 
 == Basic system (Dec 2020 ~ Jan 2021)
 
@@ -316,4 +317,26 @@ I sometimes cheat the borrow checker using raw pointers. Reasons:
 .. When mutablly borrowing both container and their child/children
 ... `AssetCache` and `AssetCache<T>`
 ... Node `parent` and `children`
+
+=== toylisp (June 9, 2021 ~)
+
+I started making toylisp for writing cutscenes. Here's a virtual entity script:
+
+[source,rust]
+----
+(entity father
+    ;; `:named arg` syntax would be awesome!
+    :pos (10 13)
+    :type "goblin"
+    ;; cutscene (coroutine)
+    :on-interact
+    (loop (talk self @ "Are you fine?"
+            :choice "Yeah"
+            (talk self @ "good")
+            (break)
+            :choice "No"
+            (continue))))
+----
+
+The devlog will be in the {tlp} repository.
 
