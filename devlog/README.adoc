@@ -25,7 +25,7 @@
 
 === Batcher (Dec 17, 2020)
 
-SnowRL (Snow roguelike) is going to be built on top of {rokol}, which is bindings to the {sokol} header-only C libraries. I used to use {rust-fna3d} ({fna3d}), but the {learn-gl-sokol} (in Sokol) was so good for a beginner.
+SnowRL (Snow roguelike) is going to be built on top of {rokol}, which is bindings to the {sokol} header-only C libraries. I used to use {rust-fna3d} ({fna3d}), but it didn't have docs, so the {learn-gl-sokol} (in Sokol) looked so good for me a beginner. Let's do 3D after SnowRL pass:[:)]
 
 This time I made an immediate-mode rendering API: `snow2d::gfx`. It makes heavy use of sprite builder:
 
@@ -37,7 +37,9 @@ screen
     .color(color);
 ----
 
-There's a quad batcher under the hood. I basically ported {zig-gamekit} to Rust (thought it doesn't have a builder). {sokol-gl} can also be referred to as an immediate-mode rendering API implementation.
+There's a quad batcher under the hood. I tried to port {zig-gamekit} to Rust, which turned out to be completely different thing other than dependencies.
+
+* {sokol-gl} can also be referred to as an immediate-mode rendering API implementation.
 
 === FoV rendering (Dec 20, 2020)
 
@@ -53,38 +55,34 @@ Great! Which would you prefer? I like the latter, but it doesn't look like cell-
 
 === Turn-based game loop (Dec 27, 2020)
 
-I'm making a GUI game and I have to run the game loop every frame. But a turn-based game is rather sequential, so "update" model doesn't fit my needs.
+I'm making a GUI game and I have to run the game loop every frame. But a turn-based game is *sequential*, so "update" model doesn't fit my needs. So I needed some ideas for making a turn-based GUI game:
 
-I needed some ideas for making a turn-based GUI game:
-
-. Using coroutine for turn-based game state
+. Using a coroutine for the turn-based game state
 +
 Turn-based game state is basically a generator of `Event` s. That's a perfect case for using a coroutine!
 +
-{rust-gen} in Rust is currently unstable and would not be stablized for a while. But I liked its simplicity, so I'm using it.
+{rust-gen} in Rust is currently unstable and would not be stablized for a while. But I liked its simplicity, so I'm using it (with some hack).
 
 . Visualizing events making use of chain of events
 +
-Actor actions are immutable `Event` objects. They are mapped from one to another and result in primitive events that make changes to the game world. Example: `MeleeAttack` → `Hit` → `GiveDamage`. We can play animations after each `Event`, because each `Event` tells us enough context to chain another `Event`!
+Actor actions are immutable `Event` objects. They are mapped from one to another and result in *primitive events* that make changes to the game world. Example: `MeleeAttack` → `Hit` → `GiveDamage`. We can play animations after each `Event`, because each `Event` tells us enough context to chain another `Event`.
 
-I'm also considering adding rules or systems. They can override action event handlings. For example, `ZombieSystem` would map `Heal` event to `GiveDamage` event if the target is a zombie.
+I'm also considering adding _rules_ or _systems_. They can override action event handlings. For example, `ZombieSystem` would map `Heal` event to `GiveDamage` event if the target is a zombie.
 
-Edit: I read an awesome https://www.boxdragon.se/blog/three-worlds[article]. It suggets making duplicate game world (s) and syncing one to another. That looks like a common successible pattern, and the article even suggests makes use of graph of events for GUI.
+Edit: I read an awesome https://www.boxdragon.se/blog/three-worlds[article]. It suggets making duplicate game world (s) and syncing one to another. That looks like a common successible pattern, but recording every change looks like a lot of work: take actor spawning change for instance. So I'm not sure if I switch to that architecture.
 
 === Camera & pixel-perfect shadow (Feb 24, 2021)
 
-I added a bunch of items and modules.
+I added a bunch of items and modules. Click the picture to jump to Youtube video:
 
 image::http://img.youtube.com/vi/h8XE-1vEI8w/maxresdefault.jpg[link=https://www.youtube.com/watch?v=h8XE-1vEI8w]
 
-(Click the image to jump to Youtube video)
-
 As you can see in the video,
 
-* It's snowing with {just-snow} shader!
+* It's snowing with {just-snow} GLSL shader!
 * `snow2d` got a sprite-based `ui` module, i.e., simple scene graph:
 ** The title texts (`ui::Node` s) can be applied simple animation objects.
-** Entities can now talk! The text is hard-coded for now. Texts are drawn via {fons-rs}. (Alternative to it in Rust is {fontdue}. NOTE: SDF font is probablly the go-to way in game dev context in 2021).
+** Entities can now talk! The text is hard-coded for now. Texts are drawn via {fons-rs} (It rasterizes TTF font to font texture. Alternative to it in pure Rust is {fontdue}. NOTE: SDF font is probablly the go-to way in game dev context in 2021).
 ** I implemented {nine-slice}[nine slice sprite] for the talking windows.
 
 Also there's an audio module, i.e., re-exports of {soloud-rs}. I'm sticking with the idea to use
@@ -94,7 +92,7 @@ NOTE: I thought it's awesome C is the "de-fact lingua franca", but I'd prefer pu
 
 === Pixel-perfect shadow
 
-I added camera. FoV/FoW shadow was flickering or shaking when scrolling.
+I added camera. Then I found FoV/FoW shadow flickering/shaking when scrolling.
 
 Details: I was using shadow textures with size of screen size / 4, but I needed +1 pixels so that *each shadow pixel (1x1) maps to screen pixels (4x4) in a same cell*.
 
@@ -105,23 +103,23 @@ The shadow texture is created every frame, but I think it's not that much heavy,
 As noted in {gen-arena}, `Vec<T>` is not suitable for storing items that are referred to from
 somewhere else (for example, `Vec::remove` can change other item positions). We have some options:
 
-- **Non-reference-counted pool**, a.k.a. `Arena`. Examples: {gen-arena}, {thunderdome}
+- Generational arena. Examples: {gen-arena}, {thunderdome}
 +
 My UI node animations are stored in this kind of pool.
 
-- **Reference-counted pool**. Example: {froggy}, https://docs.rs/bevy/latest/bevy/asset/index.html[bevy_asset]
+- **Reference-counted pool**. Examples: {froggy}, https://docs.rs/bevy/latest/bevy/asset/index.html[bevy_asset]
 +
 My UI nodes are stored in this kind of pool. Nodes won't be freed while their animations are alive. NOTE: It can be cause of memory leak.
 
 - **Reference-counted pointers**, wrappers of `Arc<Mutex<T>>`. Examples: {rg3d-res} in {rg3d}
 +
-I also put assets in this kind of pointer, though I don't have a particular reason for this. I would have to write some custom (de)serializer for assets since `serde` doesn't serialize `Rc` or `Arc` objects correctly. This problem is also known as "interning".
+I also put assets in this kind of pointer (though I don't have a particular reason).
 
 == Architecture (Feb 2021 ~ March 2021)
 
 === Non-ECS (Feb 25, 2021)
 
-I forgot to mention that SnowRL is not using ECS. Rather, it's using a traditional coding style.
+I forgot to mention that *SnowRL is not using ECS*. Rather, it's using a traditional coding style.
 
 . Do you fight the borrow checker?
 +
@@ -142,18 +140,20 @@ After coming to this structure, I didn't have to struggle with the borrow rules.
 . How do you handle variants of entities?
 +
 Maybe I would use `enum`? But making `Player` and `Npc` different types is horrible. I need to rethink about it later.
+
+. How do you handle variants of sprites and animations?
 +
-Extensibility with non-ECS structure is one of the key points. About handling variants of animations, it turned out I only needed limited kind of animations. Also, if I need to add parameters to animations, I can extract them to somewhere else and modify `Node`.
+I'm using fixed types: `struct Node` and `enum Anim`. When I need to add other parameters to `Node`, I can extract them to other `Vec` and operate on `Node` externally.
 
 . The startup code for your game is messy, right?
 +
-Yes. For example, the https://github.com/lowenware/push-it/blob/main/src/main.rs[main.rs] of Dotrix example game is much nicer than mine.
+Yes. Compared to my game, e.g., the https://github.com/lowenware/push-it/blob/main/src/main.rs[main.rs] of Dotrix example game is much nicer.
 
-I'm temped to try ECS; the open-ended extensibility and the clear API is nice, but that would be after finishing SnowRL.
+Actually, I'm temped to try ECS; the open-ended extensibility and the clear API is nice.
 
 === Structuring the game data (Mar 9, 2021)
 
-I was suffering from nest of data. To access dependencies, I had to do like `collection.sub_collection.data_a.collection.get(index)`. Today it became much better..
+I was suffering from the *deep nest of data*. To access dependencies, I had to do like `collection.sub_collection.data_a.collection.get(index)`. Today it became much better..
 
 I just grouped my passive game `Data`:
 
@@ -175,15 +175,15 @@ I can reduce the nests with aliases: `let Data { mut ctx, mut world, mut res} = 
 * https://docs.rs/inline_tweak/latest/inline_tweak/[inline_tweak] for tweaking literals on debug build.
 +
 [source,rust]
-++++
+----
 pub mod consts {
     pub fn walk_time() -> f32 {
         inline_tweak!(1.0) / 60.0;
     }
 }
-++++
+----
 
-* https://docs.rs/thunderdome/latest/thunderdome/[thunderdome] for generational arena. I'm using a for that uses typed `Index<T>`.
+* https://docs.rs/thunderdome/latest/thunderdome/[thunderdome] for generational arena.
 * https://github.com/mcarton/rust-derivative[derivative] can handle `#[derive(..)]` with `PhantomData` field: https://github.com/mcarton/rust-derivative/blob/d3ff6f700c69e02e213f26549f38a97c7165c544/tests/derive-ord.rs#L110[derive_ord.rs]
 
 === `serde` integration for shared pointers (`Asset<T>`)
@@ -194,7 +194,7 @@ This problem is known as "interning".
 
 === Migrating from `rokol::app` to Rust-SDL2
 
-`sokol_app.h` lacks some important functionalities; one of them is resizing windows via code. I switched to Rust-SDL2 decoupling platform-dependent code (initialization and screen information).
+I was using `sokol_app.h`, but it lacks some important functionalities; one of them is resizing windows via code. So I switched to Rust-SDL2 decoupling the platform-dependent code (initialization, screen information and event handling).
 
 === Derive macro for runtime inspector (May 3, 2021)
 
@@ -228,14 +228,13 @@ where
 
 === Melee attack (May 5, 2021)
 
-Now entities can attack!
+Now entities can attack! (Click the image to jump to the youtube video):
 
-.Clock to jump to youtube
 image::http://i3.ytimg.com/vi/Q4cyFkutghE/maxresdefault.jpg[link=https://www.youtube.com/watch?v=Q4cyFkutghE]
 
 === Type objects (May 8, 2021)
 
-https://gameprogrammingpatterns.com/type-object.html[Type Object] pattern is basically about creating a storage of https://gameprogrammingpatterns.com/flyweight.html[flyweight] objects. `ActorType` defines actor "type" for example:
+https://gameprogrammingpatterns.com/type-object.html[Type Object] pattern is basically about creating a collection of https://gameprogrammingpatterns.com/flyweight.html[flyweight] objects. `ActorType` defines actor "type" for example:
 
 [source,rust]
 ----
@@ -246,7 +245,7 @@ pub struct ActorType {
 }
 ----
 
-They're deserialized from an external file and stored in a `HashMap<String, ActorType>`:
+They're deserialized from an external file and stored in `HashMap<String, ActorType>`:
 
 .`actor_types.ron`
 [source,ron]
@@ -271,7 +270,7 @@ https://docs.rs/libloading/latest/libloading/[libloading] is the crate for reloa
 
 I moved most of my game code into a `cdylib` crate (`dylib` might also work). I took care to not create global variables in C code from the `dylib` crate; it surely breaks the app! Now I'll try if the hot reloading really works.
 
-OMG. It turned out global variables in C library (sokol) matter: https://github.com/floooh/sokol/issues/91[issue #91].
+OMG. It turned out global variables in C library (sokol) matter: https://github.com/floooh/sokol/issues/91[issue #91]. I'd have to reconsider how to write cutscenes.
 
 == Quest map (May 2021 ~)
 
@@ -281,7 +280,7 @@ So, I'm getting closer and closer to writing the game content. Now it's time to 
 
 At the beginning of SnowRL, I'd like to show how to control the player with keyboard. But then I need the ability to show text and keyboard icons in the same paragraph. Now it's time to implement a simple markup language!
 
-I parsed source string into vec of spans with grammer: raw text or `:marco[argument]`. Here are some examples:
+I parsed source string into vec of spans with a simple grammer: `markup = repeat(raw-text | :marco[argument])`. Here are some examples:
 
 ."Markup with :b[bold] text."
 image::img/markup_simple.png[]
