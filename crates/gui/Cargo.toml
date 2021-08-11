@@ -7,7 +7,7 @@ edition = "2018"
 use-imgui = ["imgui", "view/use-imgui"]
 
 [dependencies]
-rokol = { path = "../snow2d/rokol/rokol", features = ["impl-gfx", "glcore33"] }
+rokol = { path = "../snow2d/crates/rokol/rokol", features = ["impl-gfx", "glcore33"] }
 snow2d = { path = "../snow2d" }
 imgui = { version = "0.7.0", optional = true }
 
