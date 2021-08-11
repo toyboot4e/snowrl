@@ -1,0 +1,22 @@
+= SnowRL crates
+
+* `gui`
++
+SnowRL GUI crate.
+
+** `snow2d`
++
+snow2d ❄️ framework.
+
+** `core`
++
+Core system of a 2D roguelike game with orthogonal grid maps.
+
+** `model`
++
+Internal game states of SnowRL.
+
+** `view`
++
+GUI components for the model.
+
