@@ -7,7 +7,7 @@ pub extern crate core;
 pub mod entity;
 pub mod evs;
 
-use core::ev::Event;
+use core::ev::{tree::EventTree, Event};
 
 use snow2d::utils::arena::{Arena, Index};
 
@@ -57,6 +57,7 @@ pub struct Model {
 
 impl core::sys::System for GameSystem {
     type Event = RlEvent;
+    type EventTree = EventTree;
     type Actor = EntityModel;
 
     fn next_actor(&mut self) -> Index<Self::Actor> {
@@ -67,13 +68,13 @@ impl core::sys::System for GameSystem {
         todo!()
     }
 
-    fn handle_event(&mut self, ev: Self::Event) -> HandleResult {
+    fn handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree) -> HandleResult {
         match ev {
             RlEvent::Inline(InlineEvent) => {
                 todo!()
             }
             RlEvent::Dyn(ev) => {
-                let access = EventSystem::new(&mut self.model);
+                let _access = EventSystem::new(&mut self.model);
                 self.hub.handle_any(ev, &mut self.model)
             }
         };

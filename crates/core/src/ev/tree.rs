@@ -16,7 +16,7 @@ impl Default for EventBuilder {
     fn default() -> Self {
         Self {
             root: EventTree {
-                children: Default::default(),
+                elems: Default::default(),
             },
         }
     }
@@ -28,15 +28,15 @@ impl EventBuilder {
     }
 
     pub fn checkpoint(&self) -> CheckPoint {
-        CheckPoint(self.root.children.len() as u32)
+        CheckPoint(self.root.elems.len() as u32)
     }
 
     pub fn start_node_at(&self) -> CheckPoint {
-        CheckPoint(self.root.children.len() as u32)
+        CheckPoint(self.root.elems.len() as u32)
     }
 
     pub fn is_empty(&self) -> bool {
-        self.root.children.is_empty()
+        self.root.elems.is_empty()
     }
 
     pub fn build(self) -> EventTree {
@@ -47,7 +47,13 @@ impl EventBuilder {
 /// Root of event tree
 #[derive(Debug, Default)]
 pub struct EventTree {
-    children: Vec<Elem>,
+    elems: Vec<Elem>,
+}
+
+impl EventTree {
+    pub fn is_empty(&self) -> bool {
+        self.elems.is_empty()
+    }
 }
 
 /// Subtree of [`EventTree`]

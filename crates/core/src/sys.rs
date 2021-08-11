@@ -14,6 +14,8 @@ pub trait System {
     /// Internal event type of the roguelike game system
     type Event;
 
+    type EventTree;
+
     /// Actor type
     type Actor;
 
@@ -22,19 +24,22 @@ pub trait System {
     /// Decide actor action (UI | NonUI)
     fn take_turn(&mut self, ix: Index<Self::Actor>) -> EventData<Self::Event>;
 
-    fn handle_event(&mut self, ev: Self::Event) -> HandleResult;
+    fn handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree) -> HandleResult;
 }
 
 /// Return value of [`tick`](fn.tick.html)
 #[derive(Debug, Clone, Default)]
 pub struct TickResult<S: System> {
     pub gui: Option<UiEvent>,
-    pub evs: Vec<S::Event>,
+    pub tree: S::EventTree,
 }
 
 /// Ticks the roguelike [`System`]
-pub fn tick<S: System>(sys: &mut S) -> TickResult<S> {
-    let mut evs = Vec::new();
+pub fn tick<S: System>(sys: &mut S) -> TickResult<S>
+where
+    S::EventTree: Default,
+{
+    let mut tree = S::EventTree::default();
 
     loop {
         let ix = sys.next_actor();
@@ -42,13 +47,13 @@ pub fn tick<S: System>(sys: &mut S) -> TickResult<S> {
 
         match ev {
             EventData::NonUI(ev) => {
-                let res = sys.handle_event(ev);
+                let res = sys.handle_event(ev, &mut tree);
                 // TODO: handle result?
             }
             EventData::UI(gui) => {
                 return TickResult {
                     gui: Some(gui),
-                    evs,
+                    tree,
                 };
             }
         }

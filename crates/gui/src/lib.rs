@@ -23,12 +23,10 @@ use snow2d::{
     Ice,
 };
 
-use core::grid2d::*;
-
-use model::{entity::EntityModel, GameSystem, Model};
+use model::{GameSystem, Model};
 
 use view::{
-    actor::{ActorImage, ActorView},
+    actor::ActorView,
     camera::{Camera2d, FollowCamera2d},
     map::MapView,
     shadow::Shadow,

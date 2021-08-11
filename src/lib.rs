@@ -35,7 +35,7 @@ mod impl_ {
 
     impl SnowRl {
         #[inline(always)]
-        pub fn event(&mut self, ev: &Event, platform: &mut Platform) {
+        pub fn event(&mut self, ev: &Event, _platform: &mut Platform) {
             self.data.ice.event(ev);
         }
 
@@ -71,14 +71,14 @@ mod impl_ {
         }
 
         #[inline(always)]
-        fn pre_update(&mut self, dt: Duration, platform: &mut Platform) {
+        fn pre_update(&mut self, dt: Duration, _platform: &mut Platform) {
             self.data.ice.pre_update(dt);
             self.data.gui.update(&mut self.data.ice);
             self.data.res.vi.update(&self.data.ice.input, dt);
         }
 
         #[inline(always)]
-        fn post_update(&mut self, dt: Duration, platform: &mut Platform) {
+        fn post_update(&mut self, dt: Duration, _platform: &mut Platform) {
             // shadow
             // FIXME: don't hard code player detection
             const PLAYER_SLOT: u32 = 0;
@@ -106,10 +106,10 @@ mod impl_ {
             self.world_render.post_update(&self.data.gui.vm, dt);
         }
 
-        #[inline(always)]
-        fn debug_render(&mut self, dt: Duration, platform: &mut Platform) {
-            //
-        }
+        // #[inline(always)]
+        // fn debug_render(&mut self, dt: Duration, platform: &mut Platform) {
+        //     //
+        // }
     }
 }
 
@@ -269,18 +269,15 @@ fn gen_ice(w: u32, h: u32) -> Result<Ice> {
         return Ok(());
 
         fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
-            snow2d::asset::with_cache(&mut ice.assets, |cache| unsafe {
+            snow2d::asset::with_cache(&mut ice.assets, |cache| {
                 tyobj::storage_builder()
                     .unwrap()
-                    .register::<ActorImageType, &AssetKey<'static>>(
+                    .add::<ActorImageType, &AssetKey<'static>>(
                         paths::types::actors::ACTOR_IMAGES,
                         cache,
                     )?
-                    .register::<ActorType, &AssetKey<'static>>(
-                        paths::types::actors::ACTOR_TYPES,
-                        cache,
-                    )?
-                    .register::<DirAnimType, &AssetKey<'static>>(paths::types::ANIM_TYPES, cache)?;
+                    .add::<ActorType, &AssetKey<'static>>(paths::types::actors::ACTOR_TYPES, cache)?
+                    .add::<DirAnimType, &AssetKey<'static>>(paths::types::ANIM_TYPES, cache)?;
 
                 Ok(())
             })

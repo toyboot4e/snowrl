@@ -25,7 +25,7 @@ use core::grid2d::Vec2i;
 
 use view::{camera::Camera2d, render::tiled as tiled_render};
 
-use crate::{Gui, ShadowConfig, SnowConfig};
+use crate::Gui;
 
 /// The smaller, the more blur
 const SHADOW_SCALE: f32 = 1.0 / 4.0;

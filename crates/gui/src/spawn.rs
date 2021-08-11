@@ -15,10 +15,7 @@ use snow2d::{
 
 use core::grid2d::*;
 
-use model::{
-    entity::{ActorStats, EntityModel, Relation},
-    Model,
-};
+use model::entity::{ActorStats, EntityModel, Relation};
 use view::actor::{ActorImage, ActorImageType, ActorNodes, ActorView};
 
 use crate::{res::UiLayer, Gui};
