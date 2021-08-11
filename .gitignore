@@ -1,7 +1,9 @@
-/target
-/assets
-/assets_embedded
+target
+gh-pages
+assets
+assets_embedded
 .DS_Store
+
 /src/utils/paths.rs
 /crates/grue2d/src/paths.rs
 

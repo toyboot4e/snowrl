@@ -33,7 +33,7 @@ fn main() -> Result<()> {
         },
         |(ref mut platform, ref mut app), dt| {
             fps.update(dt);
-            log::trace!("FPS: {:.1}, {:.1}", fps.avg(), fps.spike());
+            // log::trace!("FPS: {:.1}, {:.1}", fps.avg(), fps.spike());
 
             app.update(dt, platform);
             app.render(dt, platform);

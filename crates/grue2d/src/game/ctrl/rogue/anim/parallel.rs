@@ -1,3 +1,0 @@
-/*!
-Non-blocking animations
-*/

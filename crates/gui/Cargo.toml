@@ -1,0 +1,26 @@
+[package]
+name = "gui"
+version = "0.1.0"
+edition = "2018"
+
+[features]
+use-imgui = ["imgui", "view/use-imgui"]
+
+[dependencies]
+rokol = { path = "../snow2d/rokol/rokol", features = ["impl-gfx", "glcore33"] }
+snow2d = { path = "../snow2d" }
+imgui = { version = "0.7.0", optional = true }
+
+core = { path = "../core" }
+model = { path = "../model" }
+view = { path = "../view" }
+
+log = "0.4.14"
+env_logger = "0.8.4"
+anyhow = "1.0.41"
+thiserror = "1.0.25"
+serde_json = "1.0.66"
+serde = "1.0.127"
+sdl2 = "0.34.5"
+glam = { version = "0.17.3", features = ["bytemuck"] }
+
