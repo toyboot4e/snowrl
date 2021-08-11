@@ -10,7 +10,7 @@ use snow2d::utils::Inspect;
 type Event = sdl2::event::Event;
 
 /// Game state lifecycle
-pub trait GameState: std::fmt::Debug {
+pub trait State: std::fmt::Debug {
     type Params;
     fn on_enter(&mut self, _params: &mut Self::Params) {}
     fn on_exit(&mut self, _params: &mut Self::Params) {}
@@ -20,7 +20,7 @@ pub trait GameState: std::fmt::Debug {
     fn update(&mut self, params: &mut Self::Params) -> StateReturn<Self::Params>;
 }
 
-/// Return value of [`GameState::update`]
+/// Return value of [`State::update`]
 #[derive(Debug)]
 pub enum StateReturn<P> {
     /// Run every command in this frame. Call update in next frame
@@ -41,14 +41,14 @@ impl<P> StateReturn<P> {
 /// Command in [`StateReturn`]
 #[derive(Debug)]
 pub enum StateCommand<P> {
-    Insert(TypeId, Box<dyn GameState<Params = P>>),
+    Insert(TypeId, Box<dyn State<Params = P>>),
     Pop,
     PopAndRemove,
     Push(TypeId),
 }
 
 impl<P> StateCommand<P> {
-    pub fn insert<T: GameState<Params = P> + 'static>(state: T) -> Self {
+    pub fn insert<T: State<Params = P> + 'static>(state: T) -> Self {
         Self::Insert(TypeId::of::<T>(), Box::new(state))
     }
 }
@@ -56,7 +56,7 @@ impl<P> StateCommand<P> {
 /// Stack-based finite state machine
 #[derive(Debug)]
 pub struct Fsm<P> {
-    states: HashMap<TypeId, Box<dyn GameState<Params = P>>>,
+    states: HashMap<TypeId, Box<dyn State<Params = P>>>,
     stack: Vec<TypeId>,
 }
 
@@ -72,7 +72,7 @@ impl<P> Default for Fsm<P> {
 impl<P> Fsm<P> {
     pub fn update(&mut self, params: &mut P) {
         loop {
-            let id = self.stack.last().unwrap();
+            let id = self.stack.last().expect("No state in stack");
             let state = self.states.get_mut(id).unwrap();
             let res = state.update(params);
 
@@ -108,25 +108,29 @@ impl<P> Fsm<P> {
         }
     }
 
-    pub fn insert<T: GameState<Params = P> + 'static>(
+    /// Inserts a state into the storage
+    pub fn insert<T: State<Params = P> + 'static>(
         &mut self,
         state: T,
-    ) -> Option<Box<dyn GameState<Params = P>>> {
+    ) -> Option<Box<dyn State<Params = P>>> {
         self.states.insert(TypeId::of::<T>(), Box::new(state))
     }
 
-    pub fn insert_default<T: GameState<Params = P> + 'static + Default>(
+    /// Inserts a state into the storage
+    pub fn insert_default<T: State<Params = P> + 'static + Default>(
         &mut self,
-    ) -> Option<Box<dyn GameState<Params = P>>> {
+    ) -> Option<Box<dyn State<Params = P>>> {
         self.states
             .insert(TypeId::of::<T>(), Box::new(T::default()))
     }
 
-    pub fn push<T: GameState + 'static>(&mut self, params: &mut P) {
+    /// Pushes an existing state to the stack
+    pub fn push<T: State + 'static>(&mut self, params: &mut P) {
         let id = TypeId::of::<T>();
         self.push_id(id, params);
     }
 
+    /// Pushes an existing state to the stack by type ID
     pub fn push_id(&mut self, id: TypeId, params: &mut P) {
         if let Some(last_id) = self.stack.last() {
             let last = self.states.get_mut(last_id).unwrap();
@@ -139,6 +143,7 @@ impl<P> Fsm<P> {
         self.stack.push(id);
     }
 
+    /// Pushes a state from the stack
     pub fn pop(&mut self, params: &mut P) -> TypeId {
         let last_id = self
             .stack

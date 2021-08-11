@@ -56,7 +56,7 @@ pub struct Data {
 pub struct Gui {
     /// View model synced to the game model
     pub vm: Model,
-    pub actors: Arena<ActorView>,
+    pub entities: Arena<ActorView>,
     pub map: MapView,
     /// Double buffer of FoV/FoW with interpolation value
     pub shadow: Shadow,
@@ -64,6 +64,17 @@ pub struct Gui {
     pub cam: Camera2d,
     /// State for the camera to follow the player
     pub cam_follow: FollowCamera2d,
+}
+
+/// Lifecycle
+impl Gui {
+    pub fn update(&mut self, ice: &mut Ice) {
+        // FIXME: impl Into itermut
+        for (_ix, view) in &mut self.entities {
+            let model = &self.vm.entities[view.model];
+            view.img.update(ice.dt(), model.pos, model.dir);
+        }
+    }
 }
 
 #[derive(Debug, Clone, Inspect)]

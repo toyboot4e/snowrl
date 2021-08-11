@@ -101,6 +101,6 @@ impl ActorSpawn {
 
         view.img.warp(self.pos, self.dir);
 
-        Ok(gui.actors.insert(view))
+        Ok(gui.entities.insert(view))
     }
 }
