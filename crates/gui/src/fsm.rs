@@ -15,35 +15,15 @@ use smallvec::SmallVec;
 /// Game state lifecycle
 pub trait State: std::fmt::Debug + DowncastSync {
     type Data;
-    fn on_enter(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data)
-    // where
-    //     Self: Sized,
-    {
-    }
-    fn on_exit(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data)
-    // where
-    //     Self: Sized,
-    {
-    }
-    // TODO: use proper name
-    fn on_stop(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data)
-    // where
-    //     Self: Sized,
-    {
-    }
-    fn event(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data)
-    // where
-    //     Self: Sized,
-    {
-    }
+    fn on_enter(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data) {}
+    fn on_exit(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data) {}
+    fn on_stop(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data) {}
+    fn event(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data) {}
     fn update(
         &mut self,
         _cell: &StateCell<Self::Data>,
         _data: &mut Self::Data,
-    ) -> StateReturn<Self::Data>
-// where
-    //     Self: Sized
-    ;
+    ) -> StateReturn<Self::Data>;
 }
 
 impl_downcast!(sync State assoc Data);
@@ -248,7 +228,9 @@ impl<P: 'static> Fsm<P> {
             last.on_stop(&cell, params);
         }
 
-        let new = cell.get_mut_by_id(&id).unwrap();
+        let new = cell
+            .get_mut_by_id(&id)
+            .expect("Unable to find pushed type in storage");
         new.on_enter(&cell, params);
 
         self.stack.push(id);

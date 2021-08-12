@@ -409,14 +409,21 @@ fn gen_data(w: u32, h: u32, mut ice: Ice) -> Result<Data> {
             ActorSpawn::new("mokusei-san")
                 .pos([12, 16])
                 .dir(Dir8::S)
-                .spawn(gui, ui)?;
+                .spawn_to_gui(gui, ui)?;
 
             // non-player characters
             let mut spawn = ActorSpawn::new("mokusei-san");
 
-            spawn.pos([14, 12]).dir(Dir8::W).friendly().spawn(gui, ui)?;
-
-            spawn.pos([25, 18]).dir(Dir8::E).hostile().spawn(gui, ui)?;
+            spawn
+                .pos([14, 12])
+                .dir(Dir8::W)
+                .friendly()
+                .spawn_to_gui(gui, ui)?;
+            spawn
+                .pos([25, 18])
+                .dir(Dir8::E)
+                .hostile()
+                .spawn_to_gui(gui, ui)?;
 
             Ok(())
         }
@@ -427,6 +434,8 @@ fn gen_fsm(data: &mut Data) -> Result<Fsm<Data>> {
     let mut fsm = Fsm::default();
 
     fsm.insert(states::TickState::default());
+    fsm.insert(states::GuiSync::default());
+    fsm.insert(states::PlayerState::default());
 
     fsm.push::<states::TickState>(data);
 

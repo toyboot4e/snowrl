@@ -6,8 +6,8 @@ TODO: rename rlview to view
 
 #![feature(drain_filter)]
 
-pub use core;
 pub use model;
+pub use rlcore;
 pub use view;
 
 pub mod app;

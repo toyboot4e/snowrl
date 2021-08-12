@@ -16,7 +16,6 @@ model = { path = "../model" }
 view = { path = "../view" }
 
 log = "0.4.14"
-env_logger = "0.8.4"
 anyhow = "1.0.41"
 thiserror = "1.0.25"
 serde_json = "1.0.66"

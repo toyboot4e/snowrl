@@ -6,7 +6,7 @@ pub use gui::fsm::{self, State, StateCell};
 
 use std::any::TypeId;
 
-use gui::{core, Data};
+use gui::{rlcore, Data};
 
 pub type StateReturn = fsm::StateReturn<Data>;
 pub type StateCommand = fsm::StateCommand<Data>;
@@ -39,9 +39,10 @@ impl State for TickState {
     }
 
     fn update(&mut self, _cell: &StateCell<Self::Data>, data: &mut Data) -> StateReturn {
+        log::trace!("tick-update");
         let mut states = vec![];
 
-        let res = core::sys::tick(&mut data.system);
+        let res = rlcore::sys::tick(&mut data.system);
         if !res.tree.is_empty() {
             states.push(StateCommand::Push(TypeId::of::<GuiSync>()));
         }
@@ -54,12 +55,31 @@ impl State for TickState {
 }
 
 /// State for syncing the view model to the internal model
+#[derive(Debug, Default)]
 pub struct GuiSync {
     //
+}
+
+impl State for GuiSync {
+    type Data = Data;
+
+    fn update(&mut self, _cell: &StateCell<Self::Data>, data: &mut Data) -> StateReturn {
+        log::trace!("gui sync");
+        StateReturn::NextFrame(vec![])
+    }
 }
 
 /// State for controlling the player
 #[derive(Debug, Default)]
 pub struct PlayerState {
     //
+}
+
+impl State for PlayerState {
+    type Data = Data;
+
+    fn update(&mut self, _cell: &StateCell<Self::Data>, data: &mut Data) -> StateReturn {
+        log::trace!("player");
+        StateReturn::NextFrame(vec![])
+    }
 }

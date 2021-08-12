@@ -67,8 +67,9 @@ impl rlcore::sys::System for GameSystem {
     }
 
     fn take_turn(&mut self, ix: Index<Self::Entity>) -> Option<EventData> {
-        let model = &self.entities[ix];
-        None
+        let model = &self.model.entities[ix];
+        let ai = model.ai.clone();
+        ai.take_turn(ix, &mut self.model)
     }
 
     fn handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree) -> HandleResult {

@@ -15,7 +15,10 @@ use snow2d::{
 
 use rlcore::grid2d::*;
 
-use model::entity::{ActorStats, EntityModel, Relation};
+use model::{
+    entity::{ActorStats, EntityModel, Relation},
+    Model,
+};
 use view::actor::{ActorImage, ActorImageType, ActorNodes, ActorView};
 
 use crate::{res::UiLayer, Gui};
@@ -72,15 +75,30 @@ impl ActorSpawn {
     }
 
     /// TODO: Trun spawn into event
-    pub fn spawn(&self, gui: &mut Gui, ui: &mut Ui) -> anyhow::Result<Index<ActorView>> {
+    pub fn spawn_to_gui(&self, gui: &mut Gui, ui: &mut Ui) -> anyhow::Result<Index<ActorView>> {
         let type_ = ActorType::from_type_key(&self.type_id)?;
 
         let model = {
+            // FIXME:
+            #[derive(Debug, Clone)]
+            struct FixMeAi;
+            use model::EventData;
+            impl model::entity::Ai for FixMeAi {
+                fn take_turn(
+                    &self,
+                    _entity: Index<EntityModel>,
+                    _model: &mut Model,
+                ) -> Option<EventData> {
+                    Some(model::evs::PlayerCommand.into())
+                }
+            }
+
             let actor_model = EntityModel {
                 pos: self.pos,
                 dir: self.dir,
                 stats: type_.stats.clone(),
                 relation: self.relation,
+                ai: Box::new(FixMeAi),
             };
             gui.vm.entities.insert(actor_model)
         };

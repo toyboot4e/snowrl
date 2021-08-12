@@ -16,9 +16,7 @@ rlcore = { path = "../rlcore" }
 model = { path = "../model" }
 
 log = "0.4.14"
-env_logger = "0.8.4"
 anyhow = "1.0.41"
-thiserror = "1.0.25"
 
 image = "0.23.14"
 glam = "0.16.0"
@@ -27,7 +25,6 @@ tiled = "0.9.5"
 auto_ops = "0.3.0"
 bitflags = "1.2.1"
 once_cell = "1.7.2"
-rand = "0.8.3"
 serde = "1.0.126"
 downcast-rs = "1.2.0"
 derivative = "2.2.0"

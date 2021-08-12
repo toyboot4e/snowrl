@@ -17,12 +17,12 @@ pub trait System {
     type EventTree;
 
     /// Actor type
-    type Actor;
+    type Entity;
 
-    fn next_actor(&mut self) -> Index<Self::Actor>;
+    fn next_actor(&mut self) -> Index<Self::Entity>;
 
     /// Decide actor action (UI | NonUI)
-    fn take_turn(&mut self, ix: Index<Self::Actor>) -> EventData<Self::Event>;
+    fn take_turn(&mut self, ix: Index<Self::Entity>) -> Option<EventData<Self::Event>>;
 
     fn handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree) -> HandleResult;
 }
@@ -30,7 +30,7 @@ pub trait System {
 /// Return value of [`tick`](fn.tick.html)
 #[derive(Debug, Clone, Default)]
 pub struct TickResult<S: System> {
-    pub gui: Option<UiEvent>,
+    pub gui: Option<UiEventData>,
     pub tree: S::EventTree,
 }
 
@@ -43,7 +43,11 @@ where
 
     loop {
         let ix = sys.next_actor();
-        let ev = sys.take_turn(ix);
+        let ev = match sys.take_turn(ix) {
+            Some(ev) => ev,
+            // next actor
+            None => continue,
+        };
 
         match ev {
             EventData::NonUI(ev) => {
@@ -51,7 +55,7 @@ where
                 // TODO: handle result?
             }
             EventData::UI(gui) => {
-                return TickResult {
+                break TickResult {
                     gui: Some(gui),
                     tree,
                 };
@@ -76,22 +80,28 @@ impl HandleResult {
 #[derive(Debug)]
 pub enum EventData<E> {
     NonUI(E),
-    UI(UiEvent),
+    UI(UiEventData),
+}
+
+/// Marker for UI event types
+pub trait UiEvent {}
+
+impl<E, T: UiEvent + 'static> From<T> for EventData<E> {
+    fn from(_ev: T) -> Self {
+        Self::UI(UiEventData {
+            id: TypeId::of::<T>(),
+        })
+    }
 }
 
 /// UI events are handled externally (by UI)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct UiEvent {
+pub struct UiEventData {
     // static, unique ID
     id: TypeId,
 }
 
-impl UiEvent {
-    pub fn new(id: TypeId) -> Self {
-        Self { id }
-    }
-}
-
+// TODO: use toy_arena slot type
 type Slot = u32;
 
 /// Utility for implementing [`System::next_actor`]
@@ -102,9 +112,9 @@ pub struct ActorSlot {
 
 impl ActorSlot {
     pub fn next<T>(&mut self, arena: &mut Arena<T>) -> Option<Index<T>> {
+        self.slot %= arena.len() as Slot;
         let slot = self.slot;
         self.slot += 1;
-        arena.len() as Slot;
-        arena.get_by_slot(self.slot).map(|(ix, _data)| ix)
+        arena.get_by_slot(slot).map(|(ix, _data)| ix)
     }
 }
