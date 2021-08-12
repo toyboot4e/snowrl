@@ -13,7 +13,7 @@ use snow2d::{
     },
 };
 
-use core::map::MapModel;
+use model::map::MapModel;
 
 /// Bundle of Tiled map and internal roguelike map data
 #[derive(Debug)]

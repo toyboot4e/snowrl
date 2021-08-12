@@ -4,9 +4,11 @@ Actor type and components
 
 use serde::{Deserialize, Serialize};
 
-use snow2d::utils::Inspect;
+use snow2d::utils::{arena::Index, Inspect};
 
-use core::grid2d::*;
+use rlcore::grid2d::*;
+
+use crate::EventData;
 
 /// Fixed set of components
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

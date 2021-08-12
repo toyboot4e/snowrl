@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use snow2d::utils::ez;
 
-use core::{grid2d::*, shadow::*};
+use rlcore::{grid2d::*, shadow::*};
 
 /// Double buffer
 #[derive(Debug, Clone)]
@@ -74,7 +74,7 @@ impl Shadow {
 
         self.dt.reset();
 
-        core::shadow::refresh_fov_fow(&mut self.fov.a, &mut self.fow.a, None, origin, map);
+        rlcore::shadow::refresh_fov_fow(&mut self.fov.a, &mut self.fow.a, None, origin, map);
     }
 
     /// Call it every frame to animate FoV

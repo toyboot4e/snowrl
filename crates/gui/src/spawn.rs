@@ -13,7 +13,7 @@ use snow2d::{
     },
 };
 
-use core::grid2d::*;
+use rlcore::grid2d::*;
 
 use model::entity::{ActorStats, EntityModel, Relation};
 use view::actor::{ActorImage, ActorImageType, ActorNodes, ActorView};

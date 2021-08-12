@@ -4,15 +4,16 @@ version = "0.1.0"
 edition = "2018"
 
 [features]
-use-imgui = ["imgui", "snow2d/use-imgui", "core/use-imgui"]
+use-imgui = ["imgui", "snow2d/use-imgui", "rlcore/use-imgui"]
 
 [dependencies]
 snow2d = { path = "../snow2d" }
 imgui = { version = "0.7.0", optional = true }
 
-core = { path = "../core" }
+rlcore = { path = "../rlcore" }
 
 derivative = "2.2.0"
 log = "0.4.14"
 serde = "1.0.127"
+dyn-clone = "1.0.4"
 

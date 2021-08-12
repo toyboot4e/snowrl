@@ -28,7 +28,7 @@ use snow2d::{
 
 use model::entity::EntityModel;
 
-use core::grid2d::*;
+use rlcore::grid2d::*;
 
 use crate::{
     anim::{AnimPattern, LoopMode, MultiPatternAnimState},

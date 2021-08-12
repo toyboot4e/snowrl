@@ -6,5 +6,4 @@ pub mod ev;
 pub mod sys;
 
 pub mod grid2d;
-pub mod map;
 pub mod shadow;

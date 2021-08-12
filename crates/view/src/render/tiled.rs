@@ -7,7 +7,7 @@ use std::cmp;
 use snow2d::gfx::{draw::*, geom2d::*, Color};
 use tiled::LayerData;
 
-use core::{
+use rlcore::{
     grid2d::{Rect2i, Vec2i, Vec2u},
     shadow::*,
 };

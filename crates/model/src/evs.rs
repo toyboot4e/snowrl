@@ -4,7 +4,7 @@ Events
 
 use snow2d::{input::Dir8, utils::arena::Index};
 
-use core::{
+use rlcore::{
     ev::{hub::EventHubBuilder, Event},
     grid2d::Vec2i,
 };

@@ -30,7 +30,7 @@ pub use snow2d::{
     Ice,
 };
 
-pub use core::grid2d::*;
+pub use rlcore::grid2d::*;
 
 pub use model::{
     entity::{ActorStats, EntityModel, Relation},

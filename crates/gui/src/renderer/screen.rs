@@ -21,7 +21,7 @@ use snow2d::{
     utils::bytemuck,
 };
 
-use core::grid2d::Vec2i;
+use rlcore::grid2d::Vec2i;
 
 use view::{camera::Camera2d, render::tiled as tiled_render};
 

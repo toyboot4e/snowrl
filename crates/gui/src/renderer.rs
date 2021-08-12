@@ -13,7 +13,7 @@ use snow2d::{
     utils::arena::Index,
 };
 
-use core::grid2d::Vec2i;
+use rlcore::grid2d::Vec2i;
 
 use model::Model;
 

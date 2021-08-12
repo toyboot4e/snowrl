@@ -6,21 +6,23 @@ pub extern crate core;
 
 pub mod entity;
 pub mod evs;
+pub mod map;
 
-use core::ev::{tree::EventTree, Event};
+use rlcore::ev::{tree::EventTree, Event};
 
 use snow2d::utils::arena::{Arena, Index};
 
-use core::{
+use rlcore::{
     ev::{
         hub::{EventHub, HubSystem},
         tree::EventSystem,
     },
-    map::MapModel,
-    sys::{ActorSlot, EventData, HandleResult},
+    sys::{ActorSlot, HandleResult},
 };
 
-use crate::entity::*;
+use crate::{entity::*, map::MapModel};
+
+pub type EventData = rlcore::sys::EventData<RlEvent>;
 
 /// [`InlineEvent`] | [`DynEvent`]
 #[derive(Debug, Clone)]
@@ -46,7 +48,7 @@ pub struct GameSystem {
     pub hub: EventHub<Self>,
 }
 
-pub type EventHubBuilder = core::ev::hub::EventHubBuilder<GameSystem>;
+pub type EventHubBuilder = rlcore::ev::hub::EventHubBuilder<GameSystem>;
 
 /// Internal game state of SnowRL
 #[derive(Debug, Clone, Default)]
@@ -55,17 +57,18 @@ pub struct Model {
     pub map: MapModel,
 }
 
-impl core::sys::System for GameSystem {
+impl rlcore::sys::System for GameSystem {
     type Event = RlEvent;
     type EventTree = EventTree;
-    type Actor = EntityModel;
+    type Entity = EntityModel;
 
-    fn next_actor(&mut self) -> Index<Self::Actor> {
+    fn next_actor(&mut self) -> Index<Self::Entity> {
         self.slot.next(&mut self.model.entities).unwrap()
     }
 
-    fn take_turn(&mut self, ix: Index<Self::Actor>) -> EventData<Self::Event> {
-        todo!()
+    fn take_turn(&mut self, ix: Index<Self::Entity>) -> Option<EventData> {
+        let model = &self.entities[ix];
+        None
     }
 
     fn handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree) -> HandleResult {

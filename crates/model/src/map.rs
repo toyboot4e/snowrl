@@ -4,7 +4,7 @@ Orthogonal grid map
 
 use snow2d::utils::Inspect;
 
-use crate::{grid2d::Vec2i, shadow::OpacityMap};
+use rlcore::{grid2d::Vec2i, shadow::OpacityMap};
 
 /// Roguelike game map
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Inspect)]
