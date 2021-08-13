@@ -30,11 +30,11 @@ pub use snow2d::{
     Ice,
 };
 
-pub use rlcore::grid2d::*;
+pub use rlcore::{ev::hub::EventHub, grid2d::*, sys::UiEvent};
 
 pub use model::{
     entity::{ActorStats, EntityModel, Relation},
-    GameSystem, Model,
+    EventData, GameSystem, Model,
 };
 
 pub use view::{

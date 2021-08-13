@@ -5,7 +5,7 @@ Roguelike core system
 - Internal events are injected via [`System`] trait
 */
 
-use std::any::{self, TypeId};
+use std::any;
 
 use snow2d::utils::arena::{Arena, Index};
 

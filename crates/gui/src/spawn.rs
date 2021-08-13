@@ -15,10 +15,7 @@ use snow2d::{
 
 use rlcore::grid2d::*;
 
-use model::{
-    entity::{ActorStats, Ai, EntityModel, Relation},
-    Model,
-};
+use model::entity::{ActorStats, AiTag, EntityModel, Relation};
 
 use view::actor::{ActorImage, ActorImageType, ActorNodes, ActorView};
 
@@ -28,23 +25,8 @@ use crate::{content::PlayerAi, res::UiLayer, Gui};
 #[derive(Debug, Clone, Serialize, Deserialize, TypeObject)]
 pub struct ActorType {
     pub img: SerdeRepr<ActorImageType>,
-    pub ai: AiType,
+    pub ai: AiTag,
     pub stats: ActorStats,
-}
-
-// cheap, so not stored in type object storage
-// TODO: add derive macro to define type and verify there's no dups with static storage
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct AiType(String);
-
-impl AiType {
-    pub fn to_ai(&self) -> Box<dyn Ai> {
-        match self.0.as_str() {
-            "player" => Box::new(PlayerAi),
-            _ => panic!("invalid "),
-        }
-    }
 }
 
 /// Create [`Actor`] easily
@@ -101,7 +83,7 @@ impl ActorSpawn {
                 dir: self.dir,
                 stats: type_.stats.clone(),
                 relation: self.relation,
-                ai: Box::new(PlayerAi),
+                ai: type_.ai.clone(),
             };
             gui.vm.entities.insert(actor_model)
         };

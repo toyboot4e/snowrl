@@ -2,7 +2,7 @@
 Actor type and components
 */
 
-use std::fmt;
+use std::{borrow::Borrow, borrow::Cow, fmt};
 
 use derivative::Derivative;
 use dyn_clone::DynClone;
@@ -12,8 +12,6 @@ use snow2d::utils::{arena::Index, Inspect};
 
 use rlcore::grid2d::*;
 
-use crate::{EventData, Model};
-
 /// Fixed set of components
 #[derive(Debug, Clone)]
 pub struct EntityModel {
@@ -22,14 +20,23 @@ pub struct EntityModel {
     pub stats: ActorStats,
     pub relation: Relation,
     // interact: Interact,
-    pub ai: Box<dyn Ai>,
+    pub ai: AiTag,
 }
 
-pub trait Ai: fmt::Debug + DynClone {
-    fn take_turn(&self, entity: Index<EntityModel>, model: &mut Model) -> Option<EventData>;
-}
+/// Tag of AI which is resolved to a specific logic by system
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct AiTag(Cow<'static, str>);
 
-dyn_clone::clone_trait_object!(Ai);
+impl AiTag {
+    pub const fn new(tag: &'static str) -> Self {
+        Self(Cow::Borrowed(tag))
+    }
+
+    pub fn tag(&self) -> &str {
+        self.0.borrow()
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Inspect)]
 pub struct ActorStats {
