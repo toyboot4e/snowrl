@@ -10,7 +10,7 @@ pub mod map;
 
 use std::{collections::HashMap, fmt};
 
-use rlcore::ev::{tree::EventTree, Event};
+use rlcore::ev::tree::EventTree;
 
 use snow2d::utils::arena::{Arena, Index};
 
@@ -24,20 +24,7 @@ use rlcore::{
 
 use crate::{entity::*, map::MapModel};
 
-pub type EventData = rlcore::sys::EventData<RlEvent>;
-
-/// [`InlineEvent`] | [`DynEvent`]
-#[derive(Debug, Clone)]
-pub enum RlEvent {
-    Inline(InlineEvent),
-    Dyn(DynEvent),
-}
-
-/// Builtin on-stack event
-#[derive(Debug, Clone)]
-pub enum InlineEvent {
-    Spawn { actor: EntityModel },
-}
+pub type EventData = rlcore::sys::EventData<DynEvent>;
 
 /// Roguelike game system
 #[derive(Debug, Default)]
@@ -96,7 +83,7 @@ pub struct Model {
 }
 
 impl rlcore::sys::System for GameSystem {
-    type Event = RlEvent;
+    type Event = DynEvent;
     type EventTree = EventTree;
     type Entity = EntityModel;
 
@@ -111,17 +98,8 @@ impl rlcore::sys::System for GameSystem {
     }
 
     fn handle_event(&mut self, ev: Self::Event, _tree: &mut Self::EventTree) -> HandleResult {
-        match ev {
-            RlEvent::Inline(_inline) => {
-                todo!()
-            }
-            RlEvent::Dyn(ev) => {
-                let _access = EventSystem::new(&mut self.model);
-                self.hub.handle(&ev, &mut self.model)
-            }
-        };
-
-        todo!()
+        let _access = EventSystem::new(&mut self.model);
+        self.hub.handle(&ev, &mut self.model)
     }
 }
 
