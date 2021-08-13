@@ -25,7 +25,7 @@ pub use snow2d::{
         ez,
         pool::{Handle, Pool},
         tyobj::{self, SerdeRepr, SerdeViaTyObj, TypeObject},
-        Inspect,
+        Derivative, Inspect,
     },
     Ice,
 };

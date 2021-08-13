@@ -16,7 +16,7 @@ use snow2d::utils::arena::{Arena, Index};
 
 use rlcore::{
     ev::{
-        hub::{EventHub, HubSystem},
+        hub::{DynEvent, EventHub, HubSystem},
         tree::EventSystem,
     },
     sys::{ActorSlot, HandleResult},
@@ -38,9 +38,6 @@ pub enum RlEvent {
 pub enum InlineEvent {
     Spawn { actor: EntityModel },
 }
-
-/// Heap-allocated event
-pub type DynEvent = Box<dyn Event>;
 
 /// Roguelike game system
 #[derive(Debug, Default)]
@@ -120,7 +117,7 @@ impl rlcore::sys::System for GameSystem {
             }
             RlEvent::Dyn(ev) => {
                 let _access = EventSystem::new(&mut self.model);
-                self.hub.handle_any(ev, &mut self.model)
+                self.hub.handle(&ev, &mut self.model)
             }
         };
 

@@ -15,4 +15,5 @@ auto_ops = "0.3.0"
 derivative = "2.2.0"
 dyn-clone = "1.0.4"
 log = "0.4.14"
+downcast-rs = "1.2.0"
 
