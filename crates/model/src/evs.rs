@@ -2,22 +2,37 @@
 Events
 */
 
-use derivative::Derivative;
-
 use snow2d::{input::Dir8, utils::arena::Index};
 
 use rlcore::{
     ev::{hub::EventHubBuilder, Event},
     grid2d::Vec2i,
-    sys::UiEvent,
 };
 
 use crate::{entity::EntityModel, GameSystem};
 
+/// Initializes [`EventHubBuilder`] with model events and default event handlers
+pub fn init(builder: &mut EventHubBuilder<GameSystem>) {
+    builder.ev_with(Box::new(|ev: &PosChange, model| {
+        let entity = &mut model.entities[ev.entity];
+        entity.pos = ev.pos;
+        if let Some(dir) = ev.dir.clone() {
+            entity.dir = dir;
+        }
+        None
+    }));
+    builder.ev_with(Box::new(|ev: &DirChange, model| {
+        let entity = &mut model.entities[ev.entity];
+        entity.dir = ev.dir;
+        None
+    }));
+}
+
 #[derive(Debug, Clone)]
 pub struct PosChange {
-    pub actor: Index<EntityModel>,
-    pub to: Vec2i,
+    pub entity: Index<EntityModel>,
+    pub pos: Vec2i,
+    pub dir: Option<Dir8>,
     pub kind: PosChangeKind,
 }
 
@@ -31,8 +46,8 @@ pub enum PosChangeKind {
 
 #[derive(Debug, Clone)]
 pub struct DirChange {
-    pub actor: Index<EntityModel>,
-    pub to: Dir8,
+    pub entity: Index<EntityModel>,
+    pub dir: Dir8,
     pub kind: PosChangeKind,
 }
 
@@ -42,13 +57,4 @@ impl Event for DirChange {}
 pub enum DirChangeKind {
     Immediate,
     Smooth,
-}
-
-pub struct PlayerCommand;
-
-impl UiEvent for PlayerCommand {}
-
-pub fn init(builder: &mut EventHubBuilder<GameSystem>) {
-    builder.ev::<PosChange>().ev::<DirChange>();
-    builder.hnd(Box::new(|ev: &PosChange, model| None));
 }

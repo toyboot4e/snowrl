@@ -169,7 +169,12 @@ fn gen_data(w: u32, h: u32, mut ice: Ice) -> Result<Data> {
 
     /// Sets up `EventHub` and `AiHub`
     fn init_system(sys: &mut GameSystem) {
-        sys.hub = EventHub::builder().build_hub();
+        // event handling
+        let mut builder = EventHub::builder();
+        model::evs::init(&mut builder);
+        sys.hub = builder.build_hub();
+
+        // AIs
         sys.ais.add(PlayerAi::TAG, Box::new(PlayerAi::logic));
     }
 

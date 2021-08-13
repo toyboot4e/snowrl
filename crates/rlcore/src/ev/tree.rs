@@ -23,7 +23,7 @@ impl Default for EventBuilder {
 }
 
 impl EventBuilder {
-    pub fn begin_node(&mut self, node: Node) {
+    pub fn begin_node(&mut self, _node: Node) {
         //
     }
 

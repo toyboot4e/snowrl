@@ -15,6 +15,8 @@ pub mod states;
 mod init;
 pub use init::init;
 
+use snow2d::utils::arena::Slot;
+
 use gui::prelude::*;
 
 /// SnowRL the game
@@ -80,8 +82,9 @@ mod impl_ {
         fn post_update(&mut self, dt: Duration, _platform: &mut Platform) {
             // shadow
             // FIXME: don't hard code player detection
-            const PLAYER_SLOT: u32 = 0;
-            let player_view = &self.data.gui.entities.get_by_slot(PLAYER_SLOT).unwrap().1;
+            let player_slot = unsafe { Slot::from_raw(0) };
+            let player_view_index = self.data.gui.entities.index_at(player_slot).unwrap();
+            let player_view = &self.data.gui.entities.get(player_view_index).unwrap();
             let player_model = &self.data.gui.vm.entities[player_view.model];
 
             self.data

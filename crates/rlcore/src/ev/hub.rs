@@ -21,7 +21,7 @@ pub trait HubSystem: System {
 }
 
 /// Event handler
-pub type HandlerT<E: Event, C> = Box<dyn FnMut(&E, &mut C) -> Option<HandleResult>>;
+pub type HandlerT<E, C> = Box<dyn FnMut(&E, &mut C) -> Option<HandleResult>>;
 
 /// Event handling system based on chain-of-responsibilities.
 #[derive(Debug, Default)]
@@ -39,7 +39,7 @@ impl<S: HubSystem> EventHub<S> {
     where
         <S as HubSystem>::Context: 'static,
     {
-        let cor: &mut Cor<HandlerT<E, S::Context>> = self.handlers.get_mut().unwrap_or_else(|| {
+        let cor = self.handlers.get_mut::<E, S>().unwrap_or_else(|| {
             panic!(
                 "Unable to find handler of
     event type {}",
@@ -50,7 +50,7 @@ impl<S: HubSystem> EventHub<S> {
         cor.handle(ev, hcx)
     }
 
-    pub fn handle_any(&mut self, any: AnyEv, hcx: &mut S::Context) {
+    pub fn handle_any(&mut self, _any: AnyEv, _hcx: &mut S::Context) {
         todo!()
     }
 }
@@ -70,28 +70,30 @@ impl<S: HubSystem> Default for EventHubBuilder<S> {
     }
 }
 
-impl<S: HubSystem> EventHubBuilder<S> {
-    /// Register new type of event
+// TODO: set handler priority
+impl<S: HubSystem> EventHubBuilder<S>
+where
+    <S as HubSystem>::Context: 'static,
+{
+    /// Registers a new type of event with default handler
+    pub fn ev_with<E: Event + 'static>(&mut self, hnd: HandlerT<E, S::Context>) -> &mut Self {
+        self.ev::<E>().hnd(hnd)
+    }
+
+    /// Registers a new type of event
     pub fn ev<E: Event + 'static>(&mut self) -> &mut Self {
-        let dup = self
-            .handlers
-            .map
-            .insert(TypeId::of::<E>(), Box::new(<Cor<E> as Default>::default()));
-        assert!(dup.is_none());
+        self.handlers.register::<E, S>();
         self
     }
 
-    // pub fn ui_ev
-
-    /// Register an event handler
-    pub fn hnd<E: Event + 'static>(&mut self, hnd: HandlerT<E, S::Context>) -> &mut Self
-    where
-        <S as HubSystem>::Context: 'static,
-    {
-        let handlers: &mut Cor<HandlerT<E, S::Context>> = self
-            .handlers
-            .get_mut()
-            .unwrap_or_else(|| panic!("Unable to find event of type {}", any::type_name::<E>(),));
+    /// Registers an event handler
+    pub fn hnd<E: Event + 'static>(&mut self, hnd: HandlerT<E, S::Context>) -> &mut Self {
+        let handlers = self.handlers.get_mut::<E, S>().unwrap_or_else(|| {
+            panic!(
+                "Unable to find handler for event of type {}",
+                any::type_name::<E>(),
+            )
+        });
 
         // TODO: ensure no duplicate handlers exist
         handlers.raw.push(hnd);
@@ -114,16 +116,57 @@ struct CorHub {
 }
 
 impl CorHub {
-    pub fn get<H: 'static>(&self) -> Option<&Cor<H>> {
-        self.map
-            .get(&TypeId::of::<H>())
-            .map(|any| any.downcast_ref().unwrap())
+    fn handler_id<E, S>() -> TypeId
+    where
+        E: 'static,
+        S: HubSystem,
+        S::Context: 'static,
+    {
+        TypeId::of::<HandlerT<E, S::Context>>()
     }
 
-    pub fn get_mut<H: 'static>(&mut self) -> Option<&mut Cor<H>> {
-        self.map
-            .get_mut(&TypeId::of::<H>())
-            .map(|any| any.downcast_mut().unwrap())
+    fn register<E, S>(&mut self)
+    where
+        E: 'static,
+        S: HubSystem,
+        S::Context: 'static,
+    {
+        let id = Self::handler_id::<E, S>();
+        let dup = self.map.insert(
+            id,
+            Box::new(<Cor<HandlerT<E, S::Context>> as Default>::default()),
+        );
+        assert!(dup.is_none());
+    }
+
+    // FIXME: use TypId as arguent, not generic methods
+
+    pub fn get<E, S>(&self) -> Option<&Cor<HandlerT<E, S::Context>>>
+    where
+        E: 'static,
+        S: HubSystem,
+        S::Context: 'static,
+    {
+        let id = Self::handler_id::<E, S>();
+        self.map.get(&id).map(|any| {
+            any.downcast_ref().unwrap_or_else(|| {
+                panic!("Unable to cast CoR for event `{}`", any::type_name::<E>())
+            })
+        })
+    }
+
+    pub fn get_mut<E, S>(&mut self) -> Option<&mut Cor<HandlerT<E, S::Context>>>
+    where
+        E: 'static,
+        S: HubSystem,
+        S::Context: 'static,
+    {
+        let id = Self::handler_id::<E, S>();
+        self.map.get_mut(&id).map(|any| {
+            any.downcast_mut().unwrap_or_else(|| {
+                panic!("Unable to cast CoR for event `{}`", any::type_name::<E>())
+            })
+        })
     }
 }
 

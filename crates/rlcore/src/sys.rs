@@ -7,7 +7,7 @@ Roguelike core system
 
 use std::any;
 
-use snow2d::utils::arena::{Arena, Index};
+use snow2d::utils::arena::{Arena, Index, Slot};
 
 /// Roguelike game system
 pub trait System {
@@ -51,7 +51,7 @@ where
 
         match ev {
             EventData::NonUI(ev) => {
-                let res = sys.handle_event(ev, &mut tree);
+                let _res = sys.handle_event(ev, &mut tree);
                 // TODO: handle result?
             }
             EventData::UI(gui) => {
@@ -100,9 +100,6 @@ pub struct UiEventData {
     id: String,
 }
 
-// TODO: use toy_arena slot type
-type Slot = u32;
-
 /// Utility for implementing [`System::next_actor`]
 #[derive(Debug, Clone, Default)]
 pub struct ActorSlot {
@@ -111,9 +108,12 @@ pub struct ActorSlot {
 
 impl ActorSlot {
     pub fn next<T>(&mut self, arena: &mut Arena<T>) -> Option<Index<T>> {
-        self.slot %= arena.len() as Slot;
-        let slot = self.slot;
-        self.slot += 1;
-        arena.get_by_slot(slot).map(|(ix, _data)| ix)
+        unsafe {
+            self.slot = Slot::from_raw(self.slot.raw() % arena.capacity() as u32);
+            let slot = self.slot;
+            self.slot = Slot::from_raw(self.slot.raw() + 1);
+            let index = arena.index_at(slot);
+            index
+        }
     }
 }

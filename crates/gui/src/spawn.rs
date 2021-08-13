@@ -19,7 +19,7 @@ use model::entity::{ActorStats, AiTag, EntityModel, Relation};
 
 use view::actor::{ActorImage, ActorImageType, ActorNodes, ActorView};
 
-use crate::{content::PlayerAi, res::UiLayer, Gui};
+use crate::{res::UiLayer, Gui};
 
 /// Type object for model/view of actor
 #[derive(Debug, Clone, Serialize, Deserialize, TypeObject)]

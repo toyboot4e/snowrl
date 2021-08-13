@@ -1,3 +1,7 @@
+/*!
+Game content in GUI world
+*/
+
 use snow2d::utils::arena::Index;
 
 use rlcore::sys::UiEvent;

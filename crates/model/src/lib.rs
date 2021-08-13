@@ -8,7 +8,7 @@ pub mod entity;
 pub mod evs;
 pub mod map;
 
-use std::{collections::HashMap, fmt, io::*};
+use std::{collections::HashMap, fmt};
 
 use rlcore::ev::{tree::EventTree, Event};
 
@@ -113,9 +113,9 @@ impl rlcore::sys::System for GameSystem {
         self.ais.take_turn(&ai, ix, &mut self.model)
     }
 
-    fn handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree) -> HandleResult {
+    fn handle_event(&mut self, ev: Self::Event, _tree: &mut Self::EventTree) -> HandleResult {
         match ev {
-            RlEvent::Inline(InlineEvent) => {
+            RlEvent::Inline(_inline) => {
                 todo!()
             }
             RlEvent::Dyn(ev) => {

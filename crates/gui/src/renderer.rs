@@ -92,7 +92,7 @@ impl WorldRenderer {
         // cull and sort actors, updating interpolation value
         for (index, view) in gui.entities.iter() {
             // v: visibility (a: current, b: previous)
-            let v = &mut self.actor_visibilities[index.slot() as usize];
+            let v = &mut self.actor_visibilities[index.slot().raw() as usize];
             let model = &gui.vm.entities[view.model];
 
             // TODO: cull actors based on scroll
@@ -144,7 +144,7 @@ impl WorldRenderer {
         for (entry_ix, entry) in self.sort_buf.iter().enumerate() {
             let view = &gui.entities[entry.actor_index];
 
-            let alpha = self.actor_alpha_f32(entry.actor_index.slot() as usize) as u8;
+            let alpha = self.actor_alpha_f32(entry.actor_index.slot().raw() as usize) as u8;
 
             let base_node = &mut ui.nodes[&view.nodes.base];
             base_node.z_order = entry_ix as f32 / n_entries;

@@ -2,13 +2,11 @@
 Actor type and components
 */
 
-use std::{borrow::Borrow, borrow::Cow, fmt};
+use std::{borrow::Borrow, borrow::Cow};
 
-use derivative::Derivative;
-use dyn_clone::DynClone;
 use serde::{Deserialize, Serialize};
 
-use snow2d::utils::{arena::Index, Inspect};
+use snow2d::utils::Inspect;
 
 use rlcore::grid2d::*;
 

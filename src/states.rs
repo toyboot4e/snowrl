@@ -63,7 +63,7 @@ pub struct GuiSync {
 impl State for GuiSync {
     type Data = Data;
 
-    fn update(&mut self, _cell: &StateCell<Self::Data>, data: &mut Data) -> StateReturn {
+    fn update(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Data) -> StateReturn {
         log::trace!("gui sync");
         StateReturn::NextFrame(vec![])
     }
@@ -78,7 +78,7 @@ pub struct PlayerState {
 impl State for PlayerState {
     type Data = Data;
 
-    fn update(&mut self, _cell: &StateCell<Self::Data>, data: &mut Data) -> StateReturn {
+    fn update(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Data) -> StateReturn {
         log::trace!("player");
         StateReturn::NextFrame(vec![])
     }
