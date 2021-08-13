@@ -8,9 +8,9 @@ SnowRL GUI crate.
 +
 snow2d ❄️ framework.
 
-** `core`
+** `rlcore`
 +
-Core system of a 2D roguelike game with orthogonal grid maps.
+Core roguelike system on orthogonal grid maps.
 
 ** `model`
 +

@@ -5,7 +5,7 @@ Roguelike core system
 - Internal events are injected via [`System`] trait
 */
 
-use std::any::TypeId;
+use std::any::{self, TypeId};
 
 use snow2d::utils::arena::{Arena, Index};
 
@@ -89,7 +89,7 @@ pub trait UiEvent {}
 impl<E, T: UiEvent + 'static> From<T> for EventData<E> {
     fn from(_ev: T) -> Self {
         Self::UI(UiEventData {
-            id: TypeId::of::<T>(),
+            id: any::type_name::<T>().to_string(),
         })
     }
 }
@@ -97,8 +97,7 @@ impl<E, T: UiEvent + 'static> From<T> for EventData<E> {
 /// UI events are handled externally (by UI)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UiEventData {
-    // static, unique ID
-    id: TypeId,
+    id: String,
 }
 
 // TODO: use toy_arena slot type

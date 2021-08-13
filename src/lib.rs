@@ -405,8 +405,8 @@ fn gen_data(w: u32, h: u32, mut ice: Ice) -> Result<Data> {
 
         fn load_actors(gui: &mut Gui, ui: &mut Ui) -> anyhow::Result<()> {
             // player
-            // ActorSpawn::new("ika-chan")
-            ActorSpawn::new("mokusei-san")
+            ActorSpawn::new("ika-chan")
+                // ActorSpawn::new("mokusei-san")
                 .pos([12, 16])
                 .dir(Dir8::S)
                 .spawn_to_gui(gui, ui)?;

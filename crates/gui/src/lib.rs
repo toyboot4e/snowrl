@@ -11,6 +11,7 @@ pub use rlcore;
 pub use view;
 
 pub mod app;
+pub mod content;
 pub mod fsm;
 pub mod markup;
 pub mod prelude;

@@ -16,18 +16,35 @@ use snow2d::{
 use rlcore::grid2d::*;
 
 use model::{
-    entity::{ActorStats, EntityModel, Relation},
+    entity::{ActorStats, Ai, EntityModel, Relation},
     Model,
 };
+
 use view::actor::{ActorImage, ActorImageType, ActorNodes, ActorView};
 
-use crate::{res::UiLayer, Gui};
+use crate::{content::PlayerAi, res::UiLayer, Gui};
 
 /// Type object for model/view of actor
 #[derive(Debug, Clone, Serialize, Deserialize, TypeObject)]
 pub struct ActorType {
     pub img: SerdeRepr<ActorImageType>,
+    pub ai: AiType,
     pub stats: ActorStats,
+}
+
+// cheap, so not stored in type object storage
+// TODO: add derive macro to define type and verify there's no dups with static storage
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct AiType(String);
+
+impl AiType {
+    pub fn to_ai(&self) -> Box<dyn Ai> {
+        match self.0.as_str() {
+            "player" => Box::new(PlayerAi),
+            _ => panic!("invalid "),
+        }
+    }
 }
 
 /// Create [`Actor`] easily
@@ -79,26 +96,12 @@ impl ActorSpawn {
         let type_ = ActorType::from_type_key(&self.type_id)?;
 
         let model = {
-            // FIXME:
-            #[derive(Debug, Clone)]
-            struct FixMeAi;
-            use model::EventData;
-            impl model::entity::Ai for FixMeAi {
-                fn take_turn(
-                    &self,
-                    _entity: Index<EntityModel>,
-                    _model: &mut Model,
-                ) -> Option<EventData> {
-                    Some(model::evs::PlayerCommand.into())
-                }
-            }
-
             let actor_model = EntityModel {
                 pos: self.pos,
                 dir: self.dir,
                 stats: type_.stats.clone(),
                 relation: self.relation,
-                ai: Box::new(FixMeAi),
+                ai: Box::new(PlayerAi),
             };
             gui.vm.entities.insert(actor_model)
         };
