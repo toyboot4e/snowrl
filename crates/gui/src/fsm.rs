@@ -111,15 +111,15 @@ impl<'a, D: 'static> StateCell<'a, D> {
 
 /// Return value of [`State::update`]
 #[derive(Debug)]
-pub enum StateReturn<P> {
+pub enum StateReturn<D> {
     /// Run every command in this frame. Call update in next frame
-    NextFrame(Vec<StateCommand<P>>),
+    NextFrame(Vec<StateCommand<D>>),
     /// Run every command in this frame. Call update in this frame
-    ThisFrame(Vec<StateCommand<P>>),
+    ThisFrame(Vec<StateCommand<D>>),
 }
 
-impl<P> StateReturn<P> {
-    pub fn into_cmds(self) -> Vec<StateCommand<P>> {
+impl<D> StateReturn<D> {
+    pub fn into_cmds(self) -> Vec<StateCommand<D>> {
         match self {
             Self::NextFrame(cmds) => cmds,
             Self::ThisFrame(cmds) => cmds,
@@ -129,19 +129,19 @@ impl<P> StateReturn<P> {
 
 /// Command in [`StateReturn`]
 #[derive(Debug)]
-pub enum StateCommand<P> {
-    Insert(TypeId, Box<dyn State<Data = P>>),
+pub enum StateCommand<D> {
+    Insert(TypeId, BoxState<D>),
     Pop,
     PopAndRemove,
     Push(TypeId),
 }
 
-impl<P> StateCommand<P> {
-    pub fn insert<S: State<Data = P> + 'static + Sized>(state: S) -> Self {
+impl<D> StateCommand<D> {
+    pub fn insert<S: State<Data = D> + 'static + Sized>(state: S) -> Self {
         Self::Insert(TypeId::of::<S>(), Box::new(state))
     }
 
-    pub fn push<S: State<Data = P> + 'static + Sized>() -> Self {
+    pub fn push<S: State<Data = D> + 'static + Sized>() -> Self {
         Self::Push(TypeId::of::<S>())
     }
 }
@@ -162,8 +162,8 @@ impl<D> Default for Fsm<D> {
     }
 }
 
-impl<P: 'static> Fsm<P> {
-    pub fn update(&mut self, params: &mut P) {
+impl<D: 'static> Fsm<D> {
+    pub fn update(&mut self, params: &mut D) {
         loop {
             // TODO: maybe return error
             let id = self.stack.last().expect("No state in stack");
@@ -188,7 +188,7 @@ impl<P: 'static> Fsm<P> {
         }
     }
 
-    fn run_cmd(&mut self, cmd: StateCommand<P>, params: &mut P) {
+    fn run_cmd(&mut self, cmd: StateCommand<D>, params: &mut D) {
         match cmd {
             StateCommand::Insert(typeid, state) => {
                 self.states.insert(typeid, state);
@@ -207,29 +207,29 @@ impl<P: 'static> Fsm<P> {
     }
 
     /// Inserts a state into the storage
-    pub fn insert<S: State<Data = P> + 'static + Sized>(
+    pub fn insert<S: State<Data = D> + 'static + Sized>(
         &mut self,
         state: S,
-    ) -> Option<Box<dyn State<Data = P>>> {
+    ) -> Option<BoxState<D>>> {
         self.states.insert(TypeId::of::<S>(), Box::new(state))
     }
 
     /// Inserts a state into the storage
-    pub fn insert_default<S: State<Data = P> + 'static + Sized + Default>(
+    pub fn insert_default<S: State<Data = D> + 'static + Sized + Default>(
         &mut self,
-    ) -> Option<Box<dyn State<Data = P>>> {
+    ) -> Option<BoxState<D>>> {
         self.states
             .insert(TypeId::of::<S>(), Box::new(S::default()))
     }
 
     /// Pushes an existing state to the stack
-    pub fn push<S: State + Sized + 'static>(&mut self, params: &mut P) {
+    pub fn push<S: State + Sized + 'static>(&mut self, params: &mut D) {
         let id = TypeId::of::<S>();
         self.push_id(id, params);
     }
 
     /// Pushes an existing state to the stack by type ID
-    pub fn push_id(&mut self, id: TypeId, params: &mut P) {
+    pub fn push_id(&mut self, id: TypeId, params: &mut D) {
         let cell = StateCell::from(&mut self.states);
 
         if let Some(last_id) = self.stack.last() {
@@ -245,7 +245,7 @@ impl<P: 'static> Fsm<P> {
     }
 
     /// Pushes a state from the stack
-    pub fn pop(&mut self, params: &mut P) -> TypeId {
+    pub fn pop(&mut self, params: &mut D) -> TypeId {
         let cell = StateCell::from(&mut self.states);
         let last_id = self
             .stack
