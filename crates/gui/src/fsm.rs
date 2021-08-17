@@ -12,6 +12,9 @@ use std::{
 use downcast_rs::*;
 use smallvec::SmallVec;
 
+type States<D> = HashMap<TypeId, Box<dyn State<Data = D>>>;
+type BoxState<D> = Box<dyn State<Data = D>>;
+
 /// Game state lifecycle
 pub trait State: std::fmt::Debug + DowncastSync {
     type Data;
@@ -35,9 +38,20 @@ pub struct StateCell<'a, D> {
     inner: CellInner<'a, D>,
 }
 
+impl<'a, D> StateCell<'a, D> {
+    fn from(states: &'a mut States<D>) -> Self {
+        Self {
+            inner: CellInner {
+                states,
+                log: Default::default(),
+            },
+        }
+    }
+}
+
 #[derive(Debug)]
 struct CellInner<'a, D> {
-    states: &'a mut HashMap<TypeId, Box<dyn State<Data = D>>>,
+    states: &'a mut States<D>,
     log: SmallVec<[TypeId; 2]>,
 }
 
@@ -126,41 +140,36 @@ impl<P> StateCommand<P> {
     pub fn insert<S: State<Data = P> + 'static + Sized>(state: S) -> Self {
         Self::Insert(TypeId::of::<S>(), Box::new(state))
     }
+
+    pub fn push<S: State<Data = P> + 'static + Sized>() -> Self {
+        Self::Push(TypeId::of::<S>())
+    }
 }
 
 /// Stack-based finite state machine
 #[derive(Debug)]
-pub struct Fsm<P> {
-    states: HashMap<TypeId, Box<dyn State<Data = P>>>,
+pub struct Fsm<D> {
+    states: States<D>,
     stack: Vec<TypeId>,
 }
 
-impl<P> Default for Fsm<P> {
+impl<D> Default for Fsm<D> {
     fn default() -> Self {
         Self {
-            states: HashMap::with_capacity(10),
+            states: States::with_capacity(10),
             stack: Vec::with_capacity(10),
         }
     }
 }
 
 impl<P: 'static> Fsm<P> {
-    fn cell(states: &mut HashMap<TypeId, Box<dyn State<Data = P>>>) -> StateCell<P> {
-        StateCell {
-            inner: CellInner {
-                states,
-                log: Default::default(),
-            },
-        }
-    }
-
     pub fn update(&mut self, params: &mut P) {
         loop {
             // TODO: maybe return error
             let id = self.stack.last().expect("No state in stack");
 
             let res = {
-                let cell = Self::cell(&mut self.states);
+                let cell = StateCell::from(&mut self.states);
                 let state = cell.get_mut_by_id(id).unwrap();
                 state.update(&cell, params)
             };
@@ -221,13 +230,12 @@ impl<P: 'static> Fsm<P> {
 
     /// Pushes an existing state to the stack by type ID
     pub fn push_id(&mut self, id: TypeId, params: &mut P) {
-        let cell = Self::cell(&mut self.states);
+        let cell = StateCell::from(&mut self.states);
 
         if let Some(last_id) = self.stack.last() {
             let last = cell.get_mut_by_id(last_id).unwrap();
             last.on_stop(&cell, params);
         }
-
         let new = cell
             .get_mut_by_id(&id)
             .expect("Unable to find pushed type in storage");
@@ -238,7 +246,7 @@ impl<P: 'static> Fsm<P> {
 
     /// Pushes a state from the stack
     pub fn pop(&mut self, params: &mut P) -> TypeId {
-        let cell = Self::cell(&mut self.states);
+        let cell = StateCell::from(&mut self.states);
         let last_id = self
             .stack
             .last()
