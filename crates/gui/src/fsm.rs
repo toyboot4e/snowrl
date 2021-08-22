@@ -6,59 +6,65 @@ Stack-based finite state machine
 
 use std::{
     any::{self, TypeId},
+    cell::UnsafeCell,
     collections::HashMap,
 };
 
 use downcast_rs::*;
 use smallvec::SmallVec;
 
-type States<D> = HashMap<TypeId, Box<dyn State<Data = D>>>;
-type BoxState<D> = Box<dyn State<Data = D>>;
+pub type BoxState<D> = Box<dyn State<Data = D>>;
+
+type States<D> = HashMap<TypeId, BoxState<D>>;
 
 /// Game state lifecycle
 pub trait State: std::fmt::Debug + DowncastSync {
     type Data;
-    fn on_enter(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data) {}
-    fn on_exit(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data) {}
-    fn on_stop(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data) {}
-    fn event(&mut self, _cell: &StateCell<Self::Data>, _data: &mut Self::Data) {}
+    fn on_enter(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
+    fn on_exit(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
+    fn on_stop(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
+    fn event(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
     fn update(
         &mut self,
-        _cell: &StateCell<Self::Data>,
         _data: &mut Self::Data,
+        _cell: &StateCell<Self::Data>,
     ) -> StateReturn<Self::Data>;
 }
 
 impl_downcast!(sync State assoc Data);
 
-/// Mutable access to multiple states. Panices when trying to borrow the same state twice (mutably
-/// or immutable). TODO: Tolerant the rule to match to the standard Rust.
+/// Mutable access to multiple states. Panics when trying to borrow the same state twice (mutably
+/// or immutably). TODO: Tolerant the rule to match to the Rust's standard.
 #[derive(Debug)]
 pub struct StateCell<'a, D> {
-    inner: CellInner<'a, D>,
+    inner: UnsafeCell<CellInner<'a, D>>,
 }
 
 impl<'a, D> StateCell<'a, D> {
-    fn from(states: &'a mut States<D>) -> Self {
+    fn cast(states: &'a mut States<D>) -> Self {
         Self {
-            inner: CellInner {
+            inner: UnsafeCell::new(CellInner {
                 states,
                 log: Default::default(),
-            },
+            }),
         }
     }
 }
 
+/// Given interior mutability by wrapeper
 #[derive(Debug)]
 struct CellInner<'a, D> {
+    // hashmap
     states: &'a mut States<D>,
     log: SmallVec<[TypeId; 2]>,
 }
 
 impl<'a, D: 'static> StateCell<'a, D> {
-    pub fn get<S: State>(&self) -> Option<&S> {
-        let inner: &mut CellInner<D> = unsafe { &mut *(self as *const _ as *mut _) };
+    pub fn get<S: State<Data = D> + 'static + Sized>(&self) -> Option<&S> {
+        // SAFE: StateCell is unique, not cloneable
+        let inner: &mut CellInner<D> = unsafe { &mut *self.inner.get() };
 
+        // access to the internal item must follow the aliasing rules:
         let id = TypeId::of::<S>();
         assert!(
             inner.log.iter().find(|x| **x == id).is_none(),
@@ -67,12 +73,17 @@ impl<'a, D: 'static> StateCell<'a, D> {
         );
 
         inner.log.push(id);
-        inner.states.get(&id)?.as_any().downcast_ref()
+        inner
+            .states
+            .get(&id)
+            .map(|state| state.as_any().downcast_ref().unwrap())
     }
 
-    pub fn get_mut<S: State>(&self) -> Option<&mut S> {
-        let inner: &mut CellInner<D> = unsafe { &mut *(self as *const _ as *mut _) };
+    pub fn get_mut<S: State<Data = D> + 'static + Sized>(&self) -> Option<&mut S> {
+        // SAFE: StateCell is unique, not cloneable
+        let inner: &mut CellInner<D> = unsafe { &mut *self.inner.get() };
 
+        // access to the internal item must follow the aliasing rules:
         let id = TypeId::of::<S>();
         assert!(
             inner.log.iter().find(|x| **x == id).is_none(),
@@ -81,12 +92,17 @@ impl<'a, D: 'static> StateCell<'a, D> {
         );
 
         inner.log.push(id);
-        inner.states.get_mut(&id)?.as_any_mut().downcast_mut()
+        inner
+            .states
+            .get_mut(&id)
+            .map(|state| state.downcast_mut().unwrap())
     }
 
     pub fn get_by_id(&self, id: &TypeId) -> Option<&dyn State<Data = D>> {
-        let inner: &mut CellInner<D> = unsafe { &mut *(self as *const _ as *mut _) };
+        // SAFE: StateCell is unique, not cloneable
+        let inner: &mut CellInner<D> = unsafe { &mut *self.inner.get() };
 
+        // access to the internal item must follow the aliasing rules:
         assert!(
             inner.log.iter().find(|x| *x == id).is_none(),
             "Tried to pull the same state twice",
@@ -97,8 +113,10 @@ impl<'a, D: 'static> StateCell<'a, D> {
     }
 
     pub fn get_mut_by_id(&self, id: &TypeId) -> Option<&mut dyn State<Data = D>> {
-        let inner: &mut CellInner<D> = unsafe { &mut *(self as *const _ as *mut _) };
+        // SAFE: StateCell is unique, not cloneable
+        let inner: &mut CellInner<D> = unsafe { &mut *self.inner.get() };
 
+        // access to the internal item must follow the aliasing rules:
         assert!(
             inner.log.iter().find(|x| *x == id).is_none(),
             "Tried to pull the same state twice",
@@ -169,9 +187,9 @@ impl<D: 'static> Fsm<D> {
             let id = self.stack.last().expect("No state in stack");
 
             let res = {
-                let cell = StateCell::from(&mut self.states);
+                let cell = StateCell::cast(&mut self.states);
                 let state = cell.get_mut_by_id(id).unwrap();
-                state.update(&cell, params)
+                state.update(params, &cell)
             };
 
             let finish = matches!(res, StateReturn::NextFrame(_));
@@ -190,8 +208,8 @@ impl<D: 'static> Fsm<D> {
 
     fn run_cmd(&mut self, cmd: StateCommand<D>, params: &mut D) {
         match cmd {
-            StateCommand::Insert(typeid, state) => {
-                self.states.insert(typeid, state);
+            StateCommand::Insert(typeid, box_state) => {
+                self.states.insert(typeid, box_state);
             }
             StateCommand::Pop => {
                 let _ = self.stack.pop().unwrap();
@@ -210,16 +228,8 @@ impl<D: 'static> Fsm<D> {
     pub fn insert<S: State<Data = D> + 'static + Sized>(
         &mut self,
         state: S,
-    ) -> Option<BoxState<D>>> {
+    ) -> Option<BoxState<D>> {
         self.states.insert(TypeId::of::<S>(), Box::new(state))
-    }
-
-    /// Inserts a state into the storage
-    pub fn insert_default<S: State<Data = D> + 'static + Sized + Default>(
-        &mut self,
-    ) -> Option<BoxState<D>>> {
-        self.states
-            .insert(TypeId::of::<S>(), Box::new(S::default()))
     }
 
     /// Pushes an existing state to the stack
@@ -229,31 +239,32 @@ impl<D: 'static> Fsm<D> {
     }
 
     /// Pushes an existing state to the stack by type ID
-    pub fn push_id(&mut self, id: TypeId, params: &mut D) {
-        let cell = StateCell::from(&mut self.states);
+    pub fn push_id(&mut self, id: TypeId, data: &mut D) {
+        let cell = StateCell::cast(&mut self.states);
 
         if let Some(last_id) = self.stack.last() {
             let last = cell.get_mut_by_id(last_id).unwrap();
-            last.on_stop(&cell, params);
+            last.on_stop(data, &cell);
         }
+
         let new = cell
             .get_mut_by_id(&id)
             .expect("Unable to find pushed type in storage");
-        new.on_enter(&cell, params);
+        new.on_enter(data, &cell);
 
         self.stack.push(id);
     }
 
     /// Pushes a state from the stack
-    pub fn pop(&mut self, params: &mut D) -> TypeId {
-        let cell = StateCell::from(&mut self.states);
+    pub fn pop(&mut self, data: &mut D) -> TypeId {
+        let cell = StateCell::cast(&mut self.states);
         let last_id = self
             .stack
             .last()
             .expect("Tried to pop state but there's none!");
 
         let last = cell.get_mut_by_id(last_id).unwrap();
-        last.on_exit(&cell, params);
+        last.on_exit(data, &cell);
 
         self.stack.pop().unwrap()
     }

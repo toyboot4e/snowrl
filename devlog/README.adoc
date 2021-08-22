@@ -115,7 +115,7 @@ My UI nodes are stored in this kind of pool. Nodes won't be freed while their an
 +
 I also put assets in this kind of pointer (though I don't have a particular reason).
 
-== Architecture (Feb 2021 ~ March 2021)
+== Structuring of code (Feb 2021 ~ March 2021)
 
 === Non-ECS (Feb 25, 2021)
 

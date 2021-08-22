@@ -24,9 +24,13 @@ use rlcore::{
 
 use crate::{entity::*, map::MapModel};
 
+/// Upcasted event data
 pub type EventData = rlcore::sys::EventData<DynEvent>;
 
-/// Roguelike game system
+/// Event hub builder, where you register your events and event handlers
+pub type EventHubBuilder = rlcore::ev::hub::EventHubBuilder<GameSystem>;
+
+/// Roguelike game system than can be [`tick`](rlcore::tick)ed
 #[derive(Debug, Default)]
 pub struct GameSystem {
     /// Turn-based game state
@@ -37,49 +41,6 @@ pub struct GameSystem {
     pub hub: EventHub<Self>,
     /// Behavior logics
     pub ais: AiHub,
-}
-
-pub type EventHubBuilder = rlcore::ev::hub::EventHubBuilder<GameSystem>;
-
-pub type AiLogic = Box<dyn FnMut(Index<EntityModel>, &mut Model) -> Option<EventData>>;
-
-/// Dispatches specific logic to [`AiTag`]
-#[derive(Default)]
-pub struct AiHub {
-    logics: HashMap<AiTag, AiLogic>,
-}
-
-impl fmt::Debug for AiHub {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.logics.keys().fmt(f)
-    }
-}
-
-impl AiHub {
-    pub fn add(&mut self, tag: AiTag, logic: AiLogic) -> &mut Self {
-        self.logics.insert(tag, logic);
-        self
-    }
-
-    pub fn take_turn(
-        &mut self,
-        ai: &AiTag,
-        index: Index<EntityModel>,
-        model: &mut Model,
-    ) -> Option<EventData> {
-        let logic = self
-            .logics
-            .get_mut(ai)
-            .unwrap_or_else(|| panic!("Unable to find logic for AI tag {:?}", ai));
-        (logic)(index, model)
-    }
-}
-
-/// Internal game state of SnowRL
-#[derive(Debug, Clone, Default)]
-pub struct Model {
-    pub entities: Arena<EntityModel>,
-    pub map: MapModel,
 }
 
 impl rlcore::sys::System for GameSystem {
@@ -105,4 +66,51 @@ impl rlcore::sys::System for GameSystem {
 
 impl HubSystem for GameSystem {
     type Context = Model;
+}
+
+/// Upcasted AI logic
+pub type AiLogic = Box<dyn FnMut(Index<EntityModel>, &mut Model) -> Option<EventData>>;
+
+/// Dispatches AI logic to [`AiTag`]
+#[derive(Default)]
+pub struct AiHub {
+    logics: HashMap<AiTag, AiLogic>,
+}
+
+impl fmt::Debug for AiHub {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.logics.keys().fmt(f)
+    }
+}
+
+impl AiHub {
+    /// Register new AI
+    pub fn add(&mut self, tag: AiTag, logic: AiLogic) -> &mut Self {
+        assert!(
+            self.logics.insert(tag, logic).is_none(),
+            "Duplicate AI logics"
+        );
+        self
+    }
+
+    /// Dispatches and runs AI logic
+    pub fn take_turn(
+        &mut self,
+        ai: &AiTag,
+        index: Index<EntityModel>,
+        model: &mut Model,
+    ) -> Option<EventData> {
+        let logic = self
+            .logics
+            .get_mut(ai)
+            .unwrap_or_else(|| panic!("Unable to find logic for AI tag {:?}", ai));
+        (logic)(index, model)
+    }
+}
+
+/// Internal game state of SnowRL
+#[derive(Debug, Clone, Default)]
+pub struct Model {
+    pub entities: Arena<EntityModel>,
+    pub map: MapModel,
 }

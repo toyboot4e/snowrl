@@ -26,20 +26,23 @@ pub trait HubSystem: System {
 pub type HandlerT<T, C> = Box<dyn FnMut(&T, &mut C) -> Option<HandleResult>>;
 
 /// Event handler in storage
-pub type DynEventHandler<C> = Box<dyn FnMut(&DynEvent, &mut C) -> Option<HandleResult>>;
+type DynEventHandler<C> = Box<dyn FnMut(&DynEvent, &mut C) -> Option<HandleResult>>;
 
 /// Event handling system based on chain-of-responsibilities.
 #[derive(Debug, Default)]
 pub struct EventHub<S: HubSystem> {
     handlers: CorHub<S>,
-    _ty: PhantomData<S>,
+    _ty: PhantomData<fn() -> S>,
 }
 
 impl<S: HubSystem + 'static> EventHub<S> {
-    pub fn builder() -> EventHubBuilder<S> {
-        EventHubBuilder::default()
+    pub fn build(mut mutator: impl FnMut(&mut EventHubBuilder<S>)) -> EventHub<S> {
+        let mut builder = EventHubBuilder::default();
+        (mutator)(&mut builder);
+        builder.build_hub()
     }
 
+    /// Dispatches event handlers one by one based on the chain-of-reponsibilities pattern
     pub fn handle(&mut self, ev: &DynEvent, hcx: &mut S::Context) -> HandleResult
     where
         <S as HubSystem>::Context: 'static,
@@ -58,7 +61,7 @@ impl<S: HubSystem + 'static> EventHub<S> {
 #[derive(Debug)]
 pub struct EventHubBuilder<S: HubSystem> {
     handlers: CorHub<S>,
-    _ty: PhantomData<S>,
+    _ty: PhantomData<fn() -> S>,
 }
 
 impl<S: HubSystem> Default for EventHubBuilder<S> {
@@ -75,6 +78,11 @@ impl<S: HubSystem> EventHubBuilder<S>
 where
     <S as HubSystem>::Context: 'static,
 {
+    pub fn mutate(&mut self, mut mutator: impl FnMut(&mut Self)) -> &mut Self {
+        (mutator)(self);
+        self
+    }
+
     /// Registers a new type of event with default handler
     pub fn ev_with<E: Event + 'static>(&mut self, hnd: HandlerT<E, S::Context>) -> &mut Self {
         self.ev::<E>().hnd(hnd)

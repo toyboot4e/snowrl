@@ -82,8 +82,7 @@ mod impl_ {
         fn post_update(&mut self, dt: Duration, _platform: &mut Platform) {
             // shadow
             // FIXME: don't hard code player detection
-            let player_slot = unsafe { Slot::from_raw(0) };
-            let player_view_index = self.data.gui.entities.index_at(player_slot).unwrap();
+            let player_view_index = self.data.gui.entities.upgrade(Slot::from_raw(0)).unwrap();
             let player_view = &self.data.gui.entities.get(player_view_index).unwrap();
             let player_model = &self.data.gui.vm.entities[player_view.model];
 

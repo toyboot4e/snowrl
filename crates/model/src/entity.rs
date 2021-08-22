@@ -1,5 +1,5 @@
 /*!
-Actor type and components
+Entity type and components
 */
 
 use std::{borrow::Borrow, borrow::Cow};

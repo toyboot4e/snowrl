@@ -8,7 +8,7 @@ use crate::{consts, paths, states, SnowRl};
 
 /// Create a window and initialize the game
 pub fn init() -> Result<(Platform, SnowRl)> {
-    let init = gui::app::Init {
+    let init = gui::window::Init {
         title: "SnowRL".to_string(),
         w: 1280,
         h: 720,
@@ -60,7 +60,7 @@ fn gen_ice(w: u32, h: u32) -> Result<Ice> {
         // FIXME: Consider release build
         let proj_root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         let asset_root = PathBuf::from(proj_root).join("assets");
-
+        let asset_root = asset_root.canonicalize().unwrap();
         Ice::new(snow, asset_root)
     };
 
@@ -69,30 +69,19 @@ fn gen_ice(w: u32, h: u32) -> Result<Ice> {
     return Ok(ice);
 
     fn init_assets(ice: &mut Ice) -> anyhow::Result<()> {
-        use snow2d::gfx::tex::TextureLoader;
-
-        // register asset loaders
-        ice.assets.add_cache::<Texture2dDrop>(TextureLoader);
-        snow2d::audio::asset::register_asset_loaders(&mut ice.assets, &ice.audio.clone());
-
         // load type objects
         load_type_objects(ice)?;
 
         return Ok(());
 
         fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
-            snow2d::asset::with_cache(&mut ice.assets, |cache| {
-                tyobj::storage_builder()
-                    .unwrap()
-                    .add::<ActorImageType, &AssetKey<'static>>(
-                        paths::types::actors::ACTOR_IMAGES,
-                        cache,
-                    )?
-                    .add::<ActorType, &AssetKey<'static>>(paths::types::actors::ACTOR_TYPES, cache)?
-                    .add::<DirAnimType, &AssetKey<'static>>(paths::types::ANIM_TYPES, cache)?;
+            tyobj::storage_builder(&mut ice.assets)
+                .unwrap()
+                .add::<ActorImageType, &AssetKey<'static>>(paths::types::actors::ACTOR_IMAGES)?
+                .add::<ActorType, &AssetKey<'static>>(paths::types::actors::ACTOR_TYPES)?
+                .add::<DirAnimType, &AssetKey<'static>>(paths::types::ANIM_TYPES)?;
 
-                Ok(())
-            })
+            Ok(())
         }
     }
 }
@@ -170,9 +159,10 @@ fn gen_data(w: u32, h: u32, mut ice: Ice) -> Result<Data> {
     /// Sets up `EventHub` and `AiHub`
     fn init_system(sys: &mut GameSystem) {
         // event handling
-        let mut builder = EventHub::builder();
-        model::evs::init(&mut builder);
-        sys.hub = builder.build_hub();
+        sys.hub = EventHub::build(|b| {
+            b.mutate(model::evs::builder_plugin)
+                .mutate(gui::content::builder_plugin);
+        });
 
         // AIs
         sys.ais.add(PlayerAi::TAG, Box::new(PlayerAi::logic));
@@ -215,7 +205,7 @@ fn gen_data(w: u32, h: u32, mut ice: Ice) -> Result<Data> {
             entities: Arena::with_capacity(20),
         };
 
-        snow2d::asset::with_cache(&mut ice.assets, |_cache| {
+        snow2d::asset::guarded(&mut ice.assets, |_cache| {
             load_actors(&mut gui, ui).unwrap();
         });
 

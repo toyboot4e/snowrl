@@ -3,7 +3,7 @@ Aggressive imports
 */
 
 pub use {
-    core, model,
+    model, rlcore,
     rokol::{self, gfx as rg},
     serde, snow2d, view,
 };
@@ -30,7 +30,11 @@ pub use snow2d::{
     Ice,
 };
 
-pub use rlcore::{ev::hub::EventHub, grid2d::*, sys::UiEvent};
+pub use rlcore::{
+    ev::hub::{DynEvent, EventHub},
+    grid2d::*,
+    sys::UiEvent,
+};
 
 pub use model::{
     entity::{ActorStats, EntityModel, Relation},
@@ -45,12 +49,12 @@ pub use view::{
 };
 
 pub use crate::{
-    app::Platform,
-    fsm::*,
+    fsm::{self, *},
     markup::{self, KbdIcons},
     renderer::WorldRenderer,
     res::*,
     spawn::*,
     spawn::{ActorSpawn, ActorType},
+    window::Platform,
     Data, GameConfig, Gui, ShadowConfig, SnowConfig,
 };

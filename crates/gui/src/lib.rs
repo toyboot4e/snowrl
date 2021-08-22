@@ -1,5 +1,5 @@
 /*!
-SnowRL GUI ([`core`] > [`model`] > [`view`] > gui)
+SnowRL GUI application framework ([`core`] > [`model`] > [`view`] > `gui`)
 
 TODO: rename rlview to view
 */
@@ -10,7 +10,6 @@ pub use model;
 pub use rlcore;
 pub use view;
 
-pub mod app;
 pub mod content;
 pub mod fsm;
 pub mod markup;
@@ -18,6 +17,7 @@ pub mod prelude;
 pub mod renderer;
 pub mod res;
 pub mod spawn;
+pub mod window;
 
 use snow2d::{
     utils::{arena::Arena, Inspect},

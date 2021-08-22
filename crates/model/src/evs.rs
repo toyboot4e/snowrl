@@ -11,8 +11,8 @@ use rlcore::{
 
 use crate::{entity::EntityModel, GameSystem};
 
-/// Initializes [`EventHubBuilder`] with model events and default event handlers
-pub fn init(builder: &mut EventHubBuilder<GameSystem>) {
+/// Registers model events and default event handlers to [`EventHubBuilder`]
+pub fn builder_plugin(builder: &mut EventHubBuilder<GameSystem>) {
     builder.ev_with(Box::new(|ev: &PosChange, model| {
         let entity = &mut model.entities[ev.entity];
         entity.pos = ev.pos;
@@ -26,6 +26,8 @@ pub fn init(builder: &mut EventHubBuilder<GameSystem>) {
         entity.dir = ev.dir;
         None
     }));
+    // TODO: PlayerWalk event
+    builder.ev_with(Box::new(|_ev: &RestOneTurn, _model| None));
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +40,14 @@ pub struct PosChange {
 
 impl Event for PosChange {}
 
+#[derive(Debug, Clone)]
+pub struct PlayerWalk {
+    pub entity: Index<EntityModel>,
+    pub dir: Dir8,
+}
+
+impl Event for PlayerWalk {}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PosChangeKind {
     Walk,
@@ -48,7 +58,7 @@ pub enum PosChangeKind {
 pub struct DirChange {
     pub entity: Index<EntityModel>,
     pub dir: Dir8,
-    pub kind: PosChangeKind,
+    pub kind: DirChangeKind,
 }
 
 impl Event for DirChange {}
@@ -58,3 +68,10 @@ pub enum DirChangeKind {
     Immediate,
     Smooth,
 }
+
+#[derive(Debug, Clone)]
+pub struct RestOneTurn {
+    pub entity: Index<EntityModel>,
+}
+
+impl Event for RestOneTurn {}

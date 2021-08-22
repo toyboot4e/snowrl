@@ -9,7 +9,7 @@ use std::any;
 
 use snow2d::utils::arena::{Arena, Index, Slot};
 
-/// Roguelike game system
+/// Roguelike game system, template for implementing [`tick`](self::tick)
 pub trait System {
     /// Internal event type of the roguelike game system
     type Event;
@@ -30,7 +30,7 @@ pub trait System {
 /// Return value of [`tick`](fn.tick.html)
 #[derive(Debug, Clone, Default)]
 pub struct TickResult<S: System> {
-    pub gui: Option<UiEventData>,
+    pub gui: Option<UiEventTag>,
     pub tree: S::EventTree,
 }
 
@@ -80,7 +80,7 @@ impl HandleResult {
 #[derive(Debug)]
 pub enum EventData<E> {
     NonUI(E),
-    UI(UiEventData),
+    UI(UiEventTag),
 }
 
 /// Marker for UI event types
@@ -88,16 +88,22 @@ pub trait UiEvent {}
 
 impl<E, T: UiEvent + 'static> From<T> for EventData<E> {
     fn from(_ev: T) -> Self {
-        Self::UI(UiEventData {
-            id: any::type_name::<T>().to_string(),
+        Self::UI(UiEventTag {
+            raw: any::type_name::<T>().to_string(),
         })
     }
 }
 
 /// UI events are handled externally (by UI)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct UiEventData {
-    id: String,
+pub struct UiEventTag {
+    raw: String,
+}
+
+impl UiEventTag {
+    pub fn as_str(&self) -> &str {
+        &self.raw
+    }
 }
 
 /// Utility for implementing [`System::next_actor`]
@@ -108,12 +114,22 @@ pub struct ActorSlot {
 
 impl ActorSlot {
     pub fn next<T>(&mut self, arena: &mut Arena<T>) -> Option<Index<T>> {
-        unsafe {
+        let index = {
             self.slot = Slot::from_raw(self.slot.raw() % arena.capacity() as u32);
-            let slot = self.slot;
-            self.slot = Slot::from_raw(self.slot.raw() + 1);
-            let index = arena.index_at(slot);
+
+            // TODO: stop on infinite loop
+            // let origin = self.slot;
+            let index = loop {
+                let slot = self.slot;
+                self.slot = Slot::from_raw(self.slot.raw() + 1);
+                if let Some(index) = arena.upgrade(slot) {
+                    break index;
+                }
+            };
+
             index
-        }
+        };
+
+        Some(index)
     }
 }
