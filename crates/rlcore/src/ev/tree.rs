@@ -2,8 +2,6 @@
 Event tree
 */
 
-use std::ops::Deref;
-
 use crate::ev::Event;
 
 /// [`EventTree`] builder
@@ -76,26 +74,3 @@ pub struct Token {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CheckPoint(u32);
-
-/// Event builder + read-only access to model
-#[derive(Debug)]
-pub struct EventSystem<'a, M> {
-    builder: EventBuilder,
-    model: &'a mut M,
-}
-
-impl<'a, M> EventSystem<'a, M> {
-    pub fn new(model: &'a mut M) -> Self {
-        Self {
-            builder: EventBuilder::default(),
-            model,
-        }
-    }
-}
-
-impl<'a, M> Deref for EventSystem<'a, M> {
-    type Target = M;
-    fn deref(&self) -> &Self::Target {
-        &self.model
-    }
-}

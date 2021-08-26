@@ -39,7 +39,7 @@ use crate::res::Resources;
 #[derive(Debug)]
 pub struct Data {
     /// Roguelike game system and the internal game state
-    pub system: GameSystem,
+    pub sys: GameSystem,
     /// Generic game context
     pub ice: Ice,
     /// SnowRL GUi

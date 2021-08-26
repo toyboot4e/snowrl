@@ -90,12 +90,12 @@ fn gen_data(w: u32, h: u32, mut ice: Ice) -> Result<Data> {
     let mut res = init_res(&mut ice, Ui::new())?;
     let gui = init_world([w, h], &mut ice, &mut res.ui)?;
 
-    let mut system = GameSystem::default();
-    system.model = gui.vm.clone();
+    let model = gui.vm.clone();
+    let mut system = GameSystem::new(model);
     init_system(&mut system);
 
     return Ok(Data {
-        system,
+        sys: system,
         ice,
         gui,
         res,
@@ -165,7 +165,7 @@ fn gen_data(w: u32, h: u32, mut ice: Ice) -> Result<Data> {
         });
 
         // AIs
-        sys.ais.add(PlayerAi::TAG, Box::new(PlayerAi::logic));
+        sys.ais.add(PlayerAi::AI, Box::new(PlayerAi::logic));
     }
 
     fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<Gui> {

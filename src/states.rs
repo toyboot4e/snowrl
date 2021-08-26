@@ -44,17 +44,19 @@ impl State for TickState {
         log::trace!("tick-update");
         let mut states = vec![];
 
-        let res = rlcore::sys::tick(&mut data.system);
+        let res = rlcore::sys::tick(&mut data.sys);
         if !res.tree.is_empty() {
             states.push(StateCommand::Push(TypeId::of::<GuiSync>()));
         }
+
         if let Some(tag) = res.gui {
+            // TODO: const match
             match tag.as_str() {
-                "gui::content::PlayerAi" => {
+                x if x == PlayerAi::GUI => {
                     let pl = cell.get_mut::<PlayerState>().unwrap();
                     let pl_ix = data
-                        .system
-                        .model
+                        .sys
+                        .model()
                         .entities
                         .upgrade(Slot::from_raw(0))
                         .unwrap();
@@ -112,7 +114,29 @@ pub struct PlayerState {
     entity: Option<Index<EntityModel>>,
 }
 
+impl State for PlayerState {
+    type Data = Data;
+
+    fn on_enter(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {
+        assert!(self.entity.is_some());
+    }
+
+    fn on_exit(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {
+        self.entity = None;
+    }
+
+    fn update(&mut self, data: &mut Data, _cell: &StateCell<Self::Data>) -> StateReturn {
+        if let Some(_ev) = self.logic(data) {
+            // TODO: publish event
+            StateReturn::ThisFrame(vec![StateCommand::Pop])
+        } else {
+            StateReturn::NextFrame(vec![])
+        }
+    }
+}
+
 impl PlayerState {
+    // TODO: apply change
     fn logic(&self, data: &mut Data) -> Option<DynEvent> {
         let vi = &data.res.vi;
         let (select, turn, rest, dir) = (
@@ -129,55 +153,43 @@ impl PlayerState {
         }
 
         if turn {
-            if let Some(dir) = self::find_only_neighbor(entity, &mut data.system.model) {
-                return Some(Box::new(DirChange {
+            if let Some(dir) = self::find_only_neighbor(entity, data.sys.model()) {
+                let chg = chg::DirChange {
                     entity,
                     dir,
-                    kind: DirChangeKind::Smooth,
-                }));
+                    kind: chg::DirChangeKind::Smooth,
+                };
+
+                data.sys
+                    .make_immediate_change(&mut data.gui.vm, &chg.upcast());
+                // TODO: sync GUI model
             }
         }
 
         if rest {
-            return Some(Box::new(RestOneTurn { entity }));
+            let ev = RestOneTurn { entity };
+            return Some(Box::new(ev));
         }
 
         if let Some(dir) = dir {
-            let ev: DynEvent = if data.res.vi.turn.is_down() {
-                Box::new(DirChange {
+            if data.res.vi.turn.is_down() {
+                // change direction without consuming turn
+                let chg = chg::DirChange {
                     entity,
                     dir,
-                    kind: DirChangeKind::Smooth,
-                })
+                    kind: chg::DirChangeKind::Smooth,
+                };
+
+                data.sys
+                    .make_immediate_change(&mut data.gui.vm, &chg.upcast());
+                // TODO: GUI is played automatically?
             } else {
                 // walk
-                Box::new(PlayerWalk { entity, dir })
+                let ev = PlayerWalk { entity, dir };
+                return Some(Box::new(ev));
             };
-
-            return Some(ev);
         }
 
         None
-    }
-}
-
-impl State for PlayerState {
-    type Data = Data;
-
-    fn on_enter(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {
-        assert!(self.entity.is_some());
-    }
-
-    fn on_exit(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {
-        self.entity = None;
-    }
-
-    fn update(&mut self, data: &mut Data, _cell: &StateCell<Self::Data>) -> StateReturn {
-        if let Some(_ev) = self.logic(data) {
-            // TODO: push event to the game system
-            StateReturn::ThisFrame(vec![StateCommand::Pop])
-        } else {
-            StateReturn::NextFrame(vec![])
-        }
     }
 }

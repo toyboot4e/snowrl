@@ -9,22 +9,33 @@ use std::any;
 
 use snow2d::utils::arena::{Arena, Index, Slot};
 
-/// Roguelike game system, template for implementing [`tick`](self::tick)
+/// Roguelike game system, callbacks for implementing [`tick`](self::tick)
 pub trait System {
     /// Internal event type of the roguelike game system
     type Event;
 
     type EventTree;
 
+    /// Primitive mutation to the game model
+    type Change;
+
     /// Actor type
     type Entity;
 
-    fn next_actor(&mut self) -> Index<Self::Entity>;
+    /// (tick)
+    fn _next_actor(&mut self) -> Index<Self::Entity>;
 
-    /// Decide actor action (UI | NonUI)
-    fn take_turn(&mut self, ix: Index<Self::Entity>) -> Option<EventData<Self::Event>>;
+    /// (tick) Decide actor action (UI | NonUI)
+    fn _take_turn(
+        &mut self,
+        ix: Index<Self::Entity>,
+    ) -> Option<EventData<Self::Event, Self::Change>>;
 
-    fn handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree) -> HandleResult;
+    /// (tick)
+    fn _handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree) -> HandleResult;
+
+    /// (tick) Applies the mutation to the game state
+    fn _apply_change(&mut self, chg: &Self::Change);
 }
 
 /// Return value of [`tick`](fn.tick.html)
@@ -42,17 +53,20 @@ where
     let mut tree = S::EventTree::default();
 
     loop {
-        let ix = sys.next_actor();
-        let ev = match sys.take_turn(ix) {
+        let ix = sys._next_actor();
+        let ev = match sys._take_turn(ix) {
             Some(ev) => ev,
             // next actor
             None => continue,
         };
 
         match ev {
-            EventData::NonUI(ev) => {
-                let _res = sys.handle_event(ev, &mut tree);
+            EventData::Action(ev) => {
+                let _res = sys._handle_event(ev, &mut tree);
                 // TODO: handle result?
+            }
+            EventData::Change(chg) => {
+                sys._apply_change(&chg);
             }
             EventData::UI(gui) => {
                 break TickResult {
@@ -76,17 +90,18 @@ impl HandleResult {
     }
 }
 
-/// `NonUI` | `UI`
+/// `Action` | `Change` | `UI`
 #[derive(Debug)]
-pub enum EventData<E> {
-    NonUI(E),
+pub enum EventData<E, C> {
+    Action(E),
+    Change(C),
     UI(UiEventTag),
 }
 
 /// Marker for UI event types
 pub trait UiEvent {}
 
-impl<E, T: UiEvent + 'static> From<T> for EventData<E> {
+impl<E, C, T: UiEvent + 'static> From<T> for EventData<E, C> {
     fn from(_ev: T) -> Self {
         Self::UI(UiEventTag {
             raw: any::type_name::<T>().to_string(),
@@ -94,13 +109,18 @@ impl<E, T: UiEvent + 'static> From<T> for EventData<E> {
     }
 }
 
-/// UI events are handled externally (by UI)
+/// UI events are just tags and handled externally (by UI)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UiEventTag {
     raw: String,
 }
 
 impl UiEventTag {
+    /// FIXME: Use derive to create hidden, unique ID
+    pub fn new(s: String) -> Self {
+        Self { raw: s }
+    }
+
     pub fn as_str(&self) -> &str {
         &self.raw
     }

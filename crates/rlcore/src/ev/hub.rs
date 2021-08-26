@@ -2,25 +2,26 @@
 Event handling based on the chain-of-responsibilities pattern
 */
 
+// TODO: separate change from event
+// TODO: add overridable logic functions
+
 use std::{
     any::{self, Any, TypeId},
+    cell::UnsafeCell,
     collections::HashMap,
     fmt,
     marker::PhantomData,
+    ops,
 };
 
 use snow2d::utils::Derivative;
 
 use crate::{
-    ev::Event,
+    ev::{Event, HubSystem},
     sys::{HandleResult, System},
 };
 
 pub type DynEvent = Box<dyn Event>;
-
-pub trait HubSystem: System {
-    type Context;
-}
 
 /// Event handler
 pub type HandlerT<T, C> = Box<dyn FnMut(&T, &mut C) -> Option<HandleResult>>;
@@ -29,10 +30,20 @@ pub type HandlerT<T, C> = Box<dyn FnMut(&T, &mut C) -> Option<HandleResult>>;
 type DynEventHandler<C> = Box<dyn FnMut(&DynEvent, &mut C) -> Option<HandleResult>>;
 
 /// Event handling system based on chain-of-responsibilities.
-#[derive(Debug, Default)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct EventHub<S: HubSystem> {
     handlers: CorHub<S>,
     _ty: PhantomData<fn() -> S>,
+}
+
+impl<S: HubSystem> Default for EventHub<S> {
+    fn default() -> Self {
+        Self {
+            handlers: CorHub::default(),
+            _ty: PhantomData,
+        }
+    }
 }
 
 impl<S: HubSystem + 'static> EventHub<S> {
@@ -43,9 +54,9 @@ impl<S: HubSystem + 'static> EventHub<S> {
     }
 
     /// Dispatches event handlers one by one based on the chain-of-reponsibilities pattern
-    pub fn handle(&mut self, ev: &DynEvent, hcx: &mut S::Context) -> HandleResult
+    pub fn handle(&mut self, ev: &DynEvent, args: &mut S::Args) -> HandleResult
     where
-        <S as HubSystem>::Context: 'static,
+        <S as HubSystem>::Args: 'static,
     {
         // event type ID
         let id = ev.type_id();
@@ -54,11 +65,10 @@ impl<S: HubSystem + 'static> EventHub<S> {
             .get_mut(id)
             .unwrap_or_else(|| panic!("Unable to find handler for event"));
 
-        cor.handle(ev, hcx)
+        cor.handle(ev, args)
     }
 }
 
-#[derive(Debug)]
 pub struct EventHubBuilder<S: HubSystem> {
     handlers: CorHub<S>,
     _ty: PhantomData<fn() -> S>,
@@ -67,7 +77,7 @@ pub struct EventHubBuilder<S: HubSystem> {
 impl<S: HubSystem> Default for EventHubBuilder<S> {
     fn default() -> Self {
         Self {
-            handlers: Default::default(),
+            handlers: CorHub::default(),
             _ty: PhantomData,
         }
     }
@@ -76,7 +86,7 @@ impl<S: HubSystem> Default for EventHubBuilder<S> {
 // TODO: set handler priority
 impl<S: HubSystem> EventHubBuilder<S>
 where
-    <S as HubSystem>::Context: 'static,
+    <S as HubSystem>::Args: 'static,
 {
     pub fn mutate(&mut self, mut mutator: impl FnMut(&mut Self)) -> &mut Self {
         (mutator)(self);
@@ -84,7 +94,7 @@ where
     }
 
     /// Registers a new type of event with default handler
-    pub fn ev_with<E: Event + 'static>(&mut self, hnd: HandlerT<E, S::Context>) -> &mut Self {
+    pub fn ev_with<E: Event + 'static>(&mut self, hnd: HandlerT<E, S::Args>) -> &mut Self {
         self.ev::<E>().hnd(hnd)
     }
 
@@ -95,7 +105,7 @@ where
     }
 
     /// Registers an event handler
-    pub fn hnd<E: Event + 'static>(&mut self, hnd: HandlerT<E, S::Context>) -> &mut Self {
+    pub fn hnd<E: Event + 'static>(&mut self, hnd: HandlerT<E, S::Args>) -> &mut Self {
         let id = TypeId::of::<E>();
 
         let handlers = self.handlers.get_mut(id).unwrap_or_else(|| {
@@ -120,15 +130,24 @@ where
 }
 
 /// Set of [`Cor`] for each event T
+// #[derive(Debug, Default)]
 #[derive(Derivative)]
-#[derivative(Debug, Default)]
+#[derivative(Debug)]
 struct CorHub<S: HubSystem> {
-    map: HashMap<TypeId, Cor<S::Context>>,
+    map: HashMap<TypeId, Cor<S::Args>>,
+}
+
+impl<S: HubSystem> Default for CorHub<S> {
+    fn default() -> Self {
+        Self {
+            map: Default::default(),
+        }
+    }
 }
 
 impl<S: HubSystem> CorHub<S>
 where
-    S::Context: 'static,
+    S::Args: 'static,
 {
     pub fn register_event_type<E>(&mut self)
     where
@@ -136,11 +155,11 @@ where
     {
         let dup = self
             .map
-            .insert(TypeId::of::<E>(), Cor::<S::Context>::new::<E>());
+            .insert(TypeId::of::<E>(), Cor::<S::Args>::new::<E>());
         assert!(dup.is_none());
     }
 
-    pub fn get(&self, id: TypeId) -> Option<&Cor<S::Context>> {
+    pub fn get(&self, id: TypeId) -> Option<&Cor<S::Args>> {
         match self.map.get(&id) {
             Some(cor) => {
                 assert_eq!(cor.ev_ty, id);
@@ -150,7 +169,7 @@ where
         }
     }
 
-    pub fn get_mut(&mut self, id: TypeId) -> Option<&mut Cor<S::Context>> {
+    pub fn get_mut(&mut self, id: TypeId) -> Option<&mut Cor<S::Args>> {
         match self.map.get_mut(&id) {
             Some(cor) => {
                 assert_eq!(cor.ev_ty, id);

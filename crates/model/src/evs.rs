@@ -9,36 +9,26 @@ use rlcore::{
     grid2d::Vec2i,
 };
 
-use crate::{entity::EntityModel, GameSystem};
+use crate::{chg, entity::EntityModel, GameSystem};
 
 /// Registers model events and default event handlers to [`EventHubBuilder`]
 pub fn builder_plugin(builder: &mut EventHubBuilder<GameSystem>) {
-    builder.ev_with(Box::new(|ev: &PosChange, model| {
-        let entity = &mut model.entities[ev.entity];
-        entity.pos = ev.pos;
-        if let Some(dir) = ev.dir.clone() {
-            entity.dir = dir;
-        }
+    builder.ev_with(Box::new(|ev: &PlayerWalk, args| {
+        let entity = &args.entities[ev.entity];
+        let pos = entity.pos + Vec2i::from(ev.dir);
+        let chg = chg::PosChange {
+            entity: ev.entity,
+            pos,
+            dir: Some(ev.dir),
+            kind: chg::PosChangeKind::Walk,
+        };
+        // args.make_change(chg);
+        // no chain
         None
     }));
-    builder.ev_with(Box::new(|ev: &DirChange, model| {
-        let entity = &mut model.entities[ev.entity];
-        entity.dir = ev.dir;
-        None
-    }));
-    // TODO: PlayerWalk event
-    builder.ev_with(Box::new(|_ev: &RestOneTurn, _model| None));
-}
 
-#[derive(Debug, Clone)]
-pub struct PosChange {
-    pub entity: Index<EntityModel>,
-    pub pos: Vec2i,
-    pub dir: Option<Dir8>,
-    pub kind: PosChangeKind,
+    builder.ev_with(Box::new(|_ev: &RestOneTurn, _args| None));
 }
-
-impl Event for PosChange {}
 
 #[derive(Debug, Clone)]
 pub struct PlayerWalk {
@@ -47,27 +37,6 @@ pub struct PlayerWalk {
 }
 
 impl Event for PlayerWalk {}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum PosChangeKind {
-    Walk,
-    Teleport,
-}
-
-#[derive(Debug, Clone)]
-pub struct DirChange {
-    pub entity: Index<EntityModel>,
-    pub dir: Dir8,
-    pub kind: DirChangeKind,
-}
-
-impl Event for DirChange {}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum DirChangeKind {
-    Immediate,
-    Smooth,
-}
 
 #[derive(Debug, Clone)]
 pub struct RestOneTurn {

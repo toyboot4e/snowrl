@@ -7,7 +7,7 @@ use snow2d::utils::arena::Index;
 use rlcore::{
     ev::{hub::EventHubBuilder, Event},
     grid2d::*,
-    sys::UiEvent,
+    sys::{UiEvent, UiEventTag},
 };
 
 use model::{
@@ -21,7 +21,7 @@ use model::{
 /// Registers model events and default event handlers to [`EventHubBuilder`]
 pub fn builder_plugin(builder: &mut EventHubBuilder<GameSystem>) {
     builder.ev_with(Box::new(|ev: &Interact, model| {
-        let es = &mut model.entities;
+        let es = &model.entities;
         let dir = ev.dir.unwrap_or_else(|| es[ev.entity].dir);
         let pos = es[ev.entity].pos + Vec2i::from(dir);
         let _target = match es.items().find(|e| e.pos == pos) {
@@ -45,15 +45,20 @@ impl Event for Interact {}
 // --------------------------------------------------------------------------------
 // AI
 
+/// Tag for AI and GUI event
+// TODO: add deriva event for generating the tag[s]
 pub struct PlayerAi;
 
 impl UiEvent for PlayerAi {}
 
 impl PlayerAi {
-    pub const TAG: AiTag = AiTag::new("player");
+    pub const AI: AiTag = AiTag::new("player");
+    /// TODO: pub const and easy match
+    pub const GUI: &'static str = "player-ai";
 
     /// Always yield [`PlayerAi`] UI event
     pub fn logic(_entity: Index<EntityModel>, _model: &mut Model) -> Option<EventData> {
-        Some(PlayerAi.into())
+        // FIXME: Don't alloc String
+        Some(EventData::UI(UiEventTag::new(Self::GUI.to_string())))
     }
 }

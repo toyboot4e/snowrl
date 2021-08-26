@@ -37,6 +37,7 @@ pub use rlcore::{
 };
 
 pub use model::{
+    chg,
     entity::{ActorStats, EntityModel, Relation},
     EventData, GameSystem, Model,
 };
