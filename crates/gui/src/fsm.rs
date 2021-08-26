@@ -4,6 +4,11 @@ Stack-based finite state machine
 [`Fsm`] is `HashMap<TypeId, Box<dyn State>>` + `VecDeque<TypeId>`. States can communiate with via [`StateCell`].
 */
 
+// FIXME: Better StateReturn API
+
+#[cfg(test)]
+mod test;
+
 use std::{
     any::{self, TypeId},
     cell::UnsafeCell,
@@ -230,6 +235,20 @@ impl<D: 'static> Fsm<D> {
         state: S,
     ) -> Option<BoxState<D>> {
         self.states.insert(TypeId::of::<S>(), Box::new(state))
+    }
+
+    /// Tries to retrieve the state of type `S` from the storage
+    pub fn get<S: State<Data = D> + 'static + Sized>(&self) -> Option<&S> {
+        self.states
+            .get(&TypeId::of::<S>())
+            .and_then(|b| b.downcast_ref())
+    }
+
+    /// Tries to retrieve the state of type `S` from the storage
+    pub fn get_mut<S: State<Data = D> + 'static + Sized>(&mut self) -> Option<&mut S> {
+        self.states
+            .get_mut(&TypeId::of::<S>())
+            .and_then(|b| b.downcast_mut())
     }
 
     /// Pushes an existing state to the stack

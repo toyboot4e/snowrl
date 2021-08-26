@@ -167,7 +167,7 @@ mod test {
         let src = "aa   :macro[aaaaaaaa] end";
         //         0         1         2         3
         //         0 2 4 6 8 0 2 4 6 8 0 2 4 6 8 0
-        let tks = Tokenizer::tokenize(src).unwrap();
+        let tks = tokenize(src).unwrap();
 
         assert_eq!(&tks[0], &Token::Text(TextToken { slice: &src[0..5] }));
 

@@ -7,18 +7,16 @@ Event handling based on the chain-of-responsibilities pattern
 
 use std::{
     any::{self, Any, TypeId},
-    cell::UnsafeCell,
     collections::HashMap,
     fmt,
     marker::PhantomData,
-    ops,
 };
 
 use snow2d::utils::Derivative;
 
 use crate::{
     ev::{Event, HubSystem},
-    sys::{HandleResult, System},
+    sys::HandleResult,
 };
 
 pub type DynEvent = Box<dyn Event>;
