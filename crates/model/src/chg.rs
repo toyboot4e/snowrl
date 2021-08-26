@@ -45,7 +45,7 @@ macro_rules! def_change {
     }
 }
 
-def_change!(PosChange, DirChange);
+def_change!(PosChange, DirChange, OpaqueChange);
 
 impl Change {
     /// NOTE: Change will not be chained other changes
@@ -60,10 +60,14 @@ impl Change {
                 let entity = &mut model.entities[chg.entity];
                 entity.dir = chg.dir;
             }
+            Self::OpaqueChange(chg) => {
+                (chg.proc)(model);
+            }
         }
     }
 }
 
+/// Changes entity's position and optionally direction
 #[derive(Debug, Clone)]
 pub struct PosChange {
     pub entity: Index<EntityModel>,
@@ -78,6 +82,7 @@ pub enum PosChangeKind {
     Teleport,
 }
 
+/// Changes entity's direction
 #[derive(Debug, Clone)]
 pub struct DirChange {
     pub entity: Index<EntityModel>,
@@ -89,4 +94,9 @@ pub struct DirChange {
 pub enum DirChangeKind {
     Immediate,
     Smooth,
+}
+
+/// Change to the game world by a closure
+pub struct OpaqueChange {
+    pub proc: Box<dyn Fn(&mut Model)>,
 }
