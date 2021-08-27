@@ -29,7 +29,7 @@ pub struct ActorType {
     pub stats: ActorStats,
 }
 
-/// Create [`Actor`] easily
+/// Create actor easily
 #[derive(Debug, Clone, Serialize, Deserialize, Inspect)]
 pub struct ActorSpawn {
     pub type_id: TypeObjectId<ActorType>,

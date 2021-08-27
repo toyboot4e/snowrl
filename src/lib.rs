@@ -1,5 +1,5 @@
 /*!
-SnowRL is a turn-based roguelike game
+SnowRL the roguelike game
 */
 
 #![feature(const_raw_ptr_deref)]

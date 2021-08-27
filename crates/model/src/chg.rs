@@ -5,6 +5,8 @@ Each change to the game model is synced to another game model owned by view, whi
 visualization. This pattern almost completely decouples time of model and time of view.
 */
 
+use std::fmt;
+
 use snow2d::utils::arena::Index;
 
 use rlcore::grid2d::*;
@@ -27,6 +29,7 @@ macro_rules! impl_from {
             }
         }
     };
+
     ($ty:ident, $($x:ident),* $(,)?) => {
         impl_from!($ty);
         impl_from!($($x),*);
@@ -35,6 +38,8 @@ macro_rules! impl_from {
 
 macro_rules! def_change {
     ($($ty:ident),* $(,)?) => {
+        /// One of the mutation types to the game model
+        #[derive(Debug)]
         pub enum Change {
             $(
                 $ty($ty),
@@ -99,4 +104,10 @@ pub enum DirChangeKind {
 /// Change to the game world by a closure
 pub struct OpaqueChange {
     pub proc: Box<dyn Fn(&mut Model)>,
+}
+
+impl fmt::Debug for OpaqueChange {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("OpaqueChange").finish()
+    }
 }

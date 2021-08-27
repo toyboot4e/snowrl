@@ -3,23 +3,18 @@ Event system
 */
 
 pub mod hub;
-pub mod tree;
 
-use std::fmt;
+use std::{fmt, ops};
+
+use crate::sys::System;
 
 use downcast_rs::Downcast;
 use dyn_clone::DynClone;
 
 /// Upcasted event
 pub trait Event: fmt::Debug + DynClone + Downcast {}
-
 downcast_rs::impl_downcast!(Event);
-
 dyn_clone::clone_trait_object!(Event);
-
-use std::ops;
-
-use crate::{ev::tree::EventBuilder, sys::System};
 
 /// Roguelike game model
 ///
@@ -31,44 +26,47 @@ pub trait Model {
 
 /// Event builder + read-only access to model
 #[derive(Debug)]
-pub struct SystemArgs<M> {
-    builder: EventBuilder,
-    model: M,
+pub struct SystemArgs<S: System> {
+    model: S::Model,
+    tree: S::EventTree,
 }
 
-impl<M: Model> SystemArgs<M> {
-    pub fn make_change(&mut self, chg: &M::Change) {
-        self.model.apply_change(&chg);
-    }
-}
-
-impl<M> SystemArgs<M> {
-    pub fn new(model: M) -> Self {
+impl<S: System> SystemArgs<S> {
+    pub fn new(model: S::Model) -> Self
+    where
+        S::EventTree: Default,
+    {
         Self {
-            builder: EventBuilder::default(),
             model,
+            tree: Default::default(),
         }
     }
+}
 
-    pub fn retrieve(self) -> (M, EventBuilder) {
-        (self.model, self.builder)
-    }
-
-    pub fn model(&self) -> &M {
+impl<S: System> SystemArgs<S> {
+    pub fn model(&self) -> &S::Model {
         &self.model
     }
 
-    pub fn tree(&mut self) -> &EventBuilder {
-        &self.builder
+    pub fn make_change(&mut self, chg: &<<S as System>::Model as self::Model>::Change) {
+        self.model.apply_change(&chg);
     }
 
-    pub fn tree_mut(&mut self) -> &mut EventBuilder {
-        &mut self.builder
+    pub fn retrieve(self) -> (S::Model, S::EventTree) {
+        (self.model, self.tree)
+    }
+
+    pub fn tree(&mut self) -> &S::EventTree {
+        &self.tree
+    }
+
+    pub fn tree_mut(&mut self) -> &mut S::EventTree {
+        &mut self.tree
     }
 }
 
-impl<M> ops::Deref for SystemArgs<M> {
-    type Target = M;
+impl<S: System> ops::Deref for SystemArgs<S> {
+    type Target = S::Model;
     fn deref(&self) -> &Self::Target {
         &self.model
     }

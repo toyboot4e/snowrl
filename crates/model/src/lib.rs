@@ -13,33 +13,38 @@ use std::{collections::HashMap, fmt};
 
 use snow2d::utils::arena::{Arena, Index};
 
-use rlcore::{
-    ev::{tree::EventTree, SystemArgs},
-    sys::ActorSlot,
-};
+use rlcore::{ev::SystemArgs, sys::ActorSlot};
 
 use crate::{entity::*, map::MapModel};
 
-/// Upcasted event data
+/// [`Change`](chg::Change) | [`Event`](DynEvent) | [`UI`](rlcore::sys::UiEventTag)
 pub type EventData = rlcore::sys::EventData<DynEvent, chg::Change>;
 
+/// Tree of events, used by UI for synchronization and visualization
+pub type EventTree = snow2d::utils::arena::Arena<EventData>;
+
+/// Hub of events, where you register your events and event handlers
+pub type EventHub = rlcore::ev::hub::EventHub<GameSystem>;
+
 /// Event hub builder, where you register your events and event handlers
-pub type EventHubBuilder = rlcore::ev::hub::EventHubBuilder<Model>;
+pub type EventHubBuilder = rlcore::ev::hub::EventHubBuilder<GameSystem>;
 
-pub type EventHub = rlcore::ev::hub::EventHub<Model>;
+/// Upcasted event that is dispatched handlers
+pub use rlcore::ev::hub::DynEvent;
 
-pub use rlcore::ev::hub::{DynEvent, HandleResult};
+/// Event handling result
+pub use rlcore::ev::hub::HandleResult;
 
-/// Roguelike game system than can be [`tick`](rlcore::tick)ed
+/// Roguelike game system
 #[derive(Debug)]
 pub struct GameSystem {
     /// Turn-based game state
     slot: ActorSlot,
     /// Internal game state
     model: Model,
-    /// Event handling dispatcher
+    /// Dispatcher of event handlers
     pub hub: EventHub,
-    /// Behavior logic dispatcher
+    /// Dispacher of behavior logics
     pub ais: AiHub,
 }
 
@@ -68,7 +73,7 @@ impl GameSystem {
     pub fn publish(&mut self, ev: DynEvent) {
         use rlcore::sys::System;
         let mut tree = EventTree::default();
-        let res = self._handle_event(ev, &mut tree);
+        self._handle_event(ev, &mut tree);
     }
 }
 
@@ -76,7 +81,7 @@ impl rlcore::sys::System for GameSystem {
     type Event = DynEvent;
     type EventTree = EventTree;
     type Entity = EntityModel;
-    type Change = chg::Change;
+    type Model = Model;
 
     fn _next_actor(&mut self) -> Index<Self::Entity> {
         self.slot.next(&mut self.model.entities).unwrap()
@@ -100,7 +105,7 @@ impl rlcore::sys::System for GameSystem {
     }
 
     /// Applies the mutation to the game state
-    fn _apply_change(&mut self, chg: &Self::Change) {
+    fn _apply_change(&mut self, chg: &chg::Change) {
         use rlcore::ev::Model;
         self.model.apply_change(chg);
     }
@@ -109,7 +114,7 @@ impl rlcore::sys::System for GameSystem {
 /// Upcasted AI logic
 pub type AiLogic = Box<dyn FnMut(Index<EntityModel>, &mut Model) -> Option<EventData>>;
 
-/// Dispatches AI logic to [`AiTag`]
+/// Dispacher of behavior logics
 #[derive(Default)]
 pub struct AiHub {
     logics: HashMap<AiTag, AiLogic>,
@@ -146,7 +151,7 @@ impl AiHub {
     }
 }
 
-/// Internal game state of SnowRL
+/// Roguelike game model
 #[derive(Debug, Clone, Default)]
 pub struct Model {
     pub entities: Arena<EntityModel>,

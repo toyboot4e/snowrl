@@ -23,7 +23,7 @@ pub type BoxState<D> = Box<dyn State<Data = D>>;
 type States<D> = HashMap<TypeId, BoxState<D>>;
 
 /// Game state lifecycle
-pub trait State: std::fmt::Debug + DowncastSync {
+pub trait State: std::fmt::Debug + Downcast {
     type Data;
     fn on_enter(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
     fn on_exit(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
@@ -36,7 +36,7 @@ pub trait State: std::fmt::Debug + DowncastSync {
     ) -> StateReturn<Self::Data>;
 }
 
-impl_downcast!(sync State assoc Data);
+impl_downcast!(State assoc Data);
 
 /// Mutable access to multiple states. Panics when trying to borrow the same state twice (mutably
 /// or immutably). TODO: Tolerant the rule to match to the Rust's standard.

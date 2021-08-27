@@ -1,5 +1,5 @@
 /*!
-Events
+Event types
 */
 
 use snow2d::{input::Dir8, utils::arena::Index};
@@ -12,10 +12,10 @@ use rlcore::{
     grid2d::Vec2i,
 };
 
-use crate::{chg, entity::EntityModel, Model};
+use crate::{chg, entity::EntityModel, GameSystem};
 
 /// Registers model events and default event handlers to [`EventHubBuilder`]
-pub fn builder_plugin(builder: &mut EventHubBuilder<Model>) {
+pub fn builder_plugin(builder: &mut EventHubBuilder<GameSystem>) {
     builder.ev_with(Box::new(|ev: &PlayerWalk, args| {
         let entity = &args.entities[ev.entity];
         let pos = entity.pos + Vec2i::from(ev.dir);

@@ -1,5 +1,5 @@
 /*!
-Entity type and components
+Entity model and components
 */
 
 use std::{borrow::Borrow, borrow::Cow};

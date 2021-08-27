@@ -6,7 +6,7 @@ use std::any::TypeId;
 
 use snow2d::utils::arena::Slot;
 
-use model::evs::*;
+use model::{evs::*, EventTree};
 
 use gui::{content::*, prelude::*};
 
@@ -26,6 +26,8 @@ impl State for TickState {
 
         let res = rlcore::sys::tick(&mut data.sys);
         if !res.tree.is_empty() {
+            let sync = cell.get_mut::<GuiSync>().unwrap();
+            sync.tree = res.tree;
             states.push(StateCommand::Push(TypeId::of::<GuiSync>()));
         }
 
@@ -58,7 +60,8 @@ impl State for TickState {
 /// State for syncing the view model to the internal model
 #[derive(Debug, Default)]
 pub struct GuiSync {
-    //
+    // TODO: Swap buffer
+    tree: EventTree,
 }
 
 impl State for GuiSync {
@@ -109,7 +112,7 @@ impl State for PlayerState {
 
     fn update(&mut self, data: &mut Data, _cell: &StateCell<Self::Data>) -> StateReturn {
         if let Some(ev) = self.logic(data) {
-            // TODO: Come back when it doesn't consume turn
+            // TODO: Come back when it doesn't consume turn by looking into the tree?
             data.sys.publish(ev);
             StateReturn::ThisFrame(vec![StateCommand::Pop])
         } else {

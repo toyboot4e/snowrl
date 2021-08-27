@@ -14,10 +14,9 @@ pub trait System {
     /// Internal event type of the roguelike game system
     type Event;
 
-    type EventTree;
+    type Model: crate::ev::Model;
 
-    /// Primitive mutation to the game model
-    type Change;
+    type EventTree;
 
     /// Actor type
     type Entity;
@@ -29,13 +28,13 @@ pub trait System {
     fn _take_turn(
         &mut self,
         ix: Index<Self::Entity>,
-    ) -> Option<EventData<Self::Event, Self::Change>>;
+    ) -> Option<EventData<Self::Event, <Self::Model as crate::ev::Model>::Change>>;
 
     /// (tick)
     fn _handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree);
 
     /// (tick) Applies the mutation to the game state
-    fn _apply_change(&mut self, chg: &Self::Change);
+    fn _apply_change(&mut self, chg: &<Self::Model as crate::ev::Model>::Change);
 }
 
 /// Return value of [`tick`](fn.tick.html)
@@ -117,7 +116,7 @@ impl UiEventTag {
     }
 }
 
-/// Utility for implementing [`System::next_actor`]
+/// Utility for implementing [`System::_next_actor`]
 #[derive(Debug, Clone, Default)]
 pub struct ActorSlot {
     slot: Slot,
