@@ -9,7 +9,7 @@ use std::any;
 
 use snow2d::utils::arena::{Arena, Index, Slot};
 
-/// Roguelike game system, callbacks for implementing [`tick`](self::tick)
+/// Roguelike game system
 pub trait System {
     /// Internal event type of the roguelike game system
     type Event;
@@ -32,7 +32,7 @@ pub trait System {
     ) -> Option<EventData<Self::Event, Self::Change>>;
 
     /// (tick)
-    fn _handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree) -> HandleResult;
+    fn _handle_event(&mut self, ev: Self::Event, tree: &mut Self::EventTree);
 
     /// (tick) Applies the mutation to the game state
     fn _apply_change(&mut self, chg: &Self::Change);
@@ -78,23 +78,14 @@ where
     }
 }
 
-/// Event handling result
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
-pub struct HandleResult {
-    pub is_turn_consuming: bool,
-}
-
-impl HandleResult {
-    pub fn gui() -> Self {
-        Self::default()
-    }
-}
-
 /// `Action` | `Change` | `UI`
 #[derive(Debug)]
 pub enum EventData<E, C> {
+    /// Action event is something that is dispatched handler
     Action(E),
+    /// Change is a mutation to the game world
     Change(C),
+    /// UI events are tags and handled externally by UI
     UI(UiEventTag),
 }
 

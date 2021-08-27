@@ -14,28 +14,31 @@ use std::{
 
 use snow2d::utils::Derivative;
 
-use crate::{
-    ev::{Event, HubSystem},
-    sys::HandleResult,
-};
+use crate::ev::{Event, SystemArgs};
 
 pub type DynEvent = Box<dyn Event>;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum HandleResult {
+    Handled,
+    NotHandled,
+}
+
 /// Event handler
-pub type HandlerT<T, C> = Box<dyn FnMut(&T, &mut C) -> Option<HandleResult>>;
+pub type HandlerT<T, C> = Box<dyn FnMut(&T, &mut C) -> HandleResult>;
 
 /// Event handler in storage
-type DynEventHandler<C> = Box<dyn FnMut(&DynEvent, &mut C) -> Option<HandleResult>>;
+type DynEventHandler<C> = Box<dyn FnMut(&DynEvent, &mut C) -> HandleResult>;
 
 /// Event handling system based on chain-of-responsibilities.
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct EventHub<S: HubSystem> {
-    handlers: CorHub<S>,
-    _ty: PhantomData<fn() -> S>,
+pub struct EventHub<M> {
+    handlers: CorHub<M>,
+    _ty: PhantomData<fn() -> M>,
 }
 
-impl<S: HubSystem> Default for EventHub<S> {
+impl<M> Default for EventHub<M> {
     fn default() -> Self {
         Self {
             handlers: CorHub::default(),
@@ -44,18 +47,15 @@ impl<S: HubSystem> Default for EventHub<S> {
     }
 }
 
-impl<S: HubSystem + 'static> EventHub<S> {
-    pub fn build(mut mutator: impl FnMut(&mut EventHubBuilder<S>)) -> EventHub<S> {
+impl<M: 'static> EventHub<M> {
+    pub fn build(mut mutator: impl FnMut(&mut EventHubBuilder<M>)) -> EventHub<M> {
         let mut builder = EventHubBuilder::default();
         (mutator)(&mut builder);
         builder.build_hub()
     }
 
     /// Dispatches event handlers one by one based on the chain-of-reponsibilities pattern
-    pub fn handle(&mut self, ev: &DynEvent, args: &mut S::Args) -> HandleResult
-    where
-        <S as HubSystem>::Args: 'static,
-    {
+    pub fn handle(&mut self, ev: &DynEvent, args: &mut SystemArgs<M>) {
         // event type ID
         let id = ev.type_id();
         let cor = self
@@ -67,12 +67,12 @@ impl<S: HubSystem + 'static> EventHub<S> {
     }
 }
 
-pub struct EventHubBuilder<S: HubSystem> {
-    handlers: CorHub<S>,
-    _ty: PhantomData<fn() -> S>,
+pub struct EventHubBuilder<M> {
+    handlers: CorHub<M>,
+    _ty: PhantomData<fn() -> M>,
 }
 
-impl<S: HubSystem> Default for EventHubBuilder<S> {
+impl<M> Default for EventHubBuilder<M> {
     fn default() -> Self {
         Self {
             handlers: CorHub::default(),
@@ -81,18 +81,14 @@ impl<S: HubSystem> Default for EventHubBuilder<S> {
     }
 }
 
-// TODO: set handler priority
-impl<S: HubSystem> EventHubBuilder<S>
-where
-    <S as HubSystem>::Args: 'static,
-{
+impl<M: 'static> EventHubBuilder<M> {
     pub fn mutate(&mut self, mut mutator: impl FnMut(&mut Self)) -> &mut Self {
         (mutator)(self);
         self
     }
 
     /// Registers a new type of event with default handler
-    pub fn ev_with<E: Event + 'static>(&mut self, hnd: HandlerT<E, S::Args>) -> &mut Self {
+    pub fn ev_with<E: Event + 'static>(&mut self, hnd: HandlerT<E, SystemArgs<M>>) -> &mut Self {
         self.ev::<E>().hnd(hnd)
     }
 
@@ -103,7 +99,7 @@ where
     }
 
     /// Registers an event handler
-    pub fn hnd<E: Event + 'static>(&mut self, hnd: HandlerT<E, S::Args>) -> &mut Self {
+    pub fn hnd<E: Event + 'static>(&mut self, hnd: HandlerT<E, SystemArgs<M>>) -> &mut Self {
         let id = TypeId::of::<E>();
 
         let handlers = self.handlers.get_mut(id).unwrap_or_else(|| {
@@ -119,7 +115,7 @@ where
         self
     }
 
-    pub fn build_hub(self) -> EventHub<S> {
+    pub fn build_hub(self) -> EventHub<M> {
         EventHub {
             handlers: self.handlers,
             _ty: PhantomData,
@@ -131,11 +127,11 @@ where
 // #[derive(Debug, Default)]
 #[derive(Derivative)]
 #[derivative(Debug)]
-struct CorHub<S: HubSystem> {
-    map: HashMap<TypeId, Cor<S::Args>>,
+struct CorHub<M> {
+    map: HashMap<TypeId, Cor<SystemArgs<M>>>,
 }
 
-impl<S: HubSystem> Default for CorHub<S> {
+impl<M> Default for CorHub<M> {
     fn default() -> Self {
         Self {
             map: Default::default(),
@@ -143,21 +139,18 @@ impl<S: HubSystem> Default for CorHub<S> {
     }
 }
 
-impl<S: HubSystem> CorHub<S>
-where
-    S::Args: 'static,
-{
+impl<M: 'static> CorHub<M> {
     pub fn register_event_type<E>(&mut self)
     where
         E: Event + 'static,
     {
         let dup = self
             .map
-            .insert(TypeId::of::<E>(), Cor::<S::Args>::new::<E>());
+            .insert(TypeId::of::<E>(), Cor::<SystemArgs<M>>::new::<E>());
         assert!(dup.is_none());
     }
 
-    pub fn get(&self, id: TypeId) -> Option<&Cor<S::Args>> {
+    pub fn get(&self, id: TypeId) -> Option<&Cor<SystemArgs<M>>> {
         match self.map.get(&id) {
             Some(cor) => {
                 assert_eq!(cor.ev_ty, id);
@@ -167,7 +160,7 @@ where
         }
     }
 
-    pub fn get_mut(&mut self, id: TypeId) -> Option<&mut Cor<S::Args>> {
+    pub fn get_mut(&mut self, id: TypeId) -> Option<&mut Cor<SystemArgs<M>>> {
         match self.map.get_mut(&id) {
             Some(cor) => {
                 assert_eq!(cor.ev_ty, id);
@@ -185,14 +178,14 @@ struct Cor<C> {
     ev_ty: TypeId,
 }
 
-impl<C> fmt::Debug for Cor<C> {
+impl<A> fmt::Debug for Cor<A> {
     // TODO: better debug print
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Cor<C>").field("ty", &self.ev_ty).finish()
     }
 }
 
-impl<C: 'static> Cor<C> {
+impl<A: 'static> Cor<A> {
     pub fn new<T: Event + 'static>() -> Self {
         Self {
             raw: Vec::new(),
@@ -200,27 +193,28 @@ impl<C: 'static> Cor<C> {
         }
     }
 
-    pub fn register_handler<T: Event + 'static>(&mut self, mut concrete_handler: HandlerT<T, C>) {
+    pub fn register_handler<T: Event + 'static>(&mut self, mut concrete_handler: HandlerT<T, A>) {
         assert_eq!(self.ev_ty, TypeId::of::<T>());
 
         // wrap the concrete-event handler
-        let abstract_handler = move |abstract_event: &DynEvent, context: &mut C| {
+        let abstract_handler = move |abstract_event: &DynEvent, args: &mut A| {
             let concrete_event = abstract_event
                 .as_any()
                 .downcast_ref::<T>()
                 .unwrap_or_else(|| {
                     unreachable!("Unable to cast event to type {}", any::type_name::<T>())
                 });
-            (concrete_handler)(concrete_event, context)
+            (concrete_handler)(concrete_event, args)
         };
 
         self.raw.push(Box::new(abstract_handler));
     }
 
-    pub fn handle(&mut self, ev: &DynEvent, hcx: &mut C) -> HandleResult {
+    pub fn handle(&mut self, ev: &DynEvent, hcx: &mut A) {
         for hnd in self.raw.iter_mut().rev() {
-            if let Some(res) = (hnd)(ev, hcx) {
-                return res;
+            match (hnd)(ev, hcx) {
+                HandleResult::Handled => return,
+                HandleResult::NotHandled => {}
             }
         }
 

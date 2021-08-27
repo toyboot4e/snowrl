@@ -21,11 +21,9 @@ use std::ops;
 
 use crate::{ev::tree::EventBuilder, sys::System};
 
-/// Framework
-pub trait HubSystem: System {
-    type Args;
-}
-
+/// Roguelike game model
+///
+/// One `Model` can synced to another by applying changes over time.
 pub trait Model {
     type Change;
     fn apply_change(&mut self, chg: &Self::Change);
@@ -40,7 +38,7 @@ pub struct SystemArgs<M> {
 
 impl<M: Model> SystemArgs<M> {
     pub fn make_change(&mut self, chg: &M::Change) {
-        self.model.apply_change(chg);
+        self.model.apply_change(&chg);
     }
 }
 

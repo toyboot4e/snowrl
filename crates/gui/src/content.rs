@@ -5,31 +5,33 @@ Game content in GUI world
 use snow2d::utils::arena::Index;
 
 use rlcore::{
-    ev::{hub::EventHubBuilder, Event},
+    ev::Event,
     grid2d::*,
     sys::{UiEvent, UiEventTag},
 };
 
 use model::{
     entity::{AiTag, EntityModel},
-    EventData, GameSystem, Model,
+    EventData, EventHubBuilder, HandleResult, Model,
 };
 
 // --------------------------------------------------------------------------------
 // Event
 
 /// Registers model events and default event handlers to [`EventHubBuilder`]
-pub fn builder_plugin(builder: &mut EventHubBuilder<GameSystem>) {
-    builder.ev_with(Box::new(|ev: &Interact, model| {
-        let es = &model.entities;
+pub fn builder_plugin(builder: &mut EventHubBuilder) {
+    builder.ev_with(Box::new(|ev: &Interact, args| {
+        let es = &args.entities;
         let dir = ev.dir.unwrap_or_else(|| es[ev.entity].dir);
         let pos = es[ev.entity].pos + Vec2i::from(dir);
+
         let _target = match es.items().find(|e| e.pos == pos) {
             Some(e) => e,
-            None => return None,
+            None => return HandleResult::Handled,
         };
+
         // TODO: interaction handling
-        None
+        HandleResult::Handled
     }));
 }
 

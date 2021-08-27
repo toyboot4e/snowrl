@@ -14,12 +14,8 @@ use std::{collections::HashMap, fmt};
 use snow2d::utils::arena::{Arena, Index};
 
 use rlcore::{
-    ev::{
-        hub::{DynEvent, EventHub},
-        tree::EventTree,
-        HubSystem, SystemArgs,
-    },
-    sys::{ActorSlot, HandleResult},
+    ev::{tree::EventTree, SystemArgs},
+    sys::ActorSlot,
 };
 
 use crate::{entity::*, map::MapModel};
@@ -28,7 +24,11 @@ use crate::{entity::*, map::MapModel};
 pub type EventData = rlcore::sys::EventData<DynEvent, chg::Change>;
 
 /// Event hub builder, where you register your events and event handlers
-pub type EventHubBuilder = rlcore::ev::hub::EventHubBuilder<GameSystem>;
+pub type EventHubBuilder = rlcore::ev::hub::EventHubBuilder<Model>;
+
+pub type EventHub = rlcore::ev::hub::EventHub<Model>;
+
+pub use rlcore::ev::hub::{DynEvent, HandleResult};
 
 /// Roguelike game system than can be [`tick`](rlcore::tick)ed
 #[derive(Debug)]
@@ -38,7 +38,7 @@ pub struct GameSystem {
     /// Internal game state
     model: Model,
     /// Event handling dispatcher
-    pub hub: EventHub<Self>,
+    pub hub: EventHub,
     /// Behavior logic dispatcher
     pub ais: AiHub,
 }
@@ -63,6 +63,13 @@ impl GameSystem {
         self.model.apply_change(chg);
         vm.apply_change(chg);
     }
+
+    /// Publish game event from external
+    pub fn publish(&mut self, ev: DynEvent) {
+        use rlcore::sys::System;
+        let mut tree = EventTree::default();
+        let res = self._handle_event(ev, &mut tree);
+    }
 }
 
 impl rlcore::sys::System for GameSystem {
@@ -81,17 +88,15 @@ impl rlcore::sys::System for GameSystem {
         self.ais.take_turn(&ai, ix, &mut self.model)
     }
 
-    fn _handle_event(&mut self, ev: Self::Event, _tree: &mut Self::EventTree) -> HandleResult {
+    fn _handle_event(&mut self, ev: Self::Event, _tree: &mut Self::EventTree) {
         // TODO: Don't swap.
         let mut model = Model::default();
         std::mem::swap(&mut model, &mut self.model);
         let mut args = SystemArgs::new(model);
 
-        let res = self.hub.handle(&ev, &mut args);
+        self.hub.handle(&ev, &mut args);
         let (model, _builder) = args.retrieve();
         self.model = model;
-
-        res
     }
 
     /// Applies the mutation to the game state
@@ -99,10 +104,6 @@ impl rlcore::sys::System for GameSystem {
         use rlcore::ev::Model;
         self.model.apply_change(chg);
     }
-}
-
-impl HubSystem for GameSystem {
-    type Args = SystemArgs<Model>;
 }
 
 /// Upcasted AI logic

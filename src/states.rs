@@ -15,30 +15,10 @@ pub type StateCommand = fsm::StateCommand<Data>;
 
 /// State for ticking the internal game state
 #[derive(Debug, Default)]
-pub struct TickState {
-    // game_loop: GameLoop,
-    current_frame_count: u64,
-    last_frame_on_tick: u64,
-}
+pub struct TickState;
 
 impl State for TickState {
     type Data = Data;
-
-    fn on_enter(&mut self, _data: &mut Data, _cell: &StateCell<Self::Data>) {
-        //
-    }
-
-    fn on_exit(&mut self, _data: &mut Data, _cell: &StateCell<Self::Data>) {
-        //
-    }
-
-    fn on_stop(&mut self, _data: &mut Data, _cell: &StateCell<Self::Data>) {
-        //
-    }
-
-    fn event(&mut self, _data: &mut Data, _cell: &StateCell<Self::Data>) {
-        //
-    }
 
     fn update(&mut self, data: &mut Data, cell: &StateCell<Self::Data>) -> StateReturn {
         log::trace!("tick-update");
@@ -49,6 +29,7 @@ impl State for TickState {
             states.push(StateCommand::Push(TypeId::of::<GuiSync>()));
         }
 
+        // handle GUI event
         if let Some(tag) = res.gui {
             // TODO: const match
             match tag.as_str() {
@@ -61,6 +42,7 @@ impl State for TickState {
                         .upgrade(Slot::from_raw(0))
                         .unwrap();
                     pl.entity = Some(pl_ix);
+
                     states.push(StateCommand::Push(TypeId::of::<PlayerState>()))
                 }
                 _ => {
@@ -126,8 +108,9 @@ impl State for PlayerState {
     }
 
     fn update(&mut self, data: &mut Data, _cell: &StateCell<Self::Data>) -> StateReturn {
-        if let Some(_ev) = self.logic(data) {
-            // TODO: publish event
+        if let Some(ev) = self.logic(data) {
+            // TODO: Come back when it doesn't consume turn
+            data.sys.publish(ev);
             StateReturn::ThisFrame(vec![StateCommand::Pop])
         } else {
             StateReturn::NextFrame(vec![])
@@ -160,9 +143,9 @@ impl PlayerState {
                     kind: chg::DirChangeKind::Smooth,
                 };
 
+                // NOTE: DirChange is visualized automatically!
                 data.sys
                     .make_immediate_change(&mut data.gui.vm, &chg.upcast());
-                // TODO: sync GUI model
             }
         }
 
@@ -180,9 +163,9 @@ impl PlayerState {
                     kind: chg::DirChangeKind::Smooth,
                 };
 
+                // NOTE: DirChange is visualized automatically!
                 data.sys
                     .make_immediate_change(&mut data.gui.vm, &chg.upcast());
-                // TODO: GUI is played automatically?
             } else {
                 // walk
                 let ev = PlayerWalk { entity, dir };
