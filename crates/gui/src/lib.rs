@@ -1,14 +1,16 @@
 /*!
-SnowRL GUI application framework ([`core`] > [`model`] > [`view`] > `gui`)
+SnowRL GUI application framework
 
-TODO: rename rlview to view
+Dependencies: `gui` → [`view`] → [`model`] → [`rlcore`] → [`snow2d`]
 */
 
 #![feature(drain_filter)]
 
-pub use model;
-pub use rlcore;
-pub use view;
+pub extern crate model;
+pub extern crate rlcore;
+pub extern crate view;
+
+pub extern crate snow2d;
 
 pub mod content;
 pub mod fsm;

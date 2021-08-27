@@ -2,7 +2,7 @@
 SnowRL internal game states
 */
 
-pub extern crate core;
+pub extern crate rlcore;
 
 pub mod chg;
 pub mod entity;

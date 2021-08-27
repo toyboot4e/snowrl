@@ -1,9 +1,9 @@
 /*!
-SnowRL GUI component
+View to the game model
 */
 
-pub extern crate model;
 pub extern crate core;
+pub extern crate model;
 pub extern crate snow2d;
 
 pub mod render;

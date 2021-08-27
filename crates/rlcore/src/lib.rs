@@ -1,5 +1,7 @@
 /*!
 Framework of roguelike games with orthogonal grid map
+
+`rlcore` is the based to be wrapped by a more concrete crate.
 */
 
 pub mod ev;

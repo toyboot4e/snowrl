@@ -114,15 +114,18 @@ mod impl_ {
     }
 }
 
-/// Component of rendering schedule
+/// Drawing stage for rendering schedule
 #[derive(Debug, Clone, Copy)]
 pub enum DrawStage {
+    /// Specific UI (sprite) layer
     UiLayer(UiLayer),
     /// Down parts of the map
     MapDown,
     /// Up parts of the map
     MapUp,
+    /// FoV/FoW
     Shadow,
+    /// FoV/The snow shadery
     Snow,
     /// Clear screen with cornflower blue
     ClearScreen,

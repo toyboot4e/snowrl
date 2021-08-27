@@ -15,7 +15,7 @@ use snow2d::{
 
 use model::map::MapModel;
 
-/// Bundle of Tiled map and internal roguelike map data
+/// View to the map model
 #[derive(Debug)]
 pub struct MapView {
     /// FIXME: Replace tiled map with ViewMap
