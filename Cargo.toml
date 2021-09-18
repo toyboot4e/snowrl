@@ -25,14 +25,13 @@ exclude = [
 ]
 
 [features]
-default = ["sdl2", "use-imgui"]
-use-imgui = ["imgui", "gui/use-imgui"]
+default = ["sdl2", "gui/use-imgui"]
 
 [dependencies]
 rokol = { path = "crates/snow2d/crates/rokol/rokol", features = ["impl-gfx", "glcore33", "sdl2", "fontstash"] }
 snow2d = { path = "crates/snow2d" }
-gui = { path = "crates/gui", feature = ["use-imgui"] }
-imgui = { version = "0.7.0", optional = true }
+gui = { path = "crates/gui" }
+igri = { path = "crates/snow2d/crates/igri/igri" }
 
 glam = "0.16.0"
 tiled = "0.9.5"

@@ -20,6 +20,7 @@ use snow2d::{
     utils::{
         arena::Index,
         ez,
+        inspect::imgui,
         pool::Handle,
         tyobj::{SerdeRepr, SerdeViaTyObj, TypeObject},
         Inspect,
@@ -231,10 +232,7 @@ pub struct ActorImage {
 
 impl Inspect for ActorImage {
     fn inspect(&mut self, ui: &imgui::Ui, label: &str) {
-        ui.label_text(
-            &imgui::im_str!("{}", label),
-            &imgui::im_str!("TODO: ActorImage"),
-        );
+        ui.label_text(label, "TODO: ActorImage");
     }
 }
 

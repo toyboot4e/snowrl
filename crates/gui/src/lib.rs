@@ -21,6 +21,9 @@ pub mod res;
 pub mod spawn;
 pub mod window;
 
+#[cfg(debug_assertions)]
+pub mod debug;
+
 use snow2d::{
     utils::{arena::Arena, Inspect},
     Ice,
@@ -65,6 +68,12 @@ pub struct Gui {
     pub cam: Camera2d,
     /// State for the camera to follow the player
     pub cam_follow: FollowCamera2d,
+    /// (Debug-only) ImGUI
+    #[cfg(debug_assertions)]
+    pub imgui: debug::Backend,
+    /// (Debug-only) Debug state
+    #[cfg(debug_assertions)]
+    pub debug_state: debug::DebugState,
 }
 
 /// Lifecycle

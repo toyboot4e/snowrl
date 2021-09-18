@@ -11,7 +11,7 @@ use snow2d::utils::Inspect;
 use rlcore::grid2d::*;
 
 /// Fixed set of components
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Inspect)]
 pub struct EntityModel {
     pub pos: Vec2i,
     pub dir: Dir8,
@@ -22,7 +22,7 @@ pub struct EntityModel {
 }
 
 /// Tag of AI which is resolved to a specific logic by system
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Inspect)]
 #[serde(transparent)]
 pub struct AiTag(Cow<'static, str>);
 

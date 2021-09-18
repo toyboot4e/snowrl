@@ -16,13 +16,12 @@ pub fn init() -> Result<(Platform, SnowRl)> {
         ..Default::default()
     };
 
-    let platform = {
-        init.init(|w| {
+    let platform = init
+        .init(|w| {
             w.position_centered();
             // w.allow_hidhdpi();
         })
-        .map_err(Error::msg)
-    }?;
+        .map_err(Error::msg)?;
 
     // ****************************************
     // Disable text input, including IME. This is important for constant FPS
@@ -31,7 +30,7 @@ pub fn init() -> Result<(Platform, SnowRl)> {
     platform.vid.text_input().stop();
 
     let ice = self::gen_ice(init.w, init.h)?;
-    let mut data = self::gen_data(init.w, init.h, ice)?;
+    let mut data = self::gen_data(init.w, init.h, ice, &platform)?;
     let fsm = self::gen_fsm(&mut data)?;
     let world_render = WorldRenderer::new([init.w, init.h], &data.ice.snow.clock);
 
@@ -86,9 +85,9 @@ fn gen_ice(w: u32, h: u32) -> Result<Ice> {
     }
 }
 
-fn gen_data(w: u32, h: u32, mut ice: Ice) -> Result<Data> {
+fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<Data> {
     let mut res = init_res(&mut ice, Ui::new())?;
-    let gui = init_world([w, h], &mut ice, &mut res.ui)?;
+    let gui = init_world([w, h], &mut ice, &mut res.ui, platform)?;
 
     let model = gui.vm.clone();
     let mut system = GameSystem::new(model);
@@ -168,7 +167,7 @@ fn gen_data(w: u32, h: u32, mut ice: Ice) -> Result<Data> {
         sys.ais.add(PlayerAi::AI, Box::new(PlayerAi::logic));
     }
 
-    fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<Gui> {
+    fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui, platform: &Platform) -> anyhow::Result<Gui> {
         let (map_view, map_model) = view::map::load_tiled(paths::map::tmx::TILES, &mut ice.assets)?;
 
         let mut model = Model::default();
@@ -203,6 +202,13 @@ fn gen_data(w: u32, h: u32, mut ice: Ice) -> Result<Data> {
             map: map_view,
             shadow: Shadow::new(radius, map_size, consts::WALK_SECS, consts::FOV_EASE),
             entities: Arena::with_capacity(20),
+            #[cfg(debug_assertions)]
+            imgui: {
+                let display_size = [screen_size[0] as f32, screen_size[1] as f32];
+                gui::debug::create_backend(display_size, platform)?
+            },
+            #[cfg(debug_assertions)]
+            debug_state: Default::default(),
         };
 
         snow2d::asset::guarded(&mut ice.assets, |_cache| {
