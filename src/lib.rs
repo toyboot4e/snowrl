@@ -66,6 +66,9 @@ mod impl_ {
             DrawStage::draw_schedule(Self::DEFAULT_RENDER_SCHEDULE, self);
             self.data.ice.post_render(dt);
 
+            #[cfg(debug_assertions)]
+            self.data.debug_render(&mut platform.win);
+
             self.data.ice.on_end_frame();
             rg::commit();
             platform.swap_window();

@@ -10,7 +10,7 @@ snow2d ❄️ framework.
 
 ** `rlcore`
 +
-Core roguelike system on orthogonal grid maps.
+Core roguelike system, targetting orthogonal grid maps.
 
 ** `model`
 +
@@ -18,5 +18,5 @@ Internal game states of SnowRL.
 
 ** `view`
 +
-GUI components for the model.
+GUI components for the game model.
 

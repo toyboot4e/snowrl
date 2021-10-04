@@ -1,19 +1,28 @@
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use anyhow::*;
 
 use gui::{content::PlayerAi, prelude::*};
+use snow2d::asset;
 
 use crate::{consts, paths, states, SnowRl};
 
 /// Create a window and initialize the game
 pub fn init() -> Result<(Platform, SnowRl)> {
-    let init = gui::window::Init {
-        title: "SnowRL".to_string(),
-        w: 1280,
-        h: 720,
-        use_high_dpi: false,
-        ..Default::default()
+    let asset_root = {
+        // FIXME: Consider release build
+        let proj_root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let path = PathBuf::from(proj_root)
+            .join("assets")
+            .canonicalize()
+            .unwrap();
+        asset::AssetRoot::new(path)
+    };
+
+    let init: rokol::glue::sdl::Init = {
+        let path = asset_root.resolve("config/init.ron");
+        let bytes = fs::read(path).expect("unable to read init config");
+        ron::de::from_bytes(&bytes).unwrap()
     };
 
     let platform = init
@@ -29,7 +38,7 @@ pub fn init() -> Result<(Platform, SnowRl)> {
     // ****************************************
     platform.vid.text_input().stop();
 
-    let ice = self::gen_ice(init.w, init.h)?;
+    let ice = self::gen_ice(init.w, init.h, asset_root)?;
     let mut data = self::gen_data(init.w, init.h, ice, &platform)?;
     let fsm = self::gen_fsm(&mut data)?;
     let world_render = WorldRenderer::new([init.w, init.h], &data.ice.snow.clock);
@@ -44,7 +53,7 @@ pub fn init() -> Result<(Platform, SnowRl)> {
     ))
 }
 
-fn gen_ice(w: u32, h: u32) -> Result<Ice> {
+fn gen_ice(w: u32, h: u32, asset_root: asset::AssetRoot) -> Result<Ice> {
     let mut ice = {
         let snow = unsafe {
             Snow2d::new(WindowState {
@@ -56,10 +65,6 @@ fn gen_ice(w: u32, h: u32) -> Result<Ice> {
             })
         };
 
-        // FIXME: Consider release build
-        let proj_root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-        let asset_root = PathBuf::from(proj_root).join("assets");
-        let asset_root = asset_root.canonicalize().unwrap();
         Ice::new(snow, asset_root)
     };
 
@@ -87,7 +92,7 @@ fn gen_ice(w: u32, h: u32) -> Result<Ice> {
 
 fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<Data> {
     let mut res = init_res(&mut ice, Ui::new())?;
-    let gui = init_world([w, h], &mut ice, &mut res.ui, platform)?;
+    let gui = init_world([w, h], &mut ice, &mut res.ui)?;
 
     let model = gui.vm.clone();
     let mut system = GameSystem::new(model);
@@ -103,6 +108,13 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<Data> {
             shadow_cfg: ShadowConfig::Blur,
             snow_cfg: SnowConfig::Blizzard,
         },
+        #[cfg(debug_assertions)]
+        imgui: {
+            let display_size = [w as f32, h as f32];
+            gui::debug::create_backend(display_size, platform)?
+        },
+        #[cfg(debug_assertions)]
+        debug_states: Default::default(),
     });
 
     fn init_res(ice: &mut Ice, ui: Ui) -> Result<Resources> {
@@ -167,7 +179,7 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<Data> {
         sys.ais.add(PlayerAi::AI, Box::new(PlayerAi::logic));
     }
 
-    fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui, platform: &Platform) -> anyhow::Result<Gui> {
+    fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<Gui> {
         let (map_view, map_model) = view::map::load_tiled(paths::map::tmx::TILES, &mut ice.assets)?;
 
         let mut model = Model::default();
@@ -202,13 +214,6 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<Data> {
             map: map_view,
             shadow: Shadow::new(radius, map_size, consts::WALK_SECS, consts::FOV_EASE),
             entities: Arena::with_capacity(20),
-            #[cfg(debug_assertions)]
-            imgui: {
-                let display_size = [screen_size[0] as f32, screen_size[1] as f32];
-                gui::debug::create_backend(display_size, platform)?
-            },
-            #[cfg(debug_assertions)]
-            debug_state: Default::default(),
         };
 
         snow2d::asset::guarded(&mut ice.assets, |_cache| {

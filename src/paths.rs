@@ -26,6 +26,15 @@ pub mod types {
         pub static ACTOR_PLACES: &'static AssetKey<'static> = &AssetKey::new_const(as_path("types/actors/actor_places.ron"), None);
     }
 }
+pub mod config {
+    #![allow(unused)]
+    use snow2d::asset::AssetKey;
+    use std::{borrow::Cow, ffi::OsStr, path::Path};
+    const fn as_path(s:&'static str) -> &'static Path {
+            unsafe { &*(s as *const str as *const OsStr as *const Path) }
+        }
+    pub static INIT: &'static AssetKey<'static> = &AssetKey::new_const(as_path("config/init.ron"), None);
+}
 pub static CHICKEN: &'static AssetKey<'static> = &AssetKey::new_const(as_path("chicken.png"), None);
 pub mod img {
     #![allow(unused)]

@@ -26,6 +26,7 @@ impl Transform2dParams {
     pub fn to_mat(&self) -> Mat2f {
         let cos = self.rot.cos();
         let sin = self.rot.sin();
+
         Mat2f {
             m11: self.scale.x * cos,
             m12: sin,

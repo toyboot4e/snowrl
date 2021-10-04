@@ -53,6 +53,21 @@ pub struct Data {
     pub res: Resources,
     /// How we run the game
     pub cfg: GameConfig,
+    /// (Debug-only) ImGUI
+    #[cfg(debug_assertions)]
+    pub imgui: debug::Backend,
+    /// (Debug-only) Debug state
+    #[cfg(debug_assertions)]
+    pub debug_states: debug::DebugState,
+}
+
+impl Data {
+    #[cfg(debug_assertions)]
+    pub fn debug_render(&mut self, window: &mut sdl2::video::Window) {
+        let mut ui = self.imgui.begin_frame(window);
+        self.debug_states.render(&mut ui, &mut self.gui);
+        ui.end_frame(window, &mut ()).unwrap();
+    }
 }
 
 /// Collection of GUI
@@ -68,12 +83,6 @@ pub struct Gui {
     pub cam: Camera2d,
     /// State for the camera to follow the player
     pub cam_follow: FollowCamera2d,
-    /// (Debug-only) ImGUI
-    #[cfg(debug_assertions)]
-    pub imgui: debug::Backend,
-    /// (Debug-only) Debug state
-    #[cfg(debug_assertions)]
-    pub debug_state: debug::DebugState,
 }
 
 /// Lifecycle
