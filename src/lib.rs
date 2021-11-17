@@ -22,9 +22,9 @@ use gui::prelude::*;
 /// SnowRL the game
 #[derive(Debug)]
 pub struct SnowRl {
-    pub data: Data,
-    pub fsm: Fsm<Data>,
-    pub world_render: WorldRenderer,
+    pub god: God,
+    pub fsm: Fsm<God>,
+    pub w_rdr: WorldRenderer,
 }
 
 #[cfg(feature = "sdl2")]
@@ -37,13 +37,13 @@ mod impl_ {
     impl SnowRl {
         #[inline(always)]
         pub fn event(&mut self, ev: &Event, _platform: &mut Platform) {
-            self.data.ice.event(ev);
+            self.god.ice.event(ev);
         }
 
         #[inline(always)]
         pub fn update(&mut self, dt: Duration, platform: &mut Platform) {
             self.pre_update(dt, platform);
-            self.fsm.update(&mut self.data);
+            self.fsm.update(&mut self.god);
             self.post_update(dt, platform);
         }
 
@@ -61,53 +61,53 @@ mod impl_ {
         #[inline(always)]
         pub fn render(&mut self, dt: Duration, platform: &mut Platform) {
             // FIXME:
-            let window = self.data.ice.snow.window.clone();
-            self.data.ice.pre_render(window);
+            let window = self.god.ice.snow.window.clone();
+            self.god.ice.pre_render(window);
             DrawStage::draw_schedule(Self::DEFAULT_RENDER_SCHEDULE, self);
-            self.data.ice.post_render(dt);
+            self.god.ice.post_render(dt);
 
             #[cfg(debug_assertions)]
-            self.data.debug_render(&mut platform.win);
+            self.god.debug_render(&mut platform.win);
 
-            self.data.ice.on_end_frame();
+            self.god.ice.on_end_frame();
             rg::commit();
             platform.swap_window();
         }
 
         #[inline(always)]
         fn pre_update(&mut self, dt: Duration, _platform: &mut Platform) {
-            self.data.ice.pre_update(dt);
-            self.data.gui.update(&mut self.data.ice);
-            self.data.res.vi.update(&self.data.ice.input, dt);
+            self.god.ice.pre_update(dt);
+            self.god.gui.update(&mut self.god.ice);
+            self.god.res.vi.update(&self.god.ice.input, dt);
         }
 
         #[inline(always)]
         fn post_update(&mut self, dt: Duration, _platform: &mut Platform) {
             // shadow
             // FIXME: don't hard code player detection
-            let player_view_index = self.data.gui.entities.upgrade(Slot::from_raw(0)).unwrap();
-            let player_view = &self.data.gui.entities.get(player_view_index).unwrap();
-            let player_model = &self.data.gui.vm.entities[player_view.model];
+            let player_view_index = self.god.gui.evs.upgrade(Slot::from_raw(0)).unwrap();
+            let player_view = &self.god.gui.evs.get(player_view_index).unwrap();
+            let player_model = &self.god.gui.vm.entities[player_view.model];
 
-            self.data
+            self.god
                 .gui
                 .shadow
-                .post_update(dt, &self.data.gui.vm.map, player_model.pos);
+                .post_update(dt, &self.god.gui.vm.map, player_model.pos);
 
             // camera
-            let player_pos = player_view.img.pos_world_centered(&self.data.gui.map.tiled);
-            self.data.gui.cam_follow.update_follow(
-                &mut self.data.gui.cam,
+            let player_pos = player_view.img.pos_world_centered(&self.god.gui.map.tiled);
+            self.god.gui.cam_follow.update_follow(
+                &mut self.god.gui.cam,
                 player_pos,
-                Vec2f::from(self.data.ice.snow.window.size_f32()),
+                Vec2f::from(self.god.ice.snow.window.size_f32()),
             );
 
             // sprites
-            self.data.res.ui.update(dt);
-            self.data.res.dir_anims.update(dt, &mut self.data.res.ui);
+            self.god.res.ui.update(dt);
+            self.god.res.dir_anims.update(dt, &mut self.god.res.ui);
 
             // renderer
-            self.world_render.post_update(&self.data.gui.vm, dt);
+            self.w_rdr.post_update(&self.god.gui.vm, dt);
         }
 
         // #[inline(always)]
@@ -145,7 +145,7 @@ impl DrawStage {
         rg::PassAction::clear_const([100.0 / 255.0, 149.0 / 255.0, 237.0 / 255.0, 250.0 / 255.0]);
 
     pub fn draw(self, app: &mut SnowRl) {
-        let (data, world_render) = (&mut app.data, &mut app.world_render);
+        let (data, world_render) = (&mut app.god, &mut app.w_rdr);
         let cam_mat = data.gui.cam.to_mat4();
 
         let (ice, res, world, cfg) = (&mut data.ice, &mut data.res, &mut data.gui, &data.cfg);

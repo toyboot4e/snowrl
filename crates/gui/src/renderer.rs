@@ -90,7 +90,7 @@ impl WorldRenderer {
         self.sort_buf.clear();
 
         // cull and sort actors, updating interpolation value
-        for (index, view) in gui.entities.iter() {
+        for (index, view) in gui.actors.iter() {
             // v: visibility (a: current, b: previous)
             let v = &mut self.actor_visibilities[index.slot().raw() as usize];
             let model = &gui.vm.entities[view.model];
@@ -142,7 +142,7 @@ impl WorldRenderer {
 
         let n_entries = self.sort_buf.len() as f32;
         for (entry_ix, entry) in self.sort_buf.iter().enumerate() {
-            let view = &gui.entities[entry.actor_index];
+            let view = &gui.actors[entry.actor_index];
 
             let alpha = self.actor_alpha_f32(entry.actor_index.slot().raw() as usize) as u8;
 

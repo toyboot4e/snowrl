@@ -25,13 +25,13 @@ type States<D> = HashMap<TypeId, BoxState<D>>;
 /// Game state lifecycle
 pub trait State: std::fmt::Debug + Downcast {
     type Data;
-    fn on_enter(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
-    fn on_exit(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
-    fn on_stop(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
-    fn event(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
+    fn on_enter(&mut self, _god: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
+    fn on_exit(&mut self, _god: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
+    fn on_stop(&mut self, _god: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
+    fn event(&mut self, _god: &mut Self::Data, _cell: &StateCell<Self::Data>) {}
     fn update(
         &mut self,
-        _data: &mut Self::Data,
+        _god: &mut Self::Data,
         _cell: &StateCell<Self::Data>,
     ) -> StateReturn<Self::Data>;
 }

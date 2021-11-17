@@ -42,10 +42,10 @@ use crate::res::Resources;
 
 /// Passive data to be operated on
 #[derive(Debug)]
-pub struct Data {
+pub struct God {
     /// Roguelike game system and the internal game state
     pub sys: GameSystem,
-    /// Generic game context
+    /// Generic 2D game context
     pub ice: Ice,
     /// SnowRL GUi
     pub gui: Gui,
@@ -61,7 +61,7 @@ pub struct Data {
     pub debug_states: debug::DebugState,
 }
 
-impl Data {
+impl God {
     #[cfg(debug_assertions)]
     pub fn debug_render(&mut self, window: &mut sdl2::video::Window) {
         let mut ui = self.imgui.begin_frame(window);
@@ -75,7 +75,7 @@ impl Data {
 pub struct Gui {
     /// View model synced to the game model
     pub vm: Model,
-    pub entities: Arena<ActorView>,
+    pub actors: Arena<ActorView>,
     pub map: MapView,
     /// Double buffer of FoV/FoW with interpolation value
     pub shadow: Shadow,
@@ -89,7 +89,7 @@ pub struct Gui {
 impl Gui {
     pub fn update(&mut self, ice: &mut Ice) {
         // FIXME: impl Into itermut
-        for (_ix, view) in &mut self.entities {
+        for (_ix, view) in &mut self.actors {
             let model = &self.vm.entities[view.model];
             view.img.update(ice.dt(), model.pos, model.dir);
         }

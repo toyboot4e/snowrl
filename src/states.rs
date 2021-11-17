@@ -10,21 +10,21 @@ use model::{evs::*, EventTree};
 
 use gui::{content::*, prelude::*};
 
-pub type StateReturn = fsm::StateReturn<Data>;
-pub type StateCommand = fsm::StateCommand<Data>;
+pub type StateReturn = fsm::StateReturn<God>;
+pub type StateCommand = fsm::StateCommand<God>;
 
 /// State for ticking the internal game state
 #[derive(Debug, Default)]
 pub struct TickState;
 
 impl State for TickState {
-    type Data = Data;
+    type Data = God;
 
-    fn update(&mut self, data: &mut Data, cell: &StateCell<Self::Data>) -> StateReturn {
+    fn update(&mut self, god: &mut God, cell: &StateCell<Self::Data>) -> StateReturn {
         log::trace!("tick-update");
         let mut states = vec![];
 
-        let res = rlcore::sys::tick(&mut data.sys);
+        let res = rlcore::sys::tick(&mut god.sys);
         if !res.tree.is_empty() {
             let sync = cell.get_mut::<GuiSync>().unwrap();
             sync.tree = res.tree;
@@ -37,12 +37,7 @@ impl State for TickState {
             match tag.as_str() {
                 x if x == PlayerAi::GUI => {
                     let pl = cell.get_mut::<PlayerState>().unwrap();
-                    let pl_ix = data
-                        .sys
-                        .model()
-                        .entities
-                        .upgrade(Slot::from_raw(0))
-                        .unwrap();
+                    let pl_ix = god.sys.model().entities.upgrade(Slot::from_raw(0)).unwrap();
                     pl.entity = Some(pl_ix);
 
                     states.push(StateCommand::Push(TypeId::of::<PlayerState>()))
@@ -65,9 +60,9 @@ pub struct GuiSync {
 }
 
 impl State for GuiSync {
-    type Data = Data;
+    type Data = God;
 
-    fn update(&mut self, _data: &mut Data, _cell: &StateCell<Self::Data>) -> StateReturn {
+    fn update(&mut self, _god: &mut God, _cell: &StateCell<Self::Data>) -> StateReturn {
         log::trace!("gui sync");
         StateReturn::NextFrame(vec![])
     }
@@ -100,7 +95,7 @@ pub struct PlayerState {
 }
 
 impl State for PlayerState {
-    type Data = Data;
+    type Data = God;
 
     fn on_enter(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {
         assert!(self.entity.is_some());
@@ -110,10 +105,10 @@ impl State for PlayerState {
         self.entity = None;
     }
 
-    fn update(&mut self, data: &mut Data, _cell: &StateCell<Self::Data>) -> StateReturn {
-        if let Some(ev) = self.logic(data) {
+    fn update(&mut self, god: &mut God, _cell: &StateCell<Self::Data>) -> StateReturn {
+        if let Some(ev) = self.logic(god) {
             // TODO: Come back when it doesn't consume turn by looking into the tree?
-            data.sys.publish(ev);
+            god.sys.publish(ev);
             StateReturn::ThisFrame(vec![StateCommand::Pop])
         } else {
             StateReturn::NextFrame(vec![])
@@ -123,8 +118,8 @@ impl State for PlayerState {
 
 impl PlayerState {
     // TODO: apply change
-    fn logic(&self, data: &mut Data) -> Option<DynEvent> {
-        let vi = &data.res.vi;
+    fn logic(&self, god: &mut God) -> Option<DynEvent> {
+        let vi = &god.res.vi;
         let (select, turn, rest, dir) = (
             vi.select.is_pressed(),
             vi.turn.is_pressed(),
@@ -139,7 +134,7 @@ impl PlayerState {
         }
 
         if turn {
-            if let Some(dir) = self::find_only_neighbor(entity, data.sys.model()) {
+            if let Some(dir) = self::find_only_neighbor(entity, god.sys.model()) {
                 let chg = chg::DirChange {
                     entity,
                     dir,
@@ -147,8 +142,8 @@ impl PlayerState {
                 };
 
                 // NOTE: DirChange is visualized automatically!
-                data.sys
-                    .make_immediate_change(&mut data.gui.vm, &chg.upcast());
+                god.sys
+                    .make_immediate_change(&mut god.gui.vm, &chg.upcast());
             }
         }
 
@@ -158,7 +153,7 @@ impl PlayerState {
         }
 
         if let Some(dir) = dir {
-            if data.res.vi.turn.is_down() {
+            if god.res.vi.turn.is_down() {
                 // change direction without consuming turn
                 let chg = chg::DirChange {
                     entity,
@@ -167,8 +162,8 @@ impl PlayerState {
                 };
 
                 // NOTE: DirChange is visualized automatically!
-                data.sys
-                    .make_immediate_change(&mut data.gui.vm, &chg.upcast());
+                god.sys
+                    .make_immediate_change(&mut god.gui.vm, &chg.upcast());
             } else {
                 // walk
                 let ev = PlayerWalk { entity, dir };

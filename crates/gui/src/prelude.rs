@@ -57,5 +57,5 @@ pub use crate::{
     spawn::*,
     spawn::{ActorSpawn, ActorType},
     window::Platform,
-    Data, GameConfig, Gui, ShadowConfig, SnowConfig,
+    GameConfig, God, Gui, ShadowConfig, SnowConfig,
 };

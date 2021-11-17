@@ -46,9 +46,9 @@ pub fn init() -> Result<(Platform, SnowRl)> {
     Ok((
         platform,
         SnowRl {
-            data,
+            god: data,
             fsm,
-            world_render,
+            w_rdr: world_render,
         },
     ))
 }
@@ -90,7 +90,7 @@ fn gen_ice(w: u32, h: u32, asset_root: asset::AssetRoot) -> Result<Ice> {
     }
 }
 
-fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<Data> {
+fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<God> {
     let mut res = init_res(&mut ice, Ui::new())?;
     let gui = init_world([w, h], &mut ice, &mut res.ui)?;
 
@@ -98,7 +98,7 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<Data> {
     let mut system = GameSystem::new(model);
     init_system(&mut system);
 
-    return Ok(Data {
+    return Ok(God {
         sys: system,
         ice,
         gui,
@@ -213,7 +213,7 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<Data> {
             },
             map: map_view,
             shadow: Shadow::new(radius, map_size, consts::WALK_SECS, consts::FOV_EASE),
-            entities: Arena::with_capacity(20),
+            evs: Arena::with_capacity(20),
         };
 
         snow2d::asset::guarded(&mut ice.assets, |_cache| {
@@ -254,14 +254,14 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<Data> {
     }
 }
 
-fn gen_fsm(data: &mut Data) -> Result<Fsm<Data>> {
+fn gen_fsm(god: &mut God) -> Result<Fsm<God>> {
     let mut fsm = Fsm::default();
 
     fsm.insert(states::TickState::default());
     fsm.insert(states::GuiSync::default());
     fsm.insert(states::PlayerState::default());
 
-    fsm.push::<states::TickState>(data);
+    fsm.push::<states::TickState>(god);
 
     Ok(fsm)
 }
