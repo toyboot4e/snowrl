@@ -1,10 +1,10 @@
 use anyhow::*;
 
-use imgui_backends::{imgui, helper::QuickStart, platform::ImGuiSdl2, renderer::ImGuiRokolGfx};
+use imgui_backends::{helper::QuickStart, imgui, platform::ImGuiSdl2, renderer::ImGuiRokolGfx};
 
 use snow2d::utils::Inspect;
 
-use crate::{Gui, window::Platform};
+use crate::{window::Platform, Gui};
 
 pub type Backend = imgui_backends::Backend<ImGuiSdl2, ImGuiRokolGfx>;
 pub type BackendUi<'a> = imgui_backends::BackendUi<'a, ImGuiSdl2, ImGuiRokolGfx>;
@@ -42,7 +42,7 @@ impl DebugState {
             .bg_alpha(0.5)
             .build(ui, || {
                 ui.label_text("XXX", "YYY");
-                gui.vm.entities.inspect(ui, "view model");
+                gui.vm.ents.inspect(ui, "view model");
             });
     }
 }

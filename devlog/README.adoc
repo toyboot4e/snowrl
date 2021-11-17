@@ -310,6 +310,57 @@ I sometimes cheat the borrow checker using raw pointers. Reasons:
 ... `AssetCache` and `AssetCache<T>`
 ... Node `parent` and `children`
 
+=== Architecture changes
+
+==== Prefer shorter names
+
+* `data` → `god`
+* `entity` → `ent`, `entities` → `ents`
+* `model` → `mdl`
+
+==== Prefer flat scope
+
+Remove redundant data accesses like `god.mdl.ents[player]`!
+
+Before:
+
+[source,rust]
+----
+impl PlayerState {
+    fn update_system(&self, god: &mut God) -> Option<DynEvent> {
+        let ent = self.ent.unwrap();
+        /* ~~ */
+    }
+}
+----
+
+After:
+
+[source,rust]
+----
+impl PlayerState {
+    fn update(&self, god: &mut God) -> Option<DynEvent> {
+        let ent = self.ent.unwrap();
+        self::player_system(ent, &god.res.vi, &god.sys, &god.gui)
+    }
+}
+
+fn player_system(
+    ent: Index<EntityModel>,
+    vi: &VInput,
+    sys: &GameSystem,
+    gui: &Gui,
+) -> Option<DynEvent> {
+    /* ~~ */
+}
+----
+
+==== `fsm::StateCell`
+
+==== Duplicating the game model
+
+WIP
+
 === toylisp (June 9, 2021 ~)
 
 I started making toylisp for writing cutscenes. Here's a virtual entity script:

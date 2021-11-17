@@ -66,9 +66,9 @@ impl WorldRenderer {
     pub fn post_update(&mut self, vm: &Model, _dt: Duration) {
         // ensure capacity
         // FIXME: this tracking is NOT always valid (at least use Index<T>)
-        if vm.entities.len() > self.actor_visibilities.len() {
+        if vm.ents.len() > self.actor_visibilities.len() {
             self.actor_visibilities
-                .resize(vm.entities.len() + 5, Default::default());
+                .resize(vm.ents.len() + 5, Default::default());
         }
     }
 
@@ -93,7 +93,7 @@ impl WorldRenderer {
         for (index, view) in gui.actors.iter() {
             // v: visibility (a: current, b: previous)
             let v = &mut self.actor_visibilities[index.slot().raw() as usize];
-            let model = &gui.vm.entities[view.mdl];
+            let model = &gui.vm.ents[view.mdl];
 
             // TODO: cull actors based on scroll
 

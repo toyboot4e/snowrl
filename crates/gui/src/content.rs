@@ -21,7 +21,7 @@ use model::{
 /// Registers model events and default event handlers to [`EventHubBuilder`]
 pub fn builder_plugin(builder: &mut EventHubBuilder) {
     builder.ev_with(Box::new(|ev: &Interact, args| {
-        let es = &args.entities;
+        let es = &args.ents;
         let dir = ev.dir.unwrap_or_else(|| es[ev.ent].dir);
         let pos = es[ev.ent].pos + Vec2i::from(dir);
 

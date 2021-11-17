@@ -17,7 +17,7 @@ use crate::{chg, entity::EntityModel, GameSystem};
 /// Registers model events and default event handlers to [`EventHubBuilder`]
 pub fn builder_plugin(builder: &mut EventHubBuilder<GameSystem>) {
     builder.ev_with(Box::new(|ev: &PlayerWalk, args| {
-        let en = &args.entities[ev.ent];
+        let en = &args.ents[ev.ent];
         let pos = en.pos + Vec2i::from(ev.dir);
 
         let chg = chg::PosChange {

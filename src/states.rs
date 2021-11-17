@@ -37,7 +37,7 @@ impl State for TickState {
             match tag.as_str() {
                 x if x == PlayerAi::GUI => {
                     let pl = cell.get_mut::<PlayerState>().unwrap();
-                    let pl_ix = god.sys.mdl().entities.upgrade(Slot::from_raw(0)).unwrap();
+                    let pl_ix = god.sys.mdl().ents.upgrade(Slot::from_raw(0)).unwrap();
                     pl.ent = Some(pl_ix);
 
                     states.push(StateCommand::Push(TypeId::of::<PlayerState>()))
@@ -71,8 +71,8 @@ impl State for GuiSync {
 fn find_only_neighbor(enitiy: Index<EntityModel>, model: &Model) -> Option<Dir8> {
     let mut res = Option::<Dir8>::None;
 
-    let origin = model.entities[enitiy].pos;
-    for (_ix, e) in &model.entities {
+    let origin = model.ents[enitiy].pos;
+    for (_ix, e) in &model.ents {
         let delta = e.pos - origin;
         if delta.len_king() != 1 {
             continue;

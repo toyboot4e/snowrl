@@ -90,7 +90,7 @@ impl Gui {
     pub fn update(&mut self, ice: &mut Ice) {
         // FIXME: impl Into itermut
         for (_ix, view) in &mut self.actors {
-            let mdl = &self.vm.entities[view.mdl];
+            let mdl = &self.vm.ents[view.mdl];
             view.img.update(ice.dt(), mdl.pos, mdl.dir);
         }
     }

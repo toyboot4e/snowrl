@@ -84,11 +84,11 @@ impl rlcore::sys::System for GameSystem {
     type Model = Model;
 
     fn _next_actor(&mut self) -> Index<Self::Entity> {
-        self.slot.next(&mut self.mdl.entities).unwrap()
+        self.slot.next(&mut self.mdl.ents).unwrap()
     }
 
     fn _take_turn(&mut self, ix: Index<Self::Entity>) -> Option<EventData> {
-        let mdl = &self.mdl.entities[ix];
+        let mdl = &self.mdl.ents[ix];
         let ai = mdl.ai.clone();
         self.ais.take_turn(&ai, ix, &mut self.mdl)
     }
@@ -154,7 +154,7 @@ impl AiHub {
 /// Roguelike game model
 #[derive(Debug, Clone, Default)]
 pub struct Model {
-    pub entities: Arena<EntityModel>,
+    pub ents: Arena<EntityModel>,
     pub map: MapModel,
 }
 

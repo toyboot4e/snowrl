@@ -87,7 +87,7 @@ mod impl_ {
             // FIXME: don't hard code player detection
             let player_view_index = self.god.gui.actors.upgrade(Slot::from_raw(0)).unwrap();
             let player_view = &self.god.gui.actors.get(player_view_index).unwrap();
-            let player_mdl = &self.god.gui.vm.entities[player_view.mdl];
+            let player_mdl = &self.god.gui.vm.ents[player_view.mdl];
 
             self.god
                 .gui

@@ -57,12 +57,12 @@ impl Change {
     pub fn apply(&self, mdl: &mut Model) {
         match self {
             Self::PosChange(chg) => {
-                let ent = &mut mdl.entities[chg.ent];
+                let ent = &mut mdl.ents[chg.ent];
                 ent.pos = chg.pos;
                 ent.dir = chg.dir.unwrap_or(ent.dir);
             }
             Self::DirChange(chg) => {
-                let ent = &mut mdl.entities[chg.ent];
+                let ent = &mut mdl.ents[chg.ent];
                 ent.dir = chg.dir;
             }
             Self::OpaqueChange(chg) => {

@@ -85,7 +85,7 @@ impl ActorSpawn {
                 relation: self.relation,
                 ai: type_.ai.clone(),
             };
-            gui.vm.entities.insert(actor_mdl)
+            gui.vm.ents.insert(actor_mdl)
         };
 
         let mut view = {
