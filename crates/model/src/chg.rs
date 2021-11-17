@@ -54,19 +54,19 @@ def_change!(PosChange, DirChange, OpaqueChange);
 
 impl Change {
     /// NOTE: Change will not be chained other changes
-    pub fn apply(&self, model: &mut Model) {
+    pub fn apply(&self, mdl: &mut Model) {
         match self {
             Self::PosChange(chg) => {
-                let entity = &mut model.entities[chg.entity];
-                entity.pos = chg.pos;
-                entity.dir = chg.dir.unwrap_or(entity.dir);
+                let ent = &mut mdl.entities[chg.ent];
+                ent.pos = chg.pos;
+                ent.dir = chg.dir.unwrap_or(ent.dir);
             }
             Self::DirChange(chg) => {
-                let entity = &mut model.entities[chg.entity];
-                entity.dir = chg.dir;
+                let ent = &mut mdl.entities[chg.ent];
+                ent.dir = chg.dir;
             }
             Self::OpaqueChange(chg) => {
-                (chg.proc)(model);
+                (chg.proc)(mdl);
             }
         }
     }
@@ -75,7 +75,7 @@ impl Change {
 /// Changes entity's position and optionally direction
 #[derive(Debug, Clone)]
 pub struct PosChange {
-    pub entity: Index<EntityModel>,
+    pub ent: Index<EntityModel>,
     pub pos: Vec2i,
     pub dir: Option<Dir8>,
     pub kind: PosChangeKind,
@@ -90,7 +90,7 @@ pub enum PosChangeKind {
 /// Changes entity's direction
 #[derive(Debug, Clone)]
 pub struct DirChange {
-    pub entity: Index<EntityModel>,
+    pub ent: Index<EntityModel>,
     pub dir: Dir8,
     pub kind: DirChangeKind,
 }

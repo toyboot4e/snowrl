@@ -39,19 +39,19 @@ use crate::{
 #[derive(Debug, Clone, Inspect)]
 pub struct ActorView {
     /// Handle of entity model
-    pub model: Index<EntityModel>,
+    pub mdl: Index<EntityModel>,
     pub img: ActorImage,
     pub nodes: ActorNodes,
 }
 
 /// Default actor image FPS
-pub const ACTOR_FPS: f32 = 4.0;
+pub const IMG_FPS: f32 = 4.0;
 
 /// Default actor walk duration
-pub const ACTOR_WALK_TIME: f32 = 8.0 / 60.0;
+pub const IMG_WALK_TIME: f32 = 8.0 / 60.0;
 
 /// Duration in seconds to change direction in 45 degrees
-pub const CHANGE_DIR_TIME: f32 = 1.0 / 60.0;
+pub const IMG_TURN_TIME: f32 = 1.0 / 60.0;
 
 /// Generate character walking animation with some heuristic
 fn gen_anim_auto(tex: &Asset<Texture2dDrop>, fps: f32) -> HashMap<Dir8, AnimPattern<SpriteData>> {
@@ -196,11 +196,11 @@ pub struct ActorImageType {
 
 impl ActorImageType {
     pub fn gen_anim_patterns(&self) -> HashMap<Dir8, AnimPattern<SpriteData>> {
-        self.kind.gen_anim_patterns(&self.tex, self::ACTOR_FPS)
+        self.kind.gen_anim_patterns(&self.tex, self::IMG_FPS)
     }
 
     pub fn gen_anim_state(&self, dir: Dir8) -> MultiPatternAnimState<Dir8, SpriteData> {
-        MultiPatternAnimState::new(self.kind.gen_anim_patterns(&self.tex, self::ACTOR_FPS), dir)
+        MultiPatternAnimState::new(self.kind.gen_anim_patterns(&self.tex, self::IMG_FPS), dir)
     }
 }
 
@@ -262,7 +262,7 @@ impl ActorImage {
         Self::from_desc(
             desc,
             ez::EasedDtDesc {
-                target: self::ACTOR_WALK_TIME,
+                target: self::IMG_WALK_TIME,
                 ease: ez::Ease::Linear,
             },
             Vec2i::default(),
@@ -290,8 +290,7 @@ impl ActorImage {
                 };
             } else {
                 // NOTE: it always animates with rotation
-                self.dir_tween =
-                    ez::tween_dirs(self.state_diff.a().dir, dir, self::CHANGE_DIR_TIME);
+                self.dir_tween = ez::tween_dirs(self.state_diff.a().dir, dir, self::IMG_TURN_TIME);
             }
         }
 

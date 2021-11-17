@@ -22,8 +22,8 @@ use model::{
 pub fn builder_plugin(builder: &mut EventHubBuilder) {
     builder.ev_with(Box::new(|ev: &Interact, args| {
         let es = &args.entities;
-        let dir = ev.dir.unwrap_or_else(|| es[ev.entity].dir);
-        let pos = es[ev.entity].pos + Vec2i::from(dir);
+        let dir = ev.dir.unwrap_or_else(|| es[ev.ent].dir);
+        let pos = es[ev.ent].pos + Vec2i::from(dir);
 
         let _target = match es.items().find(|e| e.pos == pos) {
             Some(e) => e,
@@ -37,7 +37,7 @@ pub fn builder_plugin(builder: &mut EventHubBuilder) {
 
 #[derive(Debug, Clone)]
 pub struct Interact {
-    pub entity: Index<EntityModel>,
+    pub ent: Index<EntityModel>,
     pub dir: Option<Dir8>,
 }
 
@@ -59,7 +59,7 @@ impl PlayerAi {
     pub const GUI: &'static str = "player-ai";
 
     /// Always yield [`PlayerAi`] UI event
-    pub fn logic(_entity: Index<EntityModel>, _model: &mut Model) -> Option<EventData> {
+    pub fn logic(_entity: Index<EntityModel>, _mdl: &mut Model) -> Option<EventData> {
         // FIXME: Don't alloc String
         Some(EventData::UI(UiEventTag::new(Self::GUI.to_string())))
     }

@@ -61,7 +61,7 @@ mod impl_ {
         #[inline(always)]
         pub fn render(&mut self, dt: Duration, platform: &mut Platform) {
             // FIXME:
-            let window = self.god.ice.snow.window.clone();
+            let window = self.god.ice.gfx.window.clone();
             self.god.ice.pre_render(window);
             DrawStage::draw_schedule(Self::DEFAULT_RENDER_SCHEDULE, self);
             self.god.ice.post_render(dt);
@@ -85,21 +85,21 @@ mod impl_ {
         fn post_update(&mut self, dt: Duration, _platform: &mut Platform) {
             // shadow
             // FIXME: don't hard code player detection
-            let player_view_index = self.god.gui.evs.upgrade(Slot::from_raw(0)).unwrap();
-            let player_view = &self.god.gui.evs.get(player_view_index).unwrap();
-            let player_model = &self.god.gui.vm.entities[player_view.model];
+            let player_view_index = self.god.gui.actors.upgrade(Slot::from_raw(0)).unwrap();
+            let player_view = &self.god.gui.actors.get(player_view_index).unwrap();
+            let player_mdl = &self.god.gui.vm.entities[player_view.mdl];
 
             self.god
                 .gui
                 .shadow
-                .post_update(dt, &self.god.gui.vm.map, player_model.pos);
+                .post_update(dt, &self.god.gui.vm.map, player_mdl.pos);
 
             // camera
             let player_pos = player_view.img.pos_world_centered(&self.god.gui.map.tiled);
             self.god.gui.cam_follow.update_follow(
                 &mut self.god.gui.cam,
                 player_pos,
-                Vec2f::from(self.god.ice.snow.window.size_f32()),
+                Vec2f::from(self.god.ice.gfx.window.size_f32()),
             );
 
             // sprites
@@ -159,7 +159,7 @@ impl DrawStage {
                 }
 
                 let mut screen = ice
-                    .snow
+                    .gfx
                     .screen()
                     .transform(match ui_layer.to_layer().coord {
                         CoordSystem::Screen => None,
@@ -171,7 +171,7 @@ impl DrawStage {
             }
             DrawStage::MapDown => {
                 let mut screen = ice
-                    .snow
+                    .gfx
                     .screen()
                     .pa(Some(&rg::PassAction::LOAD))
                     .transform(Some(cam_mat))
@@ -180,7 +180,7 @@ impl DrawStage {
             }
             DrawStage::MapUp => {
                 let mut screen = ice
-                    .snow
+                    .gfx
                     .screen()
                     .pa(Some(&Self::PA_BLUE))
                     .transform(Some(cam_mat))
@@ -188,14 +188,14 @@ impl DrawStage {
                 WorldRenderer::render_map(&mut screen, world, 100..);
             }
             DrawStage::Shadow => {
-                world_render.render_shadow(&mut ice.snow, world, &cfg.shadow_cfg);
+                world_render.render_shadow(&mut ice.gfx, world, &cfg.shadow_cfg);
             }
             DrawStage::Snow => {
-                world_render.render_snow(&ice.snow.window, &ice.snow.clock, &cfg.snow_cfg);
+                world_render.render_snow(&ice.gfx.window, &ice.gfx.clock, &cfg.snow_cfg);
             }
             DrawStage::ClearScreen => {
                 // TODO: is this inefficient
-                let _screen = ice.snow.screen().pa(Some(&Self::PA_BLUE)).build();
+                let _screen = ice.gfx.screen().pa(Some(&Self::PA_BLUE)).build();
             }
         }
     }

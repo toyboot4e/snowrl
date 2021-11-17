@@ -27,33 +27,33 @@ pub trait Model {
 /// Event builder + read-only access to model
 #[derive(Debug)]
 pub struct SystemArgs<S: System> {
-    model: S::Model,
+    mdl: S::Model,
     tree: S::EventTree,
 }
 
 impl<S: System> SystemArgs<S> {
-    pub fn new(model: S::Model) -> Self
+    pub fn new(mdl: S::Model) -> Self
     where
         S::EventTree: Default,
     {
         Self {
-            model,
+            mdl,
             tree: Default::default(),
         }
     }
 }
 
 impl<S: System> SystemArgs<S> {
-    pub fn model(&self) -> &S::Model {
-        &self.model
+    pub fn mdl(&self) -> &S::Model {
+        &self.mdl
     }
 
     pub fn make_change(&mut self, chg: &<<S as System>::Model as self::Model>::Change) {
-        self.model.apply_change(&chg);
+        self.mdl.apply_change(&chg);
     }
 
     pub fn retrieve(self) -> (S::Model, S::EventTree) {
-        (self.model, self.tree)
+        (self.mdl, self.tree)
     }
 
     pub fn tree(&mut self) -> &S::EventTree {
@@ -68,6 +68,6 @@ impl<S: System> SystemArgs<S> {
 impl<S: System> ops::Deref for SystemArgs<S> {
     type Target = S::Model;
     fn deref(&self) -> &Self::Target {
-        &self.model
+        &self.mdl
     }
 }

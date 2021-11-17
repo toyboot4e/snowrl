@@ -93,7 +93,7 @@ impl WorldRenderer {
         for (index, view) in gui.actors.iter() {
             // v: visibility (a: current, b: previous)
             let v = &mut self.actor_visibilities[index.slot().raw() as usize];
-            let model = &gui.vm.entities[view.model];
+            let model = &gui.vm.entities[view.mdl];
 
             // TODO: cull actors based on scroll
 

@@ -41,7 +41,7 @@ pub struct GameSystem {
     /// Turn-based game state
     slot: ActorSlot,
     /// Internal game state
-    model: Model,
+    mdl: Model,
     /// Dispatcher of event handlers
     pub hub: EventHub,
     /// Dispacher of behavior logics
@@ -49,23 +49,23 @@ pub struct GameSystem {
 }
 
 impl GameSystem {
-    pub fn new(model: Model) -> Self {
+    pub fn new(mdl: Model) -> Self {
         Self {
             slot: ActorSlot::default(),
-            model,
+            mdl,
             hub: Default::default(),
             ais: Default::default(),
         }
     }
 
-    pub fn model(&self) -> &Model {
-        &self.model
+    pub fn mdl(&self) -> &Model {
+        &self.mdl
     }
 
     /// WARNING: Changes without autmatic visualization can cause diff between GUI and internal!
     pub fn make_immediate_change(&mut self, vm: &mut Model, chg: &chg::Change) {
         use rlcore::ev::Model;
-        self.model.apply_change(chg);
+        self.mdl.apply_change(chg);
         vm.apply_change(chg);
     }
 
@@ -84,30 +84,30 @@ impl rlcore::sys::System for GameSystem {
     type Model = Model;
 
     fn _next_actor(&mut self) -> Index<Self::Entity> {
-        self.slot.next(&mut self.model.entities).unwrap()
+        self.slot.next(&mut self.mdl.entities).unwrap()
     }
 
     fn _take_turn(&mut self, ix: Index<Self::Entity>) -> Option<EventData> {
-        let model = &self.model.entities[ix];
-        let ai = model.ai.clone();
-        self.ais.take_turn(&ai, ix, &mut self.model)
+        let mdl = &self.mdl.entities[ix];
+        let ai = mdl.ai.clone();
+        self.ais.take_turn(&ai, ix, &mut self.mdl)
     }
 
     fn _handle_event(&mut self, ev: Self::Event, _tree: &mut Self::EventTree) {
         // TODO: Don't swap.
-        let mut model = Model::default();
-        std::mem::swap(&mut model, &mut self.model);
-        let mut args = SystemArgs::new(model);
+        let mut mdl = Model::default();
+        std::mem::swap(&mut mdl, &mut self.mdl);
+        let mut args = SystemArgs::new(mdl);
 
         self.hub.handle(&ev, &mut args);
-        let (model, _builder) = args.retrieve();
-        self.model = model;
+        let (mdl, _builder) = args.retrieve();
+        self.mdl = mdl;
     }
 
     /// Applies the mutation to the game state
     fn _apply_change(&mut self, chg: &chg::Change) {
         use rlcore::ev::Model;
-        self.model.apply_change(chg);
+        self.mdl.apply_change(chg);
     }
 }
 
@@ -141,13 +141,13 @@ impl AiHub {
         &mut self,
         ai: &AiTag,
         index: Index<EntityModel>,
-        model: &mut Model,
+        mdl: &mut Model,
     ) -> Option<EventData> {
         let logic = self
             .logics
             .get_mut(ai)
             .unwrap_or_else(|| panic!("Unable to find logic for AI tag {:?}", ai));
-        (logic)(index, model)
+        (logic)(index, mdl)
     }
 }
 

@@ -37,8 +37,8 @@ impl State for TickState {
             match tag.as_str() {
                 x if x == PlayerAi::GUI => {
                     let pl = cell.get_mut::<PlayerState>().unwrap();
-                    let pl_ix = god.sys.model().entities.upgrade(Slot::from_raw(0)).unwrap();
-                    pl.entity = Some(pl_ix);
+                    let pl_ix = god.sys.mdl().entities.upgrade(Slot::from_raw(0)).unwrap();
+                    pl.ent = Some(pl_ix);
 
                     states.push(StateCommand::Push(TypeId::of::<PlayerState>()))
                 }
@@ -91,18 +91,18 @@ fn find_only_neighbor(enitiy: Index<EntityModel>, model: &Model) -> Option<Dir8>
 /// State for controlling the player
 #[derive(Debug, Default)]
 pub struct PlayerState {
-    entity: Option<Index<EntityModel>>,
+    ent: Option<Index<EntityModel>>,
 }
 
 impl State for PlayerState {
     type Data = God;
 
     fn on_enter(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {
-        assert!(self.entity.is_some());
+        assert!(self.ent.is_some());
     }
 
     fn on_exit(&mut self, _data: &mut Self::Data, _cell: &StateCell<Self::Data>) {
-        self.entity = None;
+        self.ent = None;
     }
 
     fn update(&mut self, god: &mut God, _cell: &StateCell<Self::Data>) -> StateReturn {
@@ -119,58 +119,63 @@ impl State for PlayerState {
 impl PlayerState {
     // TODO: apply change
     fn logic(&self, god: &mut God) -> Option<DynEvent> {
-        let vi = &god.res.vi;
-        let (select, turn, rest, dir) = (
-            vi.select.is_pressed(),
-            vi.turn.is_pressed(),
-            vi.rest.is_pressed(),
-            vi.dir.dir8_down(),
-        );
-
-        let entity = self.entity.unwrap();
-
-        if select {
-            return Some(Box::new(Interact { entity, dir: None }));
-        }
-
-        if turn {
-            if let Some(dir) = self::find_only_neighbor(entity, god.sys.model()) {
-                let chg = chg::DirChange {
-                    entity,
-                    dir,
-                    kind: chg::DirChangeKind::Smooth,
-                };
-
-                // NOTE: DirChange is visualized automatically!
-                god.sys
-                    .make_immediate_change(&mut god.gui.vm, &chg.upcast());
-            }
-        }
-
-        if rest {
-            let ev = RestOneTurn { entity };
-            return Some(Box::new(ev));
-        }
-
-        if let Some(dir) = dir {
-            if god.res.vi.turn.is_down() {
-                // change direction without consuming turn
-                let chg = chg::DirChange {
-                    entity,
-                    dir,
-                    kind: chg::DirChangeKind::Smooth,
-                };
-
-                // NOTE: DirChange is visualized automatically!
-                god.sys
-                    .make_immediate_change(&mut god.gui.vm, &chg.upcast());
-            } else {
-                // walk
-                let ev = PlayerWalk { entity, dir };
-                return Some(Box::new(ev));
-            };
-        }
-
-        None
+        let ent = self.ent.unwrap();
+        self::player_system(ent, &god.res.vi, &god.sys, &god.gui)
     }
+}
+
+fn player_system(
+    ent: Index<EntityModel>,
+    vi: &VInput,
+    sys: &GameSystem,
+    gui: &Gui,
+) -> Option<DynEvent> {
+    let (select, turn, rest, dir) = (
+        vi.select.is_pressed(),
+        vi.turn.is_pressed(),
+        vi.rest.is_pressed(),
+        vi.dir.dir8_down(),
+    );
+
+    if select {
+        return Some(Box::new(Interact { ent, dir: None }));
+    }
+
+    if turn {
+        if let Some(dir) = self::find_only_neighbor(ent, sys.mdl()) {
+            let chg = chg::DirChange {
+                ent,
+                dir,
+                kind: chg::DirChangeKind::Smooth,
+            };
+
+            // NOTE: DirChange is visualized automatically!
+            sys.make_immediate_change(&mut gui.vm, &chg.upcast());
+        }
+    }
+
+    if rest {
+        let ev = RestOneTurn { ent };
+        return Some(Box::new(ev));
+    }
+
+    if let Some(dir) = dir {
+        if vi.turn.is_down() {
+            // change direction without consuming turn
+            let chg = chg::DirChange {
+                ent,
+                dir,
+                kind: chg::DirChangeKind::Smooth,
+            };
+
+            // NOTE: DirChange is visualized automatically!
+            sys.make_immediate_change(&mut gui.vm, &chg.upcast());
+        } else {
+            // walk
+            let ev = PlayerWalk { ent, dir };
+            return Some(Box::new(ev));
+        };
+    }
+
+    None
 }

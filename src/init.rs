@@ -41,7 +41,7 @@ pub fn init() -> Result<(Platform, SnowRl)> {
     let ice = self::gen_ice(init.w, init.h, asset_root)?;
     let mut data = self::gen_data(init.w, init.h, ice, &platform)?;
     let fsm = self::gen_fsm(&mut data)?;
-    let world_render = WorldRenderer::new([init.w, init.h], &data.ice.snow.clock);
+    let world_render = WorldRenderer::new([init.w, init.h], &data.ice.gfx.clock);
 
     Ok((
         platform,
@@ -94,8 +94,8 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<God> {
     let mut res = init_res(&mut ice, Ui::new())?;
     let gui = init_world([w, h], &mut ice, &mut res.ui)?;
 
-    let model = gui.vm.clone();
-    let mut system = GameSystem::new(model);
+    let mdl = gui.vm.clone();
+    let mut system = GameSystem::new(mdl);
     init_system(&mut system);
 
     return Ok(God {
@@ -137,7 +137,7 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<God> {
         });
 
         fn load_fonts(ice: &mut Ice) -> Fonts {
-            ice.snow.fontbook.tex.set_size(consts::DEFAULT_FONT_SIZE);
+            ice.gfx.fontbook.tex.set_size(consts::DEFAULT_FONT_SIZE);
             // line_spacing: crate::consts::DEFAULT_LINE_SPACE,
 
             Fonts {
@@ -161,7 +161,7 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<God> {
                         italic: None,
                     };
 
-                    ice.snow.fontbook.load_family(&family_desc).unwrap()
+                    ice.gfx.fontbook.load_family(&family_desc).unwrap()
                 },
             }
         }
@@ -180,16 +180,16 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<God> {
     }
 
     fn init_world(screen_size: [u32; 2], ice: &mut Ice, ui: &mut Ui) -> anyhow::Result<Gui> {
-        let (map_view, map_model) = view::map::load_tiled(paths::map::tmx::TILES, &mut ice.assets)?;
+        let (map_view, map_mdl) = view::map::load_tiled(paths::map::tmx::TILES, &mut ice.assets)?;
 
-        let mut model = Model::default();
-        model.map = map_model;
+        let mut mdl = Model::default();
+        mdl.map = map_mdl;
 
         let radius = [consts::FOV_R, 10];
-        let map_size = model.map.size;
+        let map_size = mdl.map.size;
 
         let mut gui = Gui {
-            vm: model,
+            vm: mdl,
             cam: Camera2d {
                 params: Transform2dParams {
                     pos: [200.0, 20.0].into(),
@@ -213,7 +213,7 @@ fn gen_data(w: u32, h: u32, mut ice: Ice, platform: &Platform) -> Result<God> {
             },
             map: map_view,
             shadow: Shadow::new(radius, map_size, consts::WALK_SECS, consts::FOV_EASE),
-            evs: Arena::with_capacity(20),
+            actors: Arena::with_capacity(20),
         };
 
         snow2d::asset::guarded(&mut ice.assets, |_cache| {

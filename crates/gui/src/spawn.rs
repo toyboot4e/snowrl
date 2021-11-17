@@ -77,15 +77,15 @@ impl ActorSpawn {
     pub fn spawn_to_gui(&self, gui: &mut Gui, ui: &mut Ui) -> anyhow::Result<Index<ActorView>> {
         let type_ = ActorType::from_type_key(&self.type_id)?;
 
-        let model = {
-            let actor_model = EntityModel {
+        let mdl = {
+            let actor_mdl = EntityModel {
                 pos: self.pos,
                 dir: self.dir,
                 stats: type_.stats.clone(),
                 relation: self.relation,
                 ai: type_.ai.clone(),
             };
-            gui.vm.entities.insert(actor_model)
+            gui.vm.entities.insert(actor_mdl)
         };
 
         let mut view = {
@@ -96,7 +96,7 @@ impl ActorSpawn {
 
             let nodes = ActorNodes::new(ui, UiLayer::Actors.to_layer(), img.sprite());
 
-            ActorView { model, img, nodes }
+            ActorView { mdl, img, nodes }
         };
 
         view.img.warp(self.pos, self.dir);
