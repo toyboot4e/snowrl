@@ -106,7 +106,7 @@ impl State for PlayerState {
     }
 
     fn update(&mut self, god: &mut God, _cell: &StateCell<Self::Data>) -> StateReturn {
-        if let Some(ev) = self.logic(god) {
+        if let Some(ev) = self.update_logic(god) {
             // TODO: Come back when it doesn't consume turn by looking into the tree?
             god.sys.publish(ev);
             StateReturn::ThisFrame(vec![StateCommand::Pop])
@@ -118,17 +118,17 @@ impl State for PlayerState {
 
 impl PlayerState {
     // TODO: apply change
-    fn logic(&self, god: &mut God) -> Option<DynEvent> {
+    fn update_logic(&self, god: &mut God) -> Option<DynEvent> {
         let ent = self.ent.unwrap();
-        self::player_system(ent, &god.res.vi, &god.sys, &god.gui)
+        self::player_system(ent, &god.res.vi, &mut god.sys, &mut god.gui)
     }
 }
 
 fn player_system(
     ent: Index<EntityModel>,
     vi: &VInput,
-    sys: &GameSystem,
-    gui: &Gui,
+    sys: &mut GameSystem,
+    gui: &mut Gui,
 ) -> Option<DynEvent> {
     let (select, turn, rest, dir) = (
         vi.select.is_pressed(),
