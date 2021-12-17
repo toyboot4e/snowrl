@@ -73,20 +73,12 @@ fn gen_ice(w: u32, h: u32, asset_root: asset::AssetRoot) -> Result<Ice> {
     return Ok(ice);
 
     fn init_assets(ice: &mut Ice) -> anyhow::Result<()> {
-        // load type objects
-        load_type_objects(ice)?;
-
-        return Ok(());
-
-        fn load_type_objects(ice: &mut Ice) -> anyhow::Result<()> {
-            tyobj::storage_builder(&mut ice.assets)
-                .unwrap()
-                .add::<ActorImageType, &AssetKey<'static>>(paths::types::actors::ACTOR_IMAGES)?
-                .add::<ActorType, &AssetKey<'static>>(paths::types::actors::ACTOR_TYPES)?
-                .add::<DirAnimType, &AssetKey<'static>>(paths::types::ANIM_TYPES)?;
-
-            Ok(())
-        }
+        tyobj::storage_builder(&mut ice.assets)
+            .unwrap()
+            .add::<ActorImageType, &AssetKey<'static>>(paths::types::actors::ACTOR_IMAGES)?
+            .add::<ActorType, &AssetKey<'static>>(paths::types::actors::ACTOR_TYPES)?
+            .add::<DirAnimType, &AssetKey<'static>>(paths::types::ANIM_TYPES)?;
+        Ok(())
     }
 }
 
